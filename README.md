@@ -1,7 +1,7 @@
 # Recuvarilla — Landing
 
 Landing page de Recuvarilla, empresa dedicada a la producción y venta de
-varillas para el campo elaboradas con material recuperado.
+varillas para el campo elaboradas con material recuperado de polipropileno.
 
 ## Stack
 
