@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { useNearViewport, useScrollProgress } from '../hooks/useScrollProgress'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 import { STORY_CHAPTERS, chapterIndexAt } from '../data/storyChapters'
 
 // La escena carga aparte para que three.js no pese en el bundle inicial.
@@ -14,21 +15,6 @@ const RodScene = lazy(() => import('../three/RodScene'))
  * valor escrito literal en el código para generar la clase.
  */
 const SECTION_HEIGHT_VH = 350
-
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(false)
-
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setReduced(query.matches)
-
-    const onChange = (event) => setReduced(event.matches)
-    query.addEventListener('change', onChange)
-    return () => query.removeEventListener('change', onChange)
-  }, [])
-
-  return reduced
-}
 
 function RodStory() {
   const { targetRef, progressRef } = useScrollProgress()

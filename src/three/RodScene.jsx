@@ -35,6 +35,24 @@ const MOLD_FACE_X = -0.3
 const HOLE_HEIGHTS = [1, 2, 3, 4]
 
 /**
+ * Las varillas del tramo de cerca. La del centro es la que seguimos durante
+ * toda la historia; las otras dos bajan a su lugar una vez que quedó plantada.
+ * Los postes están en ±3,2, así que estas tres reparten el vano en cuatro.
+ */
+const COMPANION_ROD_XS = [-1.6, 1.6]
+
+/**
+ * Traduce una fracción del capítulo de la cerca a progreso absoluto.
+ *
+ * En ese capítulo pasan cuatro cosas seguidas (postes, varilla protagonista,
+ * varillas restantes y alambres) y tienen que entrar en orden. Escribirlas como
+ * fracciones deja ver la coreografía de un vistazo y sobrevive a que se mueva
+ * el tramo del capítulo.
+ */
+const fenceAt = (t) =>
+  CHAPTERS.fence[0] + (CHAPTERS.fence[1] - CHAPTERS.fence[0]) * t
+
+/**
  * Cuántas veces se repite la textura a lo largo de la varilla. Con la
  * proporción 1:40 una repetición cuadrada daría 40 baldosas diminutas, así que
  * usamos menos y quedan estiradas a lo largo: es justo lo que le pasa a las
@@ -359,7 +377,8 @@ function Rod({ progressRef }) {
     const progress = progressRef.current
     const extrude = stage(progress, CHAPTERS.mold[0], CHAPTERS.mold[1])
     const drill = stage(progress, CHAPTERS.drill[0], CHAPTERS.drill[1])
-    const place = stage(progress, CHAPTERS.fence[0], CHAPTERS.fence[1])
+    // Se planta en la primera mitad del capítulo: después entran las otras dos.
+    const place = stage(progress, fenceAt(0), fenceAt(0.5))
 
     // Crece a lo largo de su eje, empujada por el molde.
     growY(body, extrude)
@@ -415,6 +434,65 @@ function Rod({ progressRef }) {
           </mesh>
         ))}
       </group>
+    </group>
+  )
+}
+
+/**
+ * Las otras dos varillas del tramo, ya terminadas y perforadas. Bajan a su
+ * lugar escalonadas, después de que la protagonista quedó plantada.
+ */
+function FenceRods({ progressRef }) {
+  const groupRef = useRef(null)
+
+  // Un juego de mapas por varilla, corridos entre sí: comparten la textura
+  // pero no arrancan en el mismo punto, así no se ven clonadas.
+  const skins = useMemo(
+    () =>
+      COMPANION_ROD_XS.map((_, index) => {
+        const maps = repeated(rodPlasticMaps(), 1, ROD_TILES)
+        for (const key of Object.keys(maps)) maps[key].offset.set(0, index * 0.37)
+        return maps
+      }),
+    [],
+  )
+
+  useFrame(() => {
+    const group = groupRef.current
+    if (!group) return
+
+    const progress = progressRef.current
+
+    group.children.forEach((rod, index) => {
+      const drop = stage(progress, fenceAt(0.46 + index * 0.12), fenceAt(0.72 + index * 0.12))
+      rod.visible = drop > 0.002
+      // Descienden desde arriba hasta calzar entre los postes.
+      rod.position.y = -ROD_LENGTH / 2 + (1 - drop) * 3.4
+    })
+  })
+
+  return (
+    <group ref={groupRef}>
+      {COMPANION_ROD_XS.map((x, index) => (
+        <group key={x} position={[x, -ROD_LENGTH / 2, 0]}>
+          <mesh position={[0, ROD_LENGTH / 2, 0]} castShadow>
+            <boxGeometry args={[ROD_SIDE, ROD_LENGTH, ROD_SIDE]} />
+            <meshStandardMaterial
+              {...skins[index]}
+              normalScale={[0.6, 0.6]}
+              roughness={0.92}
+              metalness={0}
+            />
+          </mesh>
+
+          {HOLE_HEIGHTS.map((height) => (
+            <mesh key={height} position={[0, height, 0]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.035, 0.035, ROD_SIDE * 1.6, 12]} />
+              <meshStandardMaterial color="#14130f" roughness={0.95} />
+            </mesh>
+          ))}
+        </group>
+      ))}
     </group>
   )
 }
@@ -481,8 +559,9 @@ function Fence({ progressRef }) {
     if (!posts || !wires) return
 
     const progress = progressRef.current
-    const raise = stage(progress, CHAPTERS.fence[0], CHAPTERS.fence[0] + 0.08)
-    const thread = stage(progress, CHAPTERS.fence[0] + 0.07, CHAPTERS.fence[1])
+    // Los alambres se enhebran al final, cuando ya están las tres varillas.
+    const raise = stage(progress, fenceAt(0), fenceAt(0.35))
+    const thread = stage(progress, fenceAt(0.84), fenceAt(1))
 
     posts.children.forEach((post) => growY(post, raise))
     wires.children.forEach((w) => growY(w, thread))
@@ -651,6 +730,7 @@ function RodScene({ progressRef }) {
       <Bottles progressRef={progressRef} />
       <Machine progressRef={progressRef} />
       <Rod progressRef={progressRef} />
+      <FenceRods progressRef={progressRef} />
       <Drills progressRef={progressRef} />
       <Fence progressRef={progressRef} />
       <CameraRig progressRef={progressRef} />

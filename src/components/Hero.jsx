@@ -1,19 +1,57 @@
+import { Suspense, lazy } from 'react'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 import { company } from '../data/siteContent'
 
-function Hero() {
-  return (
-    <section id="inicio" className="relative overflow-hidden bg-secondary-900">
-      <div className="absolute inset-0 opacity-20 [background:repeating-linear-gradient(115deg,theme(colors.primary.400)_0px,theme(colors.primary.400)_2px,transparent_2px,transparent_40px)]" />
+// Igual que la historia del scroll: three.js va en su propio trozo para no
+// pesar en la primera carga. Comparten el mismo chunk, así que el segundo en
+// pedirlo no descarga nada nuevo.
+const RodViewer = lazy(() => import('../three/RodViewer'))
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 sm:py-32 grid lg:grid-cols-2 gap-12 items-center">
-        <div>
-          <span className="inline-block rounded-full bg-primary-400/15 px-3 py-1 text-xs font-semibold tracking-wide text-primary-300 uppercase">
+function Hero() {
+  const reducedMotion = useReducedMotion()
+
+  return (
+    <section
+      id="inicio"
+      className="relative isolate flex min-h-[34rem] items-center overflow-hidden bg-steel-50 sm:min-h-[40rem] lg:min-h-[46rem]"
+    >
+      {/* La trama de marca, muy tenue: sobre fondo claro tapa enseguida. */}
+      <div className="absolute inset-0 opacity-[0.07] [background:repeating-linear-gradient(115deg,theme(colors.steel.500)_0px,theme(colors.steel.500)_2px,transparent_2px,transparent_40px)]" />
+
+      {/* Apenas de color de marca detrás de las varillas, para que el claro no quede lavado. */}
+      <div className="absolute inset-0 [background:radial-gradient(58%_55%_at_64%_45%,rgba(108,172,228,0.14),transparent_70%)]" />
+
+      {/* Las varillas ocupan el hero entero y quedan detrás del texto. */}
+      <div className="absolute inset-0">
+        <Suspense fallback={null}>
+          <RodViewer spin={!reducedMotion} />
+        </Suspense>
+      </div>
+
+      {/*
+        Velo que garantiza la lectura del texto. Sobre fondo claro aclara en vez
+        de oscurecer, así las varillas se desvanecen hacia el lado del texto.
+
+        Los cortes van escritos a mano y no con `via`, porque `via` planta el
+        punto medio en el 50% exacto: sobre pantalla ancha eso deja el centro
+        cubierto por un velo casi opaco y las varillas se ven blancas. Acá ya
+        está transparente al 62%, pasando apenas el ancho del texto.
+      */}
+      <div className="pointer-events-none absolute inset-0 [background:linear-gradient(to_top,rgb(245,246,247)_0%,rgb(245,246,247)_24%,rgba(245,246,247,0.84)_48%,rgba(245,246,247,0.3)_72%,transparent_88%)] lg:[background:linear-gradient(to_right,rgb(245,246,247)_0%,rgb(245,246,247)_20%,rgba(245,246,247,0.68)_34%,rgba(245,246,247,0.2)_50%,transparent_62%)]" />
+
+      {/*
+        El texto no captura el puntero para que se puedan agarrar las varillas
+        desde cualquier parte del hero; sólo los botones vuelven a capturarlo.
+      */}
+      <div className="pointer-events-none relative mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
+        <div className="max-w-xl">
+          <span className="inline-block rounded-full bg-secondary-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-secondary-600">
             Material recuperado · Uso rural
           </span>
-          <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+          <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight text-steel-900 sm:text-5xl lg:text-6xl">
             Varillas resistentes para el campo, con material recuperado
           </h1>
-          <p className="mt-5 text-lg text-steel-200 max-w-xl">
+          <p className="mt-5 max-w-lg text-lg text-steel-500">
             En {company.name} producimos y comercializamos varillas de plástico
             recuperado para alambrados y cercos rurales: no se oxidan ni se
             pudren, cuestan menos y le dan una segunda vida al material.
@@ -21,27 +59,23 @@ function Hero() {
           <div className="mt-8 flex flex-wrap gap-4">
             <a
               href="#contacto"
-              className="inline-flex items-center rounded-md bg-primary-400 px-6 py-3 text-sm font-semibold text-secondary-900 hover:bg-primary-300 transition-colors"
+              className="pointer-events-auto inline-flex items-center rounded-md bg-secondary-500 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-secondary-600"
             >
               Solicitar presupuesto
             </a>
             <a
               href="#productos"
-              className="inline-flex items-center rounded-md border border-steel-200/30 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+              className="pointer-events-auto inline-flex items-center rounded-md border border-steel-300 px-6 py-3 text-sm font-semibold text-steel-700 transition-colors hover:bg-steel-100"
             >
               Ver productos
             </a>
           </div>
         </div>
-
-        <div className="relative">
-          <div className="aspect-[4/3] w-full rounded-xl border border-white/10 bg-steel-800/60 flex items-center justify-center">
-            <span className="text-steel-400 text-sm px-6 text-center">
-              [ Imagen de varillas / alambrado en campo — reemplazar por foto real ]
-            </span>
-          </div>
-        </div>
       </div>
+
+      <span className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-xs text-steel-400">
+        Arrastrá para ver una varilla en detalle · doble clic para volver al alambrado
+      </span>
     </section>
   )
 }

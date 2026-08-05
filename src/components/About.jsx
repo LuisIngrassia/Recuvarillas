@@ -9,9 +9,9 @@ function About() {
     <section id="nosotros" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
       <div className="grid lg:grid-cols-2 gap-12 items-center">
         <div className="aspect-[4/3] w-full rounded-xl bg-steel-100 flex items-center justify-center order-last lg:order-first">
-          <span className="text-steel-400 text-sm px-6 text-center">
-            [ Imagen de planta / proceso de recuperación — reemplazar por foto real ]
-          </span>
+          <img src="stock.png" alt="Stock" className="text-steel-400 text-sm px-6 text-center">
+            
+          </img>
         </div>
 
         <div>
