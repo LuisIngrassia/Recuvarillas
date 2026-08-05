@@ -13,7 +13,12 @@ function Hero() {
   return (
     <section
       id="inicio"
-      className="relative isolate flex min-h-[34rem] items-center overflow-hidden bg-steel-50 sm:min-h-[40rem] lg:min-h-[46rem]"
+      /*
+        Hasta lg el texto se apoya abajo y el alambrado se queda con la franja
+        de arriba: sobre pantalla angosta no hay lugar para ponerlos uno al lado
+        del otro, y superpuestos el texto lo tapa entero.
+      */
+      className="relative isolate flex min-h-[40rem] items-end overflow-hidden bg-steel-50 lg:min-h-[46rem] lg:items-center"
     >
       {/* La trama de marca, muy tenue: sobre fondo claro tapa enseguida. */}
       <div className="absolute inset-0 opacity-[0.07] [background:repeating-linear-gradient(115deg,theme(colors.steel.500)_0px,theme(colors.steel.500)_2px,transparent_2px,transparent_40px)]" />
@@ -37,13 +42,13 @@ function Hero() {
         cubierto por un velo casi opaco y las varillas se ven blancas. Acá ya
         está transparente al 62%, pasando apenas el ancho del texto.
       */}
-      <div className="pointer-events-none absolute inset-0 [background:linear-gradient(to_top,rgb(245,246,247)_0%,rgb(245,246,247)_24%,rgba(245,246,247,0.84)_48%,rgba(245,246,247,0.3)_72%,transparent_88%)] lg:[background:linear-gradient(to_right,rgb(245,246,247)_0%,rgb(245,246,247)_20%,rgba(245,246,247,0.68)_34%,rgba(245,246,247,0.2)_50%,transparent_62%)]" />
+      <div className="pointer-events-none absolute inset-0 [background:linear-gradient(to_top,rgb(245,246,247)_0%,rgb(245,246,247)_34%,rgba(245,246,247,0.72)_50%,rgba(245,246,247,0.22)_62%,transparent_72%)] lg:[background:linear-gradient(to_right,rgb(245,246,247)_0%,rgb(245,246,247)_20%,rgba(245,246,247,0.68)_34%,rgba(245,246,247,0.2)_50%,transparent_62%)]" />
 
       {/*
         El texto no captura el puntero para que se puedan agarrar las varillas
         desde cualquier parte del hero; sólo los botones vuelven a capturarlo.
       */}
-      <div className="pointer-events-none relative mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
+      <div className="pointer-events-none relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-24">
         <div className="max-w-xl">
           <span className="inline-block rounded-full bg-secondary-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-secondary-600">
             Material recuperado · Uso rural
@@ -73,7 +78,15 @@ function Hero() {
         </div>
       </div>
 
-      <span className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-xs text-steel-400">
+      {/*
+        La pista va arriba en celular, sobre el alambrado: abajo chocaría con el
+        texto. Y el gesto es distinto, porque en táctil el arrastre queda
+        reservado para scrollear la página.
+      */}
+      <span className="pointer-events-none absolute inset-x-0 top-20 text-center text-xs text-steel-400 lg:hidden">
+        Tocá el alambrado para ver una varilla en detalle
+      </span>
+      <span className="pointer-events-none absolute inset-x-0 bottom-4 hidden text-center text-xs text-steel-400 lg:block">
         Arrastrá para ver una varilla en detalle · doble clic para volver al alambrado
       </span>
     </section>

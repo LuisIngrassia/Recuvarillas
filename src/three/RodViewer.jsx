@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { clamp01, lerp } from './storyMath'
+import { useCoarsePointer } from '../hooks/useCoarsePointer'
 
 const MODEL_URL = '/varilla.glb'
 
@@ -43,6 +44,13 @@ const SPIN_SPEED = 0.22
  * encuadre.
  */
 const SINGLE_SHIFT = 0.13
+
+/**
+ * Debajo de este ancho el texto del hero pasa a ocupar la franja de abajo, así
+ * que subimos la escena esa fracción del alto para que no quede tapada.
+ */
+const NARROW_WIDTH = 1024
+const NARROW_RAISE = 0.17
 
 /**
  * El modelo no trae perforaciones: es una barra maciza. Pasamos los alambres
@@ -115,7 +123,8 @@ function Fence({ spin, modeRef }) {
   const spinRefs = useRef([])
   const wiresRef = useRef(null)
   const blend = useRef(0)
-  const shift = useRef(0)
+  const offsetX = useRef(0)
+  const offsetY = useRef(0)
 
   const models = useMemo(
     () => Array.from({ length: FENCE_RODS }, () => base.clone(true)),
@@ -173,19 +182,29 @@ function Fence({ spin, modeRef }) {
     }
 
     /*
-      Corrimiento del encuadre. El desplazamiento va al revés de lo que se
-      mueve la varilla: correr la ventana de proyección hacia la izquierda
-      (valor negativo) es lo que la deja a la derecha del centro.
+      Encuadre. En pantallas anchas corremos la varilla sola hacia la derecha
+      del centro: el desplazamiento va al revés de lo que se mueve la varilla,
+      así que el valor es negativo. En angostas no la corremos —no hay lugar—
+      pero subimos la escena entera, porque ahí el texto ocupa la franja de
+      abajo y si no el alambrado queda detrás.
 
       Sólo lo reescribimos cuando cambió de verdad, porque setViewOffset
       recalcula la matriz de proyección.
     */
     const { camera, size } = state
-    const wanted = -size.width * SINGLE_SHIFT * ease
-    if (Math.abs(wanted - shift.current) > 0.5) {
-      shift.current = wanted
-      if (Math.abs(wanted) < 0.5) camera.clearViewOffset()
-      else camera.setViewOffset(size.width, size.height, wanted, 0, size.width, size.height)
+    const narrow = size.width < NARROW_WIDTH
+    const wantX = narrow ? 0 : -size.width * SINGLE_SHIFT * ease
+    const wantY = narrow ? size.height * NARROW_RAISE : 0
+
+    if (
+      Math.abs(wantX - offsetX.current) > 0.5 ||
+      Math.abs(wantY - offsetY.current) > 0.5
+    ) {
+      offsetX.current = wantX
+      offsetY.current = wantY
+
+      if (Math.abs(wantX) < 0.5 && Math.abs(wantY) < 0.5) camera.clearViewOffset()
+      else camera.setViewOffset(size.width, size.height, wantX, wantY, size.width, size.height)
     }
   })
 
@@ -228,28 +247,23 @@ function Fence({ spin, modeRef }) {
 }
 
 /**
- * Devuelve el scroll de la página en el celular.
+ * Mantiene el `touch-action` del canvas en `pan-y` en equipos con mouse.
  *
- * OrbitControls pone `touch-action: none` sobre el canvas, lo que secuestra el
- * gesto de arrastrar y deja al visitante trabado sin poder bajar. Con `pan-y`
- * el navegador se queda con el movimiento vertical (el scroll) y el control
- * recibe el horizontal, que es el que hace girar la varilla.
+ * OrbitControls lo reescribe a `none` cada vez que se conecta, lo que rompe el
+ * scroll vertical en notebooks con pantalla táctil. Lo reafirmamos por frame
+ * porque una sola pasada pierde la carrera contra las reconexiones del control,
+ * y comparar antes de asignar hace que no cueste nada.
+ *
+ * En dispositivos táctiles esto no se usa: allá el canvas directamente no
+ * recibe el puntero.
  */
-function AllowPageScroll() {
+function KeepVerticalScroll() {
   const gl = useThree((state) => state.gl)
 
-  useEffect(() => {
+  useFrame(() => {
     const canvas = gl.domElement
-    const apply = () => {
-      canvas.style.touchAction = 'pan-y'
-    }
-
-    apply()
-    // OrbitControls lo vuelve a pisar al conectarse, así que insistimos una vez
-    // que terminó de montarse.
-    const id = window.setTimeout(apply, 0)
-    return () => window.clearTimeout(id)
-  }, [gl])
+    if (canvas.style.touchAction !== 'pan-y') canvas.style.touchAction = 'pan-y'
+  })
 
   return null
 }
@@ -282,81 +296,111 @@ function RodViewer({ spin = true }) {
   // 0 = alambrado, 1 = varilla sola. Es un ref y no estado porque lo lee el
   // bucle de animación en cada frame y no debe provocar re-renders.
   const modeRef = useRef(0)
+  const coarse = useCoarsePointer()
 
   return (
-    <Canvas
-      camera={{ position: [0.55, 0.2, 2.3], fov: 35 }}
-      dpr={[1, 2]}
-      gl={{ antialias: true, alpha: true }}
-    >
+    <div className="relative h-full w-full">
       {/*
-        Set de estudio armado con geometría, sin depender de ningún HDR externo.
-        Las intensidades son bajas a propósito: el entorno ya ilumina toda la
-        escena, y sumarle ambiente y direccionales fuertes satura el material y
-        lo lava hacia el blanco. La direccional de abajo sólo marca de dónde
-        viene la luz.
+        En táctil el canvas no recibe el puntero, y esa es la clave para que la
+        página siempre se pueda scrollear. Mientras el canvas esté en el camino
+        del dedo, cualquier cosa que la librería haga con `touch-action` o con
+        la captura del puntero puede trabar el gesto, y ganarle esa carrera es
+        frágil. Sin puntero, el dedo es del navegador y no hay nada que romper.
       */}
-      <Environment resolution={256} frames={1}>
-        <Lightformer
-          form="rect"
-          intensity={1.6}
-          position={[0, 4, 2]}
-          scale={[8, 6, 1]}
-          target={[0, 0, 0]}
-        />
-        <Lightformer
-          form="rect"
-          intensity={0.8}
-          position={[-4, 1, 2]}
-          scale={[5, 9, 1]}
-          target={[0, 0, 0]}
-        />
-        <Lightformer
-          form="rect"
-          intensity={1.4}
-          position={[4, 2, -2]}
-          scale={[5, 9, 1]}
-          target={[0, 0, 0]}
-        />
-        {/* Panel angosto: es el que dibuja el reflejo largo sobre el canto. */}
-        <Lightformer
-          form="rect"
-          intensity={3}
-          position={[1.6, 0, 3]}
-          scale={[0.6, 9, 1]}
-          target={[0, 0, 0]}
-        />
-      </Environment>
+      <div className={`h-full w-full ${coarse ? 'pointer-events-none' : ''}`}>
+        <Canvas
+          camera={{ position: [0.55, 0.2, 2.3], fov: 35 }}
+          dpr={[1, 2]}
+          gl={{ antialias: true, alpha: true }}
+        >
+          {/*
+            Set de estudio armado con geometría, sin depender de ningún HDR
+            externo. Las intensidades son bajas a propósito: el entorno ya
+            ilumina toda la escena, y sumarle ambiente y direccionales fuertes
+            satura el material y lo lava hacia el blanco. La direccional de
+            abajo sólo marca de dónde viene la luz.
+          */}
+          <Environment resolution={256} frames={1}>
+            <Lightformer
+              form="rect"
+              intensity={1.6}
+              position={[0, 4, 2]}
+              scale={[8, 6, 1]}
+              target={[0, 0, 0]}
+            />
+            <Lightformer
+              form="rect"
+              intensity={0.8}
+              position={[-4, 1, 2]}
+              scale={[5, 9, 1]}
+              target={[0, 0, 0]}
+            />
+            <Lightformer
+              form="rect"
+              intensity={1.4}
+              position={[4, 2, -2]}
+              scale={[5, 9, 1]}
+              target={[0, 0, 0]}
+            />
+            {/* Panel angosto: dibuja el reflejo largo sobre el canto. */}
+            <Lightformer
+              form="rect"
+              intensity={3}
+              position={[1.6, 0, 3]}
+              scale={[0.6, 9, 1]}
+              target={[0, 0, 0]}
+            />
+          </Environment>
 
-      <directionalLight position={[3, 4, 3]} intensity={0.8} />
+          <directionalLight position={[3, 4, 3]} intensity={0.8} />
 
-      <Suspense fallback={null}>
-        <Fence spin={spin} modeRef={modeRef} />
-      </Suspense>
+          <Suspense fallback={null}>
+            <Fence spin={spin} modeRef={modeRef} />
+          </Suspense>
 
-      <OrbitControls
-        ref={controlsRef}
-        makeDefault
-        target={[0, 0, 0]}
-        // Cualquier gesto pasa a la varilla sola.
-        onStart={() => {
-          modeRef.current = 1
-        }}
-        enableDamping
-        dampingFactor={0.08}
-        enablePan
-        /*
-          Sin zoom: el canvas cubre el hero entero, así que si la rueda acerca
-          la varilla el visitante no puede bajar la página. OrbitControls, con
-          esto en false, ni siquiera intercepta el evento y el scroll sigue de
-          largo al navegador.
-        */
-        enableZoom={false}
-      />
+          <OrbitControls
+            ref={controlsRef}
+            makeDefault
+            target={[0, 0, 0]}
+            // En táctil no se usa: allá el canvas ni siquiera recibe el puntero.
+            enabled={!coarse}
+            // Cualquier gesto pasa a la varilla sola.
+            onStart={() => {
+              modeRef.current = 1
+            }}
+            enableDamping
+            dampingFactor={0.08}
+            enablePan
+            /*
+              Sin zoom: el canvas cubre el hero entero, así que si la rueda
+              acerca la varilla el visitante no puede bajar la página. Con esto
+              en false OrbitControls ni siquiera intercepta el evento.
+            */
+            enableZoom={false}
+          />
 
-      <AllowPageScroll />
-      <ResetOnDoubleClick controlsRef={controlsRef} modeRef={modeRef} />
-    </Canvas>
+          {!coarse && <KeepVerticalScroll />}
+          <ResetOnDoubleClick controlsRef={controlsRef} modeRef={modeRef} />
+        </Canvas>
+      </div>
+
+      {/*
+        El toque vuelve por un botón común encima del canvas. Un botón recibe el
+        clic sin interferir con el scroll: si el dedo arrastra, el navegador
+        scrollea y directamente no dispara el clic. Es comportamiento nativo, no
+        hay gestos que arbitrar.
+      */}
+      {coarse && (
+        <button
+          type="button"
+          aria-label="Alternar entre el alambrado y una varilla en detalle"
+          onClick={() => {
+            modeRef.current = modeRef.current > 0.5 ? 0 : 1
+          }}
+          className="absolute inset-0 cursor-default"
+        />
+      )}
+    </div>
   )
 }
 
