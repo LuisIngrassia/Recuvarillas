@@ -20,6 +20,7 @@ export const navLinks = [
   { label: 'Inicio', href: '#inicio' },
   { label: 'Nosotros', href: '#nosotros' },
   { label: 'Productos', href: '#productos' },
+  { label: 'Presupuesto', href: '#presupuesto' },
   { label: 'La historia', href: '#proceso' },
   { label: 'Por qué elegirnos', href: '#beneficios' },
   { label: 'Contacto', href: '#contacto' },

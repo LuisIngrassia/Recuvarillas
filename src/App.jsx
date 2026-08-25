@@ -2,6 +2,7 @@ import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import About from './components/About'
 import Products from './components/Products'
+import QuoteSimulator from './components/QuoteSimulator'
 import RodStory from './components/RodStory'
 import Benefits from './components/Benefits'
 import Testimonials from './components/Testimonials'
@@ -16,6 +17,7 @@ function App() {
         <Hero />
         <About />
         <Products />
+        <QuoteSimulator />
         <RodStory />
         <Benefits />
         <Testimonials />

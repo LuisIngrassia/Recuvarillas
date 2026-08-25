@@ -5,11 +5,23 @@ function Navbar() {
   const [open, setOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-steel-100">
+    <header className="sticky top-0 z-50 bg-white backdrop-blur border-b border-steel-100">
       <nav className="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
-        <a href="#inicio" className="flex items-center gap-2 font-bold text-lg text-secondary-500">
-          <span className="inline-block w-3 h-8 bg-primary-400 rounded-sm" />
-          {company.name}
+        {/*
+          El logo ya trae el nombre, así que no lo repetimos al lado. El alt
+          cumple ese papel para lectores de pantalla y buscadores.
+
+          Las medidas van explícitas para que el navegador reserve el lugar
+          antes de que baje la imagen y la barra no pegue un salto al cargar.
+        */}
+        <a href="#inicio" className="flex items-center">
+          <img
+            src="/logo.png"
+            alt={company.name}
+            width={366}
+            height={200}
+            className="h-11 w-auto"
+          />
         </a>
 
         <ul className="hidden md:flex items-center gap-8 text-sm font-medium text-steel-600">

@@ -20,9 +20,6 @@ function Hero() {
       */
       className="relative isolate flex min-h-[40rem] items-end overflow-hidden bg-steel-50 lg:min-h-[46rem] lg:items-center"
     >
-      {/* La trama de marca, muy tenue: sobre fondo claro tapa enseguida. */}
-      <div className="absolute inset-0 opacity-[0.07] [background:repeating-linear-gradient(115deg,theme(colors.steel.500)_0px,theme(colors.steel.500)_2px,transparent_2px,transparent_40px)]" />
-
       {/* Apenas de color de marca detrás de las varillas, para que el claro no quede lavado. */}
       <div className="absolute inset-0 [background:radial-gradient(58%_55%_at_64%_45%,rgba(108,172,228,0.14),transparent_70%)]" />
 
