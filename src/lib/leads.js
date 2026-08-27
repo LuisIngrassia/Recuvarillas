@@ -8,7 +8,7 @@
  * Mientras la URL esté vacía el simulador funciona igual: sólo no queda
  * registro de los contactos.
  */
-export const LEADS_ENDPOINT = ''
+export const LEADS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxvIKQjA0OYAZPCDZSPJ-H25RhsIYSwsFFuhec77QHgdVat2cMVSVtJ1iLPtx7mzWlE/exec'
 
 /**
  * Manda un presupuesto a la planilla.
