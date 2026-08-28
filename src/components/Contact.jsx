@@ -20,7 +20,7 @@ function Contact() {
   }
 
   return (
-    <section id="contacto" className="bg-steel-50 py-20">
+    <section id="contacto" className="border-t border-steel-200 bg-steel-50 py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12">
         <div>
           <span className="text-sm font-semibold uppercase tracking-wide text-secondary-500">

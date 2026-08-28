@@ -18,11 +18,10 @@ export const company = {
 
 export const navLinks = [
   { label: 'Inicio', href: '#inicio' },
-  { label: 'Nosotros', href: '#nosotros' },
   { label: 'Productos', href: '#productos' },
   { label: 'Presupuesto', href: '#presupuesto' },
-  { label: 'La historia', href: '#proceso' },
-  { label: 'Por qué elegirnos', href: '#beneficios' },
+  { label: 'Proceso', href: '#proceso' },
+  { label: 'Nosotros', href: '#nosotros' },
   { label: 'Contacto', href: '#contacto' },
 ]
 
@@ -31,13 +30,33 @@ export const products = [
     name: 'Varilla estándar para alambrado',
     description:
       'Varilla de plástico recuperado apta para tejidos y alambrados perimetrales, con perforaciones a medida.',
-    specs: ['Largo: 120 cm', 'Dimensiones: 3 x 3 cm ', 'Uso: alambrados y cercos'],
+    specs: ['Largo: 120 cm', 'Dimensiones: 3 x 3 cm ', 'Uso: alambrados y cercos eléctricos'],
+    // Arranca siempre con una foto y no con un video: el carrusel reproduce lo
+    // que está a la vista, y la sección cae debajo del pliegue, así que un
+    // video primero se pondría a correr sin que nadie lo esté mirando.
+    media: [
+      { type: 'video', src: 'videos/comun-vid.mp4', poster: 'videos/comun-vid-poster.jpg' },
+      { type: 'image', src: 'varilla-sa.jpg' },
+      { type: 'image', src: 'stock.png' },
+    ],
+    datasheet: 'fichas/varilla-estandar.pdf',
   },
   {
     name: 'Varilla estandar perforada a medida',
     description:
       'Cortamos, perforamos y adaptamos la varilla según las necesidades del establecimiento.',
-    specs: ['Largo: 120 cm', 'Dimensiones: 3 x 3 cm ', 'Perforaciones a pedido', 'Uso: alambrados y cercos'],
+    specs: ['Largo: 120 cm', 'Dimensiones: 3 x 3 cm ', 'Perforaciones a pedido', 'Uso: alambrados y cercos eléctricos'],
+    media: [
+      {
+        type: 'video',
+        src: 'videos/agujereada-vid.mp4',
+        poster: 'videos/agujereada-vid-poster.jpg',
+      },
+      { type: 'image', src: 'agujereada-cerca.jpg' },
+      { type: 'image', src: 'alambrado-1.jpg' },
+      { type: 'image', src: 'stock.png' },
+    ],
+    datasheet: 'fichas/varilla-perforada.pdf',
   },
 ]
 

@@ -35,7 +35,7 @@ function Navbar() {
         </ul>
 
         <a
-          href="#contacto"
+          href="#presupuesto"
           className="hidden md:inline-flex items-center rounded-md bg-secondary-500 px-4 py-2 text-sm font-semibold text-white hover:bg-secondary-600 transition-colors"
         >
           Pedir presupuesto
@@ -74,7 +74,7 @@ function Navbar() {
             ))}
             <li className="pt-2">
               <a
-                href="#contacto"
+                href="#presupuesto"
                 className="inline-flex w-full items-center justify-center rounded-md bg-secondary-500 px-4 py-2 text-sm font-semibold text-white hover:bg-secondary-600"
                 onClick={() => setOpen(false)}
               >

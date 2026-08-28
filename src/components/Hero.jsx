@@ -47,10 +47,7 @@ function Hero() {
       */}
       <div className="pointer-events-none relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-24">
         <div className="max-w-xl">
-          <span className="inline-block rounded-full bg-secondary-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-secondary-600">
-            Material recuperado · Uso rural
-          </span>
-          <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight text-steel-900 sm:text-5xl lg:text-6xl">
+          <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-steel-900 sm:text-5xl lg:text-6xl">
             Varillas resistentes para el campo, con material recuperado
           </h1>
           <p className="mt-5 max-w-lg text-lg text-steel-500">
@@ -60,7 +57,7 @@ function Hero() {
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             <a
-              href="#contacto"
+              href="#presupuesto"
               className="pointer-events-auto inline-flex items-center rounded-md bg-secondary-500 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-secondary-600"
             >
               Solicitar presupuesto
@@ -76,13 +73,10 @@ function Hero() {
       </div>
 
       {/*
-        La pista va arriba en celular, sobre el alambrado: abajo chocaría con el
-        texto. Y el gesto es distinto, porque en táctil el arrastre queda
-        reservado para scrollear la página.
+        Solo en escritorio: en celular la pista chocaría con el texto y además el
+        gesto no aplica, porque en táctil el arrastre queda reservado para
+        scrollear la página.
       */}
-      <span className="pointer-events-none absolute inset-x-0 top-20 text-center text-xs text-steel-400 lg:hidden">
-        Tocá el alambrado para ver una varilla en detalle
-      </span>
       <span className="pointer-events-none absolute inset-x-0 bottom-4 hidden text-center text-xs text-steel-400 lg:block">
         Arrastrá para ver una varilla en detalle · doble clic para volver al alambrado
       </span>
