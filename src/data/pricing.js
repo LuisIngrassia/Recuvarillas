@@ -17,10 +17,10 @@
  * precio: es el tramo pensado para corralones y agropecuarias.
  */
 export const PRICE_TIERS = [
-  { min: 1, max: 99, plain: 3750, drilled: 4250, kind: 'minorista' },
-  { min: 100, max: 499, plain: 3650, drilled: 4150, kind: 'minorista' },
-  { min: 500, max: 999, plain: 3550, drilled: 4050, kind: 'minorista' },
-  { min: 1000, max: 4999, plain: 2750, drilled: 3000, kind: 'mayorista' },
+  { min: 1, max: 99, plain: 2950, drilled: 3450, kind: 'minorista' },
+  { min: 100, max: 499, plain: 2900, drilled: 3400, kind: 'minorista' },
+  { min: 500, max: 999, plain: 2850, drilled: 3350, kind: 'minorista' },
+  { min: 1000, max: 4999, plain: 2750, drilled: 3250, kind: 'mayorista' },
   { min: 5000, max: Infinity, plain: 2550, drilled: 2800, kind: 'mayorista' },
 ]
 
