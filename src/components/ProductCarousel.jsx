@@ -38,8 +38,18 @@ function Arrow({ direction, onClick }) {
  * El desplazamiento es el scroll horizontal nativo del contenedor, no un
  * `translate`: sale gratis el gesto de swipe en táctil y el trackpad en
  * escritorio, que a mano habría que reimplementar.
+ *
+ * Con `onExpand` la tira se vuelve clicable y suma una lupa: en la tarjeta las
+ * fotos entran chicas y recortadas, y de ahí se salta a verlas enteras.
  */
-function ProductCarousel({ media, alt, className = '' }) {
+function ProductCarousel({
+  media,
+  alt,
+  className = '',
+  paused = false,
+  onIndexChange,
+  onExpand,
+}) {
   const reducedMotion = useReducedMotion()
   const [index, setIndex] = useState(0)
   const [track, setTrack] = useState(null)
@@ -49,7 +59,7 @@ function ProductCarousel({ media, alt, className = '' }) {
   const total = media.length
   // Con movimiento reducido no avanza solo: se pasa a mano y los videos llevan
   // controles.
-  const auto = onScreen && !reducedMotion && total > 1
+  const auto = onScreen && !paused && !reducedMotion && total > 1
 
   const goTo = useCallback(
     (next) => {
@@ -78,7 +88,7 @@ function ProductCarousel({ media, alt, className = '' }) {
   useEffect(() => {
     videos.current.forEach((video, position) => {
       if (!video) return
-      if (position === index && onScreen && !reducedMotion) {
+      if (position === index && onScreen && !paused && !reducedMotion) {
         // Safari rechaza la promesa si el usuario todavía no interactuó; con el
         // video muteado no debería pasar, pero si pasa queda el póster y listo.
         video.play().catch(() => {})
@@ -87,7 +97,13 @@ function ProductCarousel({ media, alt, className = '' }) {
         video.currentTime = 0
       }
     })
-  }, [index, onScreen, reducedMotion])
+  }, [index, onScreen, paused, reducedMotion])
+
+  // La tarjeta necesita saber dónde quedó parada la tira para que la galería
+  // abra en la misma pieza que se estaba viendo, y no siempre en la primera.
+  useEffect(() => {
+    onIndexChange?.(index)
+  }, [index, onIndexChange])
 
   // Las fotos no avisan cuándo terminaron, así que se les pone reloj; los
   // videos no entran acá porque avanzan con `onEnded`. Como el efecto depende
@@ -112,7 +128,9 @@ function ProductCarousel({ media, alt, className = '' }) {
       <div
         ref={setTrack}
         onScroll={onScroll}
-        className="flex h-full w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={`flex h-full w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          onExpand ? 'cursor-zoom-in' : ''
+        }`}
       >
         {media.map((item, i) => {
           const label = total > 1 ? `${alt} (${i + 1} de ${total})` : alt
@@ -153,6 +171,23 @@ function ProductCarousel({ media, alt, className = '' }) {
           )
         })}
       </div>
+
+      {onExpand && (
+        <button
+          type="button"
+          onClick={() => onExpand(index)}
+          aria-label={`Ampliar fotos de ${alt}`}
+          className="absolute right-1.5 top-1.5 inline-flex items-center justify-center rounded-full bg-white/85 p-1 text-steel-700 shadow-sm transition-colors hover:bg-white focus:outline-none focus:ring-2 focus:ring-secondary-500/40"
+        >
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14zM11 8v6M8 11h6"
+            />
+          </svg>
+        </button>
+      )}
 
       {total > 1 && (
         <>
