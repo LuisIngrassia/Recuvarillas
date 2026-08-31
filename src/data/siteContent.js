@@ -47,13 +47,13 @@ export const products = [
       'Cortamos, perforamos y adaptamos la varilla según las necesidades del establecimiento.',
     specs: ['Largo: 120 cm', 'Dimensiones: 3 x 3 cm ', 'Perforaciones a pedido', 'Uso: alambrados y cercos eléctricos'],
     media: [
-      { type: 'image', src: 'agujereada-cerca.jpg' },
+      { type: 'image', src: 'alambrado-1.jpg' },
       {
         type: 'video',
         src: 'videos/agujereada-vid.mp4',
         poster: 'videos/agujereada-vid-poster.jpg',
       },
-      { type: 'image', src: 'alambrado-1.jpg' },
+      { type: 'image', src: 'agujereada-cerca.jpg' },
       { type: 'image', src: 'stock.png' },
     ],
     datasheet: 'fichas/varilla-perforada.pdf',
