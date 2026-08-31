@@ -89,6 +89,12 @@ Listo. El próximo presupuesto que se simule aparece en la planilla.
 
 ## Cosas que conviene saber
 
+**La columna `flete` no lleva un importe.** El flete lo cotiza la empresa
+de transporte, así que la web no lo calcula: la columna dice `A cotizar` cuando
+el pedido es con envío, y queda vacía cuando lo retiran. Por eso `total` es lo
+mismo que `mercaderia`, sin el envío. La columna `kilometros` sigue estando para
+tener a mano la distancia al pedir la tarifa.
+
 **Mientras la URL esté vacía, el simulador funciona igual.** Muestra el
 presupuesto y abre WhatsApp; lo único que no pasa es que se guarde el contacto.
 

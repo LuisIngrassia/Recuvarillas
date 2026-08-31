@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { company } from '../data/siteContent'
-import { FREIGHT, ORIGIN, QUOTE_VALID_DAYS } from '../data/pricing'
+import { ORIGIN, QUOTE_VALID_DAYS, ROAD_FACTOR } from '../data/pricing'
 import { buildQuote, formatNumber, formatPesos } from '../lib/quote'
 import { findPostalCode, loadPostalCodes } from '../lib/postalCodes'
 import { recordLead } from '../lib/leads'
@@ -120,7 +120,7 @@ function QuoteSimulator() {
       return
     }
     if (shipping && !place) {
-      setError('Necesitamos un código postal válido para calcular el flete.')
+      setError('Necesitamos un código postal válido para saber a dónde llega el pedido.')
       return
     }
     if (!form.name.trim() || !form.phone.trim()) {
@@ -129,12 +129,7 @@ function QuoteSimulator() {
     }
 
     setError('')
-    const result = buildQuote({
-      quantity,
-      drilled: form.drilled === 'si',
-      delivery: form.delivery,
-      straightKm: place?.km,
-    })
+    const result = buildQuote({ quantity, drilled: form.drilled === 'si' })
     setQuote({ ...result, place: shipping ? place : null })
 
     // Sin await: que la planilla ande o no, no puede demorar el presupuesto.
@@ -148,10 +143,12 @@ function QuoteSimulator() {
       codigoPostal: shipping ? place.code : '',
       localidad: shipping ? place.name : '',
       provincia: shipping ? place.province : '',
-      kilometros: shipping ? result.freight.roadKm : '',
+      kilometros: shipping ? Math.round(place.km * ROAD_FACTOR) : '',
       precioUnitario: result.unitPrice,
-      mercaderia: result.goods,
-      flete: result.freight?.total ?? 0,
+      mercaderia: result.total,
+      // Queda escrito en la planilla que falta cotizarlo, para que nadie lea
+      // una columna vacía como un envío sin cargo.
+      flete: shipping ? 'A cotizar' : '',
       total: result.total,
     })
   }
@@ -164,19 +161,17 @@ function QuoteSimulator() {
       '',
       `• ${formatNumber(quantity)} varillas ${form.drilled === 'si' ? 'agujereadas' : 'sin agujerear'}`,
       `• Precio unitario: ${formatPesos(quote.unitPrice)} + IVA`,
-      `• Mercadería: ${formatPesos(quote.goods)} + IVA`,
+      `• Mercadería: ${formatPesos(quote.total)} + IVA`,
     ]
 
-    if (quote.freight) {
-      lines.push(
-        `• Envío a ${quote.place.name} (${quote.place.code}): ${formatPesos(quote.freight.total)} + IVA`,
-      )
+    if (quote.place) {
+      lines.push(`• Envío a ${quote.place.name} (${quote.place.code}): flete a cotizar`)
     } else {
       lines.push(`• Retiro en fábrica (${ORIGIN.city})`)
     }
 
     lines.push(
-      `• TOTAL: ${formatPesos(quote.total)} + IVA`,
+      `• TOTAL mercadería: ${formatPesos(quote.total)} + IVA (sin el flete)`,
       '',
       `Mi nombre es ${form.name.trim()}.`,
     )
@@ -195,8 +190,10 @@ function QuoteSimulator() {
             Calculá tu pedido en el momento
           </h2>
           <p className="mt-4 text-steel-500">
-            Poné la cantidad y el destino, y te mostramos el precio al instante.
-            Todos los valores son <strong className="text-steel-700">sin IVA</strong>.
+            Poné la cantidad y te mostramos el precio de la mercadería al
+            instante. Todos los valores son{' '}
+            <strong className="text-steel-700">sin IVA</strong> y el flete se
+            cotiza aparte.
           </p>
         </div>
 
@@ -238,7 +235,7 @@ function QuoteSimulator() {
               </Field>
 
               {shipping && (
-                <Field label="Código postal del destino" hint="Cuatro números">
+                <Field label="Código postal del destino" hint="Para cotizarte el flete">
                   <input
                     type="text"
                     inputMode="numeric"
@@ -252,9 +249,8 @@ function QuoteSimulator() {
                     {loading && <span className="text-steel-400">Buscando…</span>}
                     {place && (
                       <span className="font-medium text-secondary-600">
-                        {place.name}, {place.province} · a {formatNumber(
-                          Math.round(place.km * FREIGHT.roadFactor),
-                        )} km aprox.
+                        {place.name}, {place.province} · a{' '}
+                        {formatNumber(Math.round(place.km * ROAD_FACTOR))} km aprox.
                       </span>
                     )}
                     {notFound && (
@@ -323,27 +319,30 @@ function QuoteSimulator() {
                 <div className="mt-4 divide-y divide-steel-100 text-sm">
                   <Row
                     label={`${formatNumber(quantity)} varillas × ${formatPesos(quote.unitPrice)}`}
-                    value={formatPesos(quote.goods)}
+                    value={formatPesos(quote.total)}
                   />
 
-                  {quote.freight ? (
+                  {quote.place ? (
                     <Row
                       label={
                         <>
                           Flete a {quote.place.name}
                           <span className="block text-xs text-steel-400">
-                            {formatNumber(quote.freight.roadKm)} km ida y vuelta
-                            {quote.freight.trips > 1 && ` · ${quote.freight.trips} viajes`}
+                            Lo cotiza la empresa de transporte
                           </span>
                         </>
                       }
-                      value={formatPesos(quote.freight.total)}
+                      value="A cotizar"
                     />
                   ) : (
                     <Row label={`Retiro en fábrica (${ORIGIN.city})`} value="Sin cargo" />
                   )}
 
-                  <Row label="Total sin IVA" value={formatPesos(quote.total)} strong />
+                  <Row
+                    label="Total mercadería sin IVA"
+                    value={formatPesos(quote.total)}
+                    strong
+                  />
                 </div>
 
                 <a
@@ -357,9 +356,10 @@ function QuoteSimulator() {
 
                 <p className="mt-4 text-xs leading-relaxed text-steel-400">
                   Los importes no incluyen IVA. Presupuesto válido por{' '}
-                  {QUOTE_VALID_DAYS} días. El flete es una estimación según la
-                  distancia; se confirma al cerrar el pedido. Precios sujetos a
-                  modificación sin previo aviso.
+                  {QUOTE_VALID_DAYS} días. El total es sólo la mercadería: el
+                  flete lo cotiza la empresa de transporte según el destino y se
+                  suma al cerrar el pedido. Precios sujetos a modificación sin
+                  previo aviso.
                 </p>
               </div>
             ) : (

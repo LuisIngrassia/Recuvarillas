@@ -1,9 +1,15 @@
 /**
- * Lista de precios y condiciones de flete.
+ * Lista de precios de las varillas.
  *
  * Todos los importes son SIN IVA, igual que la lista impresa. Este archivo es
  * el único lugar donde se tocan los precios: el cálculo y la interfaz los leen
  * de acá.
+ *
+ * El flete no está acá ni se calcula en ningún lado, a propósito: lo pone una
+ * empresa de transporte y su tarifa cambia sin que nosotros la manejemos.
+ * Publicar un número fijo sería comprometernos a un precio ajeno, y cuando lo
+ * suban la diferencia la terminamos poniendo nosotros. Se cotiza a mano al
+ * cerrar el pedido.
  *
  * Vigente desde: 01/08/2026
  */
@@ -27,34 +33,14 @@ export const PRICE_TIERS = [
 /** Desde dónde sale el camión. El padrón de códigos postales guarda la distancia hasta acá. */
 export const ORIGIN = { city: 'Luján', province: 'Buenos Aires', postalCode: '6700' }
 
-export const FREIGHT = {
-  /** Costo por kilómetro recorrido. */
-  perKm: 1000,
-
-  /**
-   * El camión tiene que volver, así que se cobra el recorrido completo: los
-   * kilómetros hasta el destino cuentan dos veces.
-   */
-  roundTrip: true,
-
-  /**
-   * Las distancias del padrón son en línea recta. La ruta siempre da más, y en
-   * Argentina el desvío ronda el 15% para los destinos habituales. Es una
-   * estimación: en la Patagonia se queda bastante corta, porque la recta cruza
-   * territorio sin camino.
-   */
-  roadFactor: 1.15,
-
-  /** Varillas que entran por viaje. Arriba de esto hace falta más de un viaje. */
-  truckCapacity: 15000,
-
-  /**
-   * Cantidad desde la que conviene el camión propio. Por debajo se contrata
-   * flete y todavía no está relevada la tarifa, así que por ahora se cotiza con
-   * el mismo valor.
-   */
-  truckMinimum: 8000,
-}
+/**
+ * Las distancias del padrón son en línea recta. La ruta siempre da más, y en
+ * Argentina el desvío ronda el 15% para los destinos habituales.
+ *
+ * Es sólo un dato a la vista —a qué distancia queda el destino, y el número que
+ * después se le pasa a quien cotiza el flete—: no entra en ningún precio.
+ */
+export const ROAD_FACTOR = 1.15
 
 /** Días que se sostiene el presupuesto, según las condiciones de la lista. */
 export const QUOTE_VALID_DAYS = 7
