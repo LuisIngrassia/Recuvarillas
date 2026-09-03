@@ -1,7 +1,18 @@
-# Recuvarilla — Landing
+# Recuvarilla
 
-Landing page de Recuvarilla, empresa dedicada a la producción y venta de
-varillas para el campo elaboradas con material recuperado de polipropileno.
+Web de Recuvarilla, empresa dedicada a la producción y venta de varillas para el
+campo elaboradas con material recuperado de polipropileno.
+
+Son dos cosas en un mismo proyecto y un mismo deploy:
+
+- **La landing**, en `/` — lo que ve el público, con el simulador de
+  presupuesto.
+- **El ERP**, en `/erp` — el sistema de gestión: leads, clientes, pedidos,
+  stock, caja y precios. Pide login. El montaje está en
+  [`docs/erp.md`](docs/erp.md).
+
+Comparten proyecto pero no bundle: el ERP se carga aparte y sólo al entrar,
+así que quien visita la web pública no descarga nada de él.
 
 ## Stack
 
@@ -9,6 +20,8 @@ varillas para el campo elaboradas con material recuperado de polipropileno.
 - JSX
 - [Tailwind CSS v4](https://tailwindcss.com/)
 - [Three.js](https://threejs.org/) vía [React Three Fiber](https://r3f.docs.pmnd.rs/) para la escena 3D
+- [React Router](https://reactrouter.com/) para separar la landing del ERP
+- [Supabase](https://supabase.com/) como base de datos del ERP
 
 ## La historia de la varilla (sección 3D)
 
@@ -84,12 +97,25 @@ npm install
 npm run dev
 ```
 
+La landing anda sin configurar nada. Para el ERP hacen falta las claves de
+Supabase: copiá `.env.example` a `.env` y completalas siguiendo
+[`docs/erp.md`](docs/erp.md). Sin ellas la landing funciona igual —usa los
+precios del código— y el ERP muestra un cartel explicando qué falta.
+
 ## Build
 
 ```bash
 npm run build
 npm run preview
 ```
+
+## Precios
+
+La lista vive en la tabla `price_tiers` de Supabase y se edita desde el ERP, así
+que cambiar precios no requiere deployar.
+[`src/data/pricing.js`](src/data/pricing.js) guarda una copia que se usa **sólo
+si la base no responde**, para que la web nunca quede sin precios. Conviene
+actualizarla cuando el cambio es grande.
 
 ## Contenido
 

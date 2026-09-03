@@ -3,6 +3,7 @@ import { company } from '../data/siteContent'
 import { ORIGIN, QUOTE_VALID_DAYS, ROAD_FACTOR } from '../data/pricing'
 import { buildQuote, formatNumber, formatPesos } from '../lib/quote'
 import { findPostalCode, loadPostalCodes } from '../lib/postalCodes'
+import { usePriceTiers } from '../lib/priceTiers'
 import { recordLead } from '../lib/leads'
 
 const EMPTY = {
@@ -112,6 +113,23 @@ function QuoteSimulator() {
   const shipping = form.delivery === 'shipping'
   const { place, loading, notFound } = usePostalLookup(form.postalCode, shipping)
 
+  // La lista viene de la base para poder cambiar precios sin deployar.
+  const tiers = usePriceTiers()
+
+  /*
+    El simulador cotiza siempre la lista minorista, que es la pública. La
+    mayorista es la de los revendedores con acuerdo y no se muestra acá: no es
+    un descuento que se gane por llevar mucho de una vez, es una condición de
+    quien compra todos los meses.
+
+    El número que se muestra es desde dónde empieza a bajar el precio dentro de
+    la lista pública, que es el segundo escalón.
+  */
+  const descuentoDesde = useMemo(
+    () => tiers.filter((tier) => tier.kind === 'minorista')[1]?.min,
+    [tiers],
+  )
+
   const handleSubmit = async (event) => {
     event.preventDefault()
 
@@ -129,27 +147,28 @@ function QuoteSimulator() {
     }
 
     setError('')
-    const result = buildQuote({ quantity, drilled: form.drilled === 'si' })
+    const result = buildQuote({
+      quantity,
+      drilled: form.drilled === 'si',
+      tiers,
+      kind: 'minorista',
+    })
     setQuote({ ...result, place: shipping ? place : null })
 
-    // Sin await: que la planilla ande o no, no puede demorar el presupuesto.
+    // Sin await: que el registro ande o no, no puede demorar el presupuesto.
     recordLead({
       nombre: form.name.trim(),
       telefono: form.phone.trim(),
       email: form.email.trim(),
       cantidad: quantity,
-      agujereada: form.drilled === 'si' ? 'Sí' : 'No',
-      entrega: shipping ? 'Envío' : 'Retiro en fábrica',
+      agujereada: form.drilled === 'si',
+      entrega: shipping ? 'envio' : 'retiro',
       codigoPostal: shipping ? place.code : '',
       localidad: shipping ? place.name : '',
       provincia: shipping ? place.province : '',
-      kilometros: shipping ? Math.round(place.km * ROAD_FACTOR) : '',
+      kilometros: shipping ? Math.round(place.km * ROAD_FACTOR) : null,
       precioUnitario: result.unitPrice,
       mercaderia: result.total,
-      // Queda escrito en la planilla que falta cotizarlo, para que nadie lea
-      // una columna vacía como un envío sin cargo.
-      flete: shipping ? 'A cotizar' : '',
-      total: result.total,
     })
   }
 
@@ -200,7 +219,13 @@ function QuoteSimulator() {
         <div className="mt-12 grid gap-8 lg:grid-cols-5">
           <form onSubmit={handleSubmit} className="lg:col-span-3">
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="¿Cuántas varillas?" hint="Desde 1.000 aplica precio mayorista">
+              <Field
+                label="¿Cuántas varillas?"
+                hint={
+                  descuentoDesde &&
+                  `Desde ${formatNumber(descuentoDesde)} unidades el precio baja`
+                }
+              >
                 <input
                   type="number"
                   min="1"
@@ -312,8 +337,12 @@ function QuoteSimulator() {
           <div className="lg:col-span-2">
             {quote ? (
               <div className="rounded-xl border border-steel-200 bg-white p-6 shadow-sm">
+                {/* Antes decía el `kind` del escalón, que era 'mayorista' a
+                    partir de 1.000. Ahora la lista mayorista es la de los
+                    revendedores con acuerdo y no la que cotiza la web, así que
+                    mostrar ese rótulo acá prometía un precio que no es este. */}
                 <p className="text-xs font-semibold uppercase tracking-wide text-secondary-500">
-                  Precio {quote.tier.kind}
+                  Precio de lista
                 </p>
 
                 <div className="mt-4 divide-y divide-steel-100 text-sm">

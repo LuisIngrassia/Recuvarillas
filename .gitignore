@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Variables de entorno (la copia real de .env.example)
+.env
+.env.local
+.env.*.local
+
+# Los documentos originales que el ERP reemplazó: la lista de precios, el
+# folleto, la ficha técnica y el presupuesto. Quedan en la máquina como
+# referencia de cómo era cada uno, pero traen las fotos embebidas en base64 y
+# dos de ellos pesan 4,4 MB. Un archivo así entra una vez al historial de git y
+# ya no se va nunca, ni borrándolo después.
+#
+# Las fotos que hacían falta ya están sueltas en `public/docs/`, que sí se
+# versiona: pesan 380 KB entre las tres y el navegador las cachea.
+docs/*.html

@@ -16,18 +16,27 @@
 
 /**
  * Escalones de precio por cantidad. `plain` es sin agujerear y `drilled`
- * agujereada; la diferencia es el recargo por agujereado ($500 por unidad hasta
- * 999, $250 de 1.000 en adelante).
+ * agujereada; la diferencia es el recargo por agujereado.
  *
- * De 1.000 unidades arranca la lista mayorista, que es un salto grande de
- * precio: es el tramo pensado para corralones y agropecuarias.
+ * Son **dos listas distintas**, no dos tramos de una. `kind` dice a cuál
+ * pertenece cada escalón, y cuál se aplica lo decide quién compra:
+ *
+ * - `minorista` es la lista pública, la que cotiza el simulador de la web.
+ *   Baja por cantidad, pero es la que paga cualquiera que no tenga acuerdo.
+ * - `mayorista` es la de los revendedores, que compran todos los meses. Arranca
+ *   en 1.000 unidades; el revendedor que un mes lleva menos igual paga esta
+ *   lista, porque lo que se le reconoce es que vuelve.
  */
 export const PRICE_TIERS = [
   { min: 1, max: 99, plain: 2950, drilled: 3450, kind: 'minorista' },
   { min: 100, max: 499, plain: 2900, drilled: 3400, kind: 'minorista' },
   { min: 500, max: 999, plain: 2850, drilled: 3350, kind: 'minorista' },
-  { min: 1000, max: 4999, plain: 2750, drilled: 3250, kind: 'mayorista' },
-  { min: 5000, max: Infinity, plain: 2550, drilled: 2800, kind: 'mayorista' },
+  { min: 1000, max: 4999, plain: 2750, drilled: 3250, kind: 'minorista' },
+  { min: 5000, max: Infinity, plain: 2550, drilled: 2800, kind: 'minorista' },
+
+  { min: 1000, max: 4999, plain: 2655, drilled: 2905, kind: 'mayorista' },
+  { min: 5000, max: 9999, plain: 2475, drilled: 2725, kind: 'mayorista' },
+  { min: 10000, max: Infinity, plain: 2295, drilled: 2545, kind: 'mayorista' },
 ]
 
 /** Desde dónde sale el camión. El padrón de códigos postales guarda la distancia hasta acá. */

@@ -5,7 +5,7 @@ export const company = {
   tagline: 'Varillas para el campo, hechas con plástico recuperado',
   phone: '+54 9 11 2395-8302',
   whatsapp: '5491123958302',
-  email: 'recuvarilla@gmail.com.ar',
+  email: 'recuvarilla@gmail.com',
   address: 'Luján, Buenos Aires, Argentina',
   hours: 'Lunes a sabado de 8 a 18 hs',
   social: {

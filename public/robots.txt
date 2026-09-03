@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /erp
+
+# El ERP igual pide login: esto es sólo para que no aparezca en Google.
