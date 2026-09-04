@@ -21,11 +21,12 @@ import {
 } from '../api/orders'
 import { addPayment, deletePayment, PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '../api/payments'
 import { listProducts } from '../api/stock'
+import { addOrderService, deleteOrderService, listRates } from '../api/services'
 import { CARRIER_TYPE_LABELS, quoteFreight } from '../api/carriers'
 import { listSellers } from '../api/sellers'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
-import { formatDate, formatNumber, todayISO } from '../lib/format'
+import { formatDate, formatNumber, formatPesos, todayISO } from '../lib/format'
 import { usePriceTiers } from '../../lib/priceTiers'
 import { tierFor } from '../../lib/quote'
 import {
@@ -184,6 +185,172 @@ function AddItem({ order, products, onAdded }) {
         </div>
       )}
     </form>
+  )
+}
+
+/**
+ * Alta de las horas de un trabajo de reciclado.
+ *
+ * El precio no se elige: sale de la tarifa. Lo que se carga es cuánto llevó,
+ * que es el único dato que cambia de un trabajo a otro.
+ */
+function AddService({ order, rates, onAdded }) {
+  const [rateId, setRateId] = useState(rates[0]?.id ?? '')
+  const [horas, setHoras] = useState('')
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const rate = rates.find((item) => item.id === rateId)
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+
+    const horasNum = Number(horas)
+    if (!rate) {
+      setError('Elegí qué se hizo.')
+      return
+    }
+    if (!Number.isFinite(horasNum) || horasNum <= 0) {
+      setError('Poné cuántas horas llevó.')
+      return
+    }
+
+    setSaving(true)
+    setError('')
+
+    try {
+      await addOrderService({ order_id: order.id, rate, horas: horasNum })
+      setHoras('')
+      onAdded()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="border-t border-steel-100 px-4 py-4">
+      <div className="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
+        <Field label="Qué se hizo">
+          <Select value={rateId} onChange={(event) => setRateId(event.target.value)}>
+            {rates.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.nombre}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field
+          label="Horas"
+          hint={rate ? `${formatPesos(Number(rate.precio_hora))} por hora` : null}
+        >
+          <Input
+            type="number"
+            min="0"
+            step="0.25"
+            inputMode="decimal"
+            value={horas}
+            onChange={(event) => setHoras(event.target.value)}
+          />
+        </Field>
+        <Button type="submit" disabled={saving}>
+          Agregar
+        </Button>
+      </div>
+
+      {error && (
+        <div className="mt-3">
+          <ErrorNote>{error}</ErrorNote>
+        </div>
+      )}
+    </form>
+  )
+}
+
+/**
+ * Las horas de un trabajo de reciclado, en lugar de la mercadería.
+ *
+ * A una empresa que trae su propio plástico no se le vende nada: se le cobra el
+ * tiempo de las máquinas. Por eso esta tarjeta reemplaza a la de mercadería en
+ * vez de sumarse: en un trabajo de reciclado no hay varillas que vender.
+ */
+function ServiciosCard({ order, editable, onChanged }) {
+  const rates = useAsync(() => listRates({ soloActivas: true }), [])
+  const [error, setError] = useState('')
+
+  const quitar = async (id) => {
+    setError('')
+    try {
+      await deleteOrderService(id)
+      onChanged()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  return (
+    <Card title="Horas de trabajo">
+      {order.services.length === 0 ? (
+        <Empty>Todavía no cargaste cuántas horas llevó este trabajo.</Empty>
+      ) : (
+        <Table
+          head={
+            <>
+              <Th>Concepto</Th>
+              <Th align="right">Horas</Th>
+              <Th align="right">Por hora</Th>
+              <Th align="right">Subtotal</Th>
+              <Th align="right"> </Th>
+            </>
+          }
+        >
+          {order.services.map((servicio) => (
+            <tr key={servicio.id}>
+              <Td className="text-steel-700">{servicio.concepto}</Td>
+              <Td align="right" className="tabular-nums text-steel-600">
+                {Number(servicio.horas)}
+              </Td>
+              <Td align="right">
+                <Money value={servicio.precio_hora} />
+              </Td>
+              <Td align="right" className="font-medium">
+                <Money value={servicio.subtotal} />
+              </Td>
+              <Td align="right">
+                {editable && (
+                  <button
+                    type="button"
+                    onClick={() => quitar(servicio.id)}
+                    className="text-xs font-semibold text-red-600 hover:underline print:hidden"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </Td>
+            </tr>
+          ))}
+        </Table>
+      )}
+
+      {error && (
+        <div className="px-4 pb-3 print:hidden">
+          <ErrorNote>{error}</ErrorNote>
+        </div>
+      )}
+
+      {editable && rates.data && rates.data.length > 0 && (
+        <div className="print:hidden">
+          <AddService order={order} rates={rates.data} onAdded={onChanged} />
+        </div>
+      )}
+
+      {rates.data && rates.data.length === 0 && (
+        <p className="border-t border-steel-100 px-4 py-3 text-xs text-steel-400 print:hidden">
+          No hay tarifas por hora cargadas. Se cargan en Ajustes → Precios.
+        </p>
+      )}
+    </Card>
   )
 }
 
@@ -379,6 +546,7 @@ function FleteOpciones({ cp, unidades, elegido, onElegir }) {
 
 /** Datos de la entrega y el flete, que se editan hasta que el pedido sale. */
 function OrderInfo({ order, onSaved }) {
+  const reciclado = order.tipo === 'reciclado'
   const [form, setForm] = useState({
     fecha: order.fecha,
     entrega: order.entrega,
@@ -392,6 +560,10 @@ function OrderInfo({ order, onSaved }) {
     // campo vacío no se convierte en cero.
     flete: order.flete ?? '',
     carrier_id: order.carrier_id ?? '',
+    /* Sólo de un trabajo de reciclado: cuánto plástico trajo y cuántas varillas
+       se le devolvieron. En una venta quedan vacíos. */
+    kilos_recibidos: order.kilos_recibidos ?? '',
+    varillas_entregadas: order.varillas_entregadas ?? '',
     notas: order.notas ?? '',
   })
   const [error, setError] = useState('')
@@ -429,6 +601,15 @@ function OrderInfo({ order, onSaved }) {
         */
         flete: envio && form.flete !== '' ? Number(form.flete) : null,
         carrier_id: envio ? form.carrier_id || null : null,
+        /* Si el pedido no es de reciclado estos dos se limpian, por lo mismo
+           que el flete al pasar a retiro: un dato escondido que igual figura en
+           las consultas es peor que no tenerlo. */
+        kilos_recibidos:
+          reciclado && form.kilos_recibidos !== '' ? Number(form.kilos_recibidos) : null,
+        varillas_entregadas:
+          reciclado && form.varillas_entregadas !== ''
+            ? Number.parseInt(form.varillas_entregadas, 10)
+            : null,
         notas: form.notas.trim() || null,
       })
       setSaved(true)
@@ -456,10 +637,42 @@ function OrderInfo({ order, onSaved }) {
 
       <Field
         label={form.entrega === 'retiro' ? 'Fecha de retiro' : 'Fecha de entrega'}
-        hint="Vacío = a confirmar. La mercadería queda reservada igual."
+        hint={
+          reciclado
+            ? 'Vacío = a confirmar.'
+            : 'Vacío = a confirmar. La mercadería queda reservada igual.'
+        }
       >
         <Input type="date" value={form.fecha_entrega} onChange={set('fecha_entrega')} />
       </Field>
+
+      {reciclado && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Kilos recibidos" hint="El plástico que trajo el cliente.">
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={form.kilos_recibidos}
+              onChange={set('kilos_recibidos')}
+            />
+          </Field>
+          <Field
+            label="Varillas entregadas"
+            hint="Las que salieron de ese plástico. No entran al stock: nunca fueron nuestras."
+          >
+            <Input
+              type="number"
+              min="0"
+              step="1"
+              inputMode="numeric"
+              value={form.varillas_entregadas}
+              onChange={set('varillas_entregadas')}
+            />
+          </Field>
+        </div>
+      )}
 
       {form.entrega === 'envio' && (
         <>
@@ -716,6 +929,7 @@ export default function OrderDetail() {
     <Async query={query}>
       {(order) => {
         const siguiente = nextState(order.estado)
+        const reciclado = order.tipo === 'reciclado'
         const entregado = order.estado === 'entregado'
         const anulado = order.estado === 'cancelado'
         // Una vez entregado, tocar la mercadería descuadraría el stock que ya
@@ -810,6 +1024,16 @@ export default function OrderDetail() {
 
             <div className="grid gap-6 lg:grid-cols-3">
               <div className="space-y-6 lg:col-span-2">
+                {/* En un trabajo de reciclado no hay mercadería que vender: la
+                    materia prima es del cliente y lo que se cobra son horas. Por
+                    eso una tarjeta reemplaza a la otra en vez de sumarse. */}
+                {reciclado ? (
+                  <ServiciosCard
+                    order={order}
+                    editable={editable}
+                    onChanged={query.reload}
+                  />
+                ) : (
                 <Card title="Mercadería">
                   {order.items.length === 0 ? (
                     <Empty>Todavía no cargaste qué lleva este pedido.</Empty>
@@ -863,6 +1087,7 @@ export default function OrderDetail() {
                     </div>
                   )}
                 </Card>
+                )}
 
                 <Card title="Cobros">
                   {order.payments.length === 0 ? (
@@ -916,10 +1141,22 @@ export default function OrderDetail() {
               <div className="space-y-6">
                 <Card title="Totales">
                   <div className="divide-y divide-steel-100 px-4 py-3 text-sm">
-                    <TotalRow
-                      label={`Mercadería (${formatNumber(order.unidades)} varillas)`}
-                      value={<Money value={order.mercaderia} />}
-                    />
+                    {reciclado ? (
+                      <TotalRow
+                        label="Horas de trabajo"
+                        hint={
+                          order.varillas_entregadas
+                            ? `${formatNumber(order.varillas_entregadas)} varillas entregadas`
+                            : null
+                        }
+                        value={<Money value={order.servicios} />}
+                      />
+                    ) : (
+                      <TotalRow
+                        label={`Mercadería (${formatNumber(order.unidades)} varillas)`}
+                        value={<Money value={order.mercaderia} />}
+                      />
+                    )}
                     {Number(order.descuento_pct) > 0 && (
                       <TotalRow
                         label={`Descuento (${Number(order.descuento_pct)}%)`}

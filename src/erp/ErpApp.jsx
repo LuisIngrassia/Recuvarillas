@@ -32,6 +32,7 @@ const Profit = lazy(() => import('./pages/Profit'))
 const Prices = lazy(() => import('./pages/Prices'))
 const Carriers = lazy(() => import('./pages/Carriers'))
 const Sellers = lazy(() => import('./pages/Sellers'))
+const ProductionCost = lazy(() => import('./pages/ProductionCost'))
 const Documents = lazy(() => import('./pages/Documents'))
 const DocPriceList = lazy(() => import('./pages/DocPriceList'))
 const DocBrochure = lazy(() => import('./pages/DocBrochure'))
@@ -57,6 +58,7 @@ const SECTIONS = [
 
 const SETTINGS = [
   { to: '/erp/precios', label: 'Precios' },
+  { to: '/erp/costo-varilla', label: 'Costo de la varilla' },
   { to: '/erp/fletes', label: 'Fletes' },
   { to: '/erp/vendedores', label: 'Vendedores' },
 ]
@@ -202,6 +204,7 @@ function Gate() {
           <Route path="costos" element={<Expenses />} />
           <Route path="rentabilidad" element={<Profit />} />
           <Route path="precios" element={<Prices />} />
+          <Route path="costo-varilla" element={<ProductionCost />} />
           <Route path="fletes" element={<Carriers />} />
           <Route path="vendedores" element={<Sellers />} />
           <Route path="documentos" element={<Documents />} />

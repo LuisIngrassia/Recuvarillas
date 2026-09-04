@@ -7,6 +7,7 @@
  */
 import { useState } from 'react'
 import { createTier, deleteTier, listTiers, updateTier } from '../api/prices'
+import { createRate, deleteRate, listRates, updateRate } from '../api/services'
 import { useAsync } from '../lib/useAsync'
 import { formatDateTime, formatNumber, formatPesos } from '../lib/format'
 import {
@@ -178,10 +179,95 @@ function TierModal({ tier, onClose, onSaved }) {
   )
 }
 
+/**
+ * Alta y edición de una tarifa por hora.
+ *
+ * Es el precio del otro negocio: a la empresa que trae su plástico no se le
+ * vende mercadería, se le cobra el tiempo de las máquinas.
+ */
+function RateModal({ rate, onClose, onSaved }) {
+  const [nombre, setNombre] = useState(rate?.nombre ?? '')
+  const [precio, setPrecio] = useState(rate ? String(Number(rate.precio_hora)) : '')
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+
+    const limpio = nombre.trim()
+    const precioNum = precio === '' ? NaN : Number(precio)
+
+    if (!limpio) {
+      setError('Poné el nombre del concepto.')
+      return
+    }
+    if (!Number.isFinite(precioNum) || precioNum < 0) {
+      setError('Poné cuánto sale la hora.')
+      return
+    }
+
+    setSaving(true)
+    setError('')
+
+    try {
+      if (rate) await updateRate(rate.id, { nombre: limpio, precio_hora: precioNum })
+      else await createRate({ nombre: limpio, precio_hora: precioNum, orden: 99 })
+      onSaved()
+    } catch (err) {
+      setError(err.message)
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal title={rate ? 'Editar tarifa' : 'Nueva tarifa'} onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Concepto" hint="Cómo se llama en el presupuesto.">
+          <Input value={nombre} onChange={(event) => setNombre(event.target.value)} autoFocus />
+        </Field>
+        <Field label="Precio por hora" hint="Sin IVA, como todo lo demás.">
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            value={precio}
+            onChange={(event) => setPrecio(event.target.value)}
+          />
+        </Field>
+
+        <ErrorNote>{error}</ErrorNote>
+
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" type="button" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? 'Guardando…' : 'Guardar'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
 export default function Prices() {
   const query = useAsync(listTiers, [])
+  const rates = useAsync(() => listRates(), [])
   const [editing, setEditing] = useState(null)
+  const [editingRate, setEditingRate] = useState(null)
   const [error, setError] = useState('')
+
+  const removeRate = async (rate) => {
+    if (!confirm(`¿Borrar la tarifa "${rate.nombre}"? Los trabajos ya cargados conservan lo que se les cobró.`)) return
+    setError('')
+    try {
+      await deleteRate(rate.id)
+      rates.reload()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
 
   const remove = async (tier) => {
     if (!confirm('¿Borrar este escalón de la lista?')) return
@@ -285,6 +371,77 @@ export default function Prices() {
         )}
       </Async>
 
+      {/* El otro negocio: a la empresa que trae su propio plástico no se le
+          vende mercadería, se le cobra el tiempo de las máquinas. */}
+      <Card
+        title="Tarifas de reciclado por hora"
+        className="mt-6"
+        actions={
+          <Button
+            variant="ghost"
+            className="px-2.5 py-1.5 text-xs"
+            onClick={() => setEditingRate({})}
+          >
+            Nueva tarifa
+          </Button>
+        }
+      >
+        <p className="border-b border-steel-100 px-4 py-2 text-xs text-steel-400">
+          Lo que se le factura a una empresa que trae su plástico a reciclar. No
+          se cobra mercadería —la materia prima es de ella— sino las horas que
+          llevó el trabajo.
+        </p>
+
+        <Async query={rates} empty="No hay tarifas por hora cargadas.">
+          {(lista) => (
+            <Table
+              head={
+                <>
+                  <Th>Concepto</Th>
+                  <Th align="right">Por hora</Th>
+                  <Th>Actualizado</Th>
+                  <Th align="right"> </Th>
+                </>
+              }
+            >
+              {lista.map((rate) => (
+                <tr key={rate.id} className="hover:bg-steel-50">
+                  <Td className="font-medium text-steel-700">{rate.nombre}</Td>
+                  <Td align="right" className="tabular-nums text-steel-700">
+                    {Number(rate.precio_hora) > 0 ? (
+                      formatPesos(Number(rate.precio_hora))
+                    ) : (
+                      <span className="text-amber-600">sin cargar</span>
+                    )}
+                  </Td>
+                  <Td className="whitespace-nowrap text-xs text-steel-400">
+                    {formatDateTime(rate.updated_at)}
+                  </Td>
+                  <Td align="right">
+                    <div className="flex justify-end gap-1.5">
+                      <Button
+                        variant="ghost"
+                        className="px-2.5 py-1.5 text-xs"
+                        onClick={() => setEditingRate(rate)}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        variant="danger"
+                        className="px-2.5 py-1.5 text-xs"
+                        onClick={() => removeRate(rate)}
+                      >
+                        Borrar
+                      </Button>
+                    </div>
+                  </Td>
+                </tr>
+              ))}
+            </Table>
+          )}
+        </Async>
+      </Card>
+
       <div className="mt-4 space-y-2 text-xs text-steel-400">
         <p>
           La minorista tiene que cubrir toda la escala sin huecos: el escalón que
@@ -298,6 +455,17 @@ export default function Prices() {
           Conviene actualizarla cuando el cambio de precios es grande.
         </p>
       </div>
+
+      {editingRate && (
+        <RateModal
+          rate={editingRate.id ? editingRate : null}
+          onClose={() => setEditingRate(null)}
+          onSaved={() => {
+            setEditingRate(null)
+            rates.reload()
+          }}
+        />
+      )}
 
       {editing && (
         <TierModal

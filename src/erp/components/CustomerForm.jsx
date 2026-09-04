@@ -70,11 +70,12 @@ export default function CustomerForm({ customer, onClose, onSaved }) {
           </Field>
           <Field
             label="Tipo"
-            hint="Mayorista es el revendedor: cotiza con la lista mayorista y sus pedidos no pagan comisión."
+            hint="Mayorista es el revendedor: lista mayorista y sin comisión. Empresa es la que trae su propio plástico a reciclar."
           >
             <Select value={form.tipo} onChange={set('tipo')}>
               <option value="minorista">Minorista</option>
               <option value="mayorista">Mayorista (revendedor)</option>
+              <option value="empresa">Empresa (trae su plástico)</option>
             </Select>
           </Field>
           <Field label="Teléfono">

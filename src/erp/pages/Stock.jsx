@@ -335,6 +335,20 @@ export default function Stock() {
                     ) : (
                       movement.nota
                     )}
+                    {/* Lo que costó fabricar esa tanda, con el costo que tenía
+                        la varilla ese día. Es lo que le resta a la ganancia del
+                        mes, así que conviene que se vea acá y no sólo en
+                        Rentabilidad. */}
+                    {movement.tipo === 'produccion' &&
+                      (movement.costo_unitario ? (
+                        <span className="block text-steel-500">
+                          Costó {formatPesos(movement.cantidad * Number(movement.costo_unitario))}
+                        </span>
+                      ) : (
+                        <span className="block text-amber-600">
+                          Sin costo: se cargó antes del costeo
+                        </span>
+                      ))}
                   </Td>
                   <Td align="right">
                     {movement.tipo !== 'venta' && (

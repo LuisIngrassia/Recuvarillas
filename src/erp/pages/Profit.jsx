@@ -58,7 +58,9 @@ const MES_VACIO = {
   facturado: 0,
   cobrado: 0,
   comisiones: 0,
+  varillas_producidas: 0,
   costo_produccion: 0,
+  costo_produccion_cargado: 0,
   costo_flete: 0,
   costo_pauta: 0,
   costo_muestras: 0,
@@ -550,6 +552,20 @@ export default function Profit() {
 
           return (
             <>
+              {Number(datos.costo_produccion_cargado) > 0 && (
+                <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-800">
+                  Hay{' '}
+                  <strong>{formatPesos(datos.costo_produccion_cargado)}</strong>{' '}
+                  cargados en Costos como gasto de <em>producción</em>. Ese costo
+                  ahora sale del stock —de lo que costaba hacer cada varilla el día
+                  que se produjo—, así que esos gastos no se están contando en
+                  ningún total.{' '}
+                  <Link to="/erp/costos" className="font-semibold underline underline-offset-2">
+                    Revisarlos
+                  </Link>
+                </div>
+              )}
+
               {/* Un mes entero en cero casi nunca es "no pasó nada": lo más
                   común es que los pedidos sigan en presupuesto, que no cuentan
                   como venta. Decirlo evita salir a buscar el error a otro lado. */}
@@ -593,7 +609,16 @@ export default function Profit() {
                     <Linea label="Facturado" value={datos.facturado} strong />
 
                     <Linea label="Comisiones" value={datos.comisiones} signo="−" />
-                    <Linea label="Producción" value={datos.costo_produccion} signo="−" />
+                    <Linea
+                      label="Producción"
+                      hint={
+                        datos.varillas_producidas > 0
+                          ? `${formatNumber(datos.varillas_producidas)} varillas fabricadas`
+                          : 'Sale del costo de cada varilla al cargarla en Stock'
+                      }
+                      value={datos.costo_produccion}
+                      signo="−"
+                    />
                     <Linea label="Flete bonificado" value={datos.costo_flete} signo="−" />
 
                     <Linea
@@ -834,9 +859,9 @@ export default function Profit() {
                           Se liquidan {formatPesos(pozo.vencido)} del pozo.
                         </strong>{' '}
                         Esa plata venía de la reserva del mes anterior y tampoco se
-                        usó este mes, así que dejó de ser reserva. Se reparte{' '}
-                        <strong>a la inversa</strong> de los porcentajes: el que
-                        menos tiene es el que más cobra.
+                        usó este mes, así que dejó de ser reserva. Vuelve entera{' '}
+                        <strong>al socio minoritario</strong>, que es quien resignó
+                        esos cinco puntos para financiar la reinversión.
                       </p>
                       <ul className="mt-2 space-y-1.5">
                         {reparto.liquidacion.map((socio) => (
@@ -880,9 +905,11 @@ export default function Profit() {
                     La reinversión no es una parte que se guarda: paga la pauta,
                     las muestras y las suscripciones. Lo que sobra queda de
                     reserva para el mes siguiente y ahí se gasta primero. Si
-                    sobrevive ese mes sin usarse, se liquida a los socios a la
-                    inversa de sus porcentajes, así el pozo no engorda para
-                    siempre sin que nadie decida nada.
+                    sobrevive ese mes sin usarse, vuelve al socio minoritario: el
+                    reparto de fondo es 50 / 25 / 25 y él resignó cinco puntos
+                    para financiar el pozo, así que lo que no se usó es suyo. De
+                    paso, el pozo no engorda para siempre sin que nadie decida
+                    nada.
                   </p>
                 </Card>
               </div>

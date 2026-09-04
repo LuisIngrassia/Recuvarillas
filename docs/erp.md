@@ -10,7 +10,7 @@ El día a día:
 | **Panel**        | Qué hay que entregar hoy, y cómo viene el mes de punta a punta.         |
 | **Leads**        | Todo el que preguntó, por donde sea: a quién llamar y qué contestó.     |
 | **Clientes**     | El padrón con la cuenta corriente de cada uno.                          |
-| **Pedidos**      | Del presupuesto a la entrega, con la mercadería, el flete y los cobros. |
+| **Pedidos**      | Ventas y trabajos de reciclado: del presupuesto a la entrega.           |
 | **Stock**        | Existencias y movimientos: producción, ventas, ajustes y devoluciones.  |
 | **Caja**         | Los cobros del período, con el total por medio de pago.                 |
 | **Costos**       | Lo que sale: producción, pauta, muestras y lo que venga.                |
@@ -22,6 +22,7 @@ Y lo que se toca de vez en cuando, bajo **Ajustes**:
 | Pantalla        | Para qué                                                                |
 | --------------- | ----------------------------------------------------------------------- |
 | **Precios**     | La lista por cantidad, que es la misma que usa el simulador de la web.   |
+| **Costo de la varilla** | Qué se gasta en producir una, y de dónde sale ese número.        |
 | **Fletes**      | Los transportes, hasta dónde llega cada uno y a cuánto.                  |
 | **Vendedores**  | Quién trae la venta, su comisión y lo que hay que liquidarle en el mes.  |
 
@@ -90,9 +91,22 @@ necesita.
 ### 5. Deployar
 
 En Vercel, en **Settings → Environment Variables**, cargá las mismas dos
-variables (`VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`) y volvé a deployar.
-Vite las mete en el bundle al compilar, así que un deploy hecho antes de
-cargarlas no las va a tener.
+variables y volvé a deployar.
+
+> **El prefijo `VITE_` no es decorativo.** Tienen que llamarse exactamente
+> `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`. Vite sólo deja pasar al
+> navegador las variables que empiezan así, justamente para que una contraseña
+> cargada en Vercel no termine dentro del JavaScript que se baja cualquiera. Si
+> las cargás como `SUPABASE_URL` a secas, el bundle no las ve y el ERP muestra
+> «Falta conectar la base» como si no existieran.
+
+Y **hay que volver a compilar**, no sólo redeployar: Vite mete estos valores
+dentro del bundle al build, no los lee cuando alguien abre la página. En el
+menú de los tres puntos del deploy, *Redeploy* con **Use existing Build Cache
+desmarcado**, o directamente un push nuevo.
+
+Cargalas también en **Preview** si probás desde ramas: un deploy de preview no
+ve las de Production.
 
 El archivo [`vercel.json`](../vercel.json) ya está: hace que cualquier
 dirección devuelva `index.html`, que es lo que necesita el router para que
@@ -254,6 +268,35 @@ no contesta**, para que la web nunca quede sin precios. Conviene actualizarla
 cuando el cambio de precios es grande, en el mismo commit en que se actualiza la
 lista impresa.
 
+### Reciclado por encargo
+
+Hay un tercer tipo de cliente: **empresa**. No compra varillas — trae su propio
+plástico para que se lo reciclemos y se lleva las varillas que salen de ahí.
+
+Es otro negocio, no otro precio:
+
+- **No se cobra mercadería.** La materia prima es del cliente. Se cobran las
+  horas: la máquina que procesa el plástico y la de producción tienen cada una
+  su tarifa, que se carga en Ajustes → **Precios**, abajo de las dos listas.
+- **Esas varillas nunca entran al stock.** No es un olvido: nunca fueron
+  nuestras. Si un mes producís 500 varillas para una empresa y el stock no se
+  mueve, está bien.
+- **Tampoco pagan comisión**, porque la comisión se calcula sobre la mercadería
+  y acá no hay. Si algún día hay que comisionar esas horas, es un cambio chico.
+
+Al crear el pedido se elige el **tipo de trabajo**. Si el cliente es una empresa
+arranca en *reciclado*, pero es una propuesta y se puede cambiar: esa misma
+empresa puede comprarte varillas alguna vez, y ese pedido es una venta común.
+
+En un trabajo de reciclado la pantalla del pedido cambia: donde va la mercadería
+van las **horas de trabajo**, y en Entrega se cargan los **kilos recibidos** y
+las **varillas entregadas**. Eso último es para poder contestar cuántas varillas
+salieron de tantos kilos, que es la pregunta que hace el cliente.
+
+Lo demás funciona igual: los cobros, la cuenta corriente, el flete y el
+presupuesto no distinguen entre un trabajo y una venta, porque del lado de la
+plata son lo mismo.
+
 ### Reservas y fecha de retiro
 
 El caso típico: llaman, dicen que la semana que viene pasan a buscar 50, y no
@@ -390,6 +433,47 @@ El teléfono, el email y la localidad no son datos internos: son los que salen
 impresos en su folleto y en su lista de precios. Conviene tenerlos completos
 antes de que empiece a repartir.
 
+### Cuánto cuesta producir una varilla
+
+El costo de producción **dejó de cargarse a mano**. Se define una vez qué se
+gasta, en **Ajustes → Costo de la varilla**, y después cada producción que
+cargás en Stock arrastra ese costo sola.
+
+Los conceptos tienen dos bases, y esa distinción es toda la idea:
+
+| Base | Qué es | Ejemplos |
+| --- | --- | --- |
+| **Por varilla** | Se gasta por unidad, vayan las horas que vayan | Materia prima |
+| **Por hora** | Corre con el reloj, no depende de cuántas salgan | Luz, empleados, galpón |
+
+Para pasar los de hora a costo por varilla hace falta saber **cuántas hace la
+máquina por hora**. De ahí sale la cuenta:
+
+```
+costo por varilla = (lo de unidad) + (lo de hora ÷ varillas por hora)
+```
+
+Producir más rápido abarata cada varilla sin que cambie ningún precio, que es lo
+que pasa en la realidad y lo que una lista de gastos sueltos no deja ver. Por eso
+las varillas por hora están arriba de la pantalla y no escondidas: si ese número
+está mal, todo el costeo está mal en la misma proporción.
+
+**Mientras falte, no se inventa nada.** Si hay costos por hora cargados y las
+varillas por hora están en cero, el costo por varilla queda vacío en vez de
+mostrar sólo los materiales. Un número incompleto se guardaría en cada
+producción como si fuera el real y nadie lo revisaría.
+
+**El costo se congela al producir.** Cada movimiento de producción guarda lo que
+costaba una varilla ese día. Si mañana sube la luz, lo que costó producir en
+marzo no cambia — un mes cerrado que se mueve solo es un mes en el que ya no se
+puede confiar. Las producciones cargadas antes de que existiera el costeo salen
+señaladas en Stock y cuentan cero.
+
+> **Ojo si venías cargando "producción" como gasto.** Ese tipo ya no se ofrece y
+> **no se cuenta en ningún total**, para no cobrarse la producción dos veces. Los
+> que hayan quedado cargados siguen ahí y tanto Costos como Rentabilidad los
+> señalan en ámbar, para que los borres o los pases a otro tipo.
+
 ### Costos
 
 Todo lo que sale de la empresa se carga en **Costos**. El tipo no es una
@@ -466,21 +550,17 @@ siguiente**. Eso cambia dos cosas:
   usando.
 
 **La reserva tiene un mes de gracia, no más.** Lo que venía del mes anterior y
-tampoco se usó este mes dejó de ser reserva: se liquida a los socios **a la
-inversa de sus porcentajes**. El peso de cada uno es 1 dividido su parte, así
-que con 50/25/20 queda:
+tampoco se usó este mes dejó de ser reserva: **vuelve entero al socio
+minoritario**.
 
-| | Parte de la ganancia | Del pozo que vence |
-| --- | --- | --- |
-| Gustavo | 50% | 18,18% |
-| Pipo | 25% | 36,36% |
-| Lui | 20% | 45,45% |
+Y no es una gentileza: ese 5% es suyo. El reparto de fondo entre los tres es
+**50 / 25 / 25**, y el socio del 25 más chico resignó cinco puntos para
+financiar la reinversión —por eso su fila dice 20—. Si esa plata no se llegó a
+usar, vuelve a quien la puso.
 
-El que menos tiene es el que más cobra. La lógica es que el pozo se financió
-sacándole a cada uno en proporción a lo suyo —el que más tiene puso más—, así
-que devolverlo sin haberlo usado compensa a quien proporcionalmente más le pesó
-ponerlo. Y le pone un techo natural al pozo: no puede engordar para siempre sin
-que nadie decida nada.
+Minoritario es el de menor porcentaje, así que la regla se sostiene sola si
+mañana cambian los números. Si hubiera empate en el mínimo, se reparte en partes
+iguales entre los empatados.
 
 Un ejemplo de tres meses con $1.000.000 de ganancia:
 
@@ -489,10 +569,22 @@ julio       fondo 50.000 · gasta 20.000 · quedan 30.000 de reserva
 agosto      reserva 30.000 + fondo 50.000 · gasta 40.000 (los 30.000 viejos
             primero) · quedan 40.000
 septiembre  reserva 40.000 + fondo 50.000 · gasta 10.000
-            → vencen 30.000 de la reserva vieja: se liquidan
-              Gustavo 5.455 · Pipo 10.909 · Lui 13.636
+            → vencen 30.000 de la reserva vieja: van enteros a Lui
             → quedan 50.000 de reserva
 ```
+
+**Los dos flujos del pozo no son simétricos, y es a propósito:**
+
+| | Quién pone / quién cobra |
+| --- | --- |
+| **Falta** plata (la escalera sube a 7,5% o 10%) | Los puntos de más los ponen **los tres**, en proporción a su parte |
+| **Sobra** plata (la reserva vence) | Vuelve entera **al minoritario** |
+
+> Hay un caso donde esa asimetría da de más: si la escalera subió la tasa —con
+> plata de los tres— y después ese pozo sobra, el excedente igual se va entero
+> al minoritario. Se deja así porque separar el origen de cada peso del pozo
+> sería llevar dos contabilidades para algo que casi no pasa: se escala
+> justamente cuando falta plata, no cuando sobra.
 
 ### Registrar lo que se pagó
 

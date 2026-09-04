@@ -564,7 +564,208 @@ create index if not exists orders_fecha_entrega_idx on orders (fecha_entrega);
 alter table orders add column if not exists descuento_pct numeric(5, 2) not null default 0
   check (descuento_pct >= 0 and descuento_pct <= 100);
 
+-- ---------------------------------------------------------------------------
+-- Cuánto cuesta producir una varilla
+-- ---------------------------------------------------------------------------
+
+/*
+  El costo de producción dejó de cargarse a mano como un gasto suelto y pasó a
+  calcularse: se define una vez cuánto cuesta hacer una varilla y después cada
+  producción que se carga al stock arrastra ese costo sola.
+
+  Los conceptos tienen dos bases distintas y esa es la parte que hace falta
+  modelar:
+
+  - Los de **unidad** son los que se gastan por varilla vayan las horas que
+    vayan: la materia prima, principalmente.
+  - Los de **hora** son los que corren con el reloj —la luz, los sueldos, el
+    alquiler del galpón— y no dependen de cuántas varillas salgan. Para pasarlos
+    a costo por varilla hace falta saber cuántas hace la máquina por hora.
+
+  De ahí sale la cuenta:
+
+      costo por varilla = (lo de unidad) + (lo de hora ÷ varillas por hora)
+
+  Producir más rápido abarata cada varilla sin que cambie ningún precio, que es
+  exactamente lo que pasa en la realidad y lo que una lista de gastos sueltos no
+  deja ver.
+*/
+create table if not exists production_costs (
+  id         uuid primary key default gen_random_uuid(),
+  nombre     text not null unique check (char_length(nombre) between 1 and 80),
+  base       text not null check (base in ('unidad', 'hora')),
+  monto      numeric(12, 4) not null default 0 check (monto >= 0),
+  activo     boolean not null default true,
+  orden      integer not null default 0,
+  notas      text,
+  updated_at timestamptz not null default now()
+);
+
+/*
+  Cuántas varillas hace la máquina por hora. Es el número que convierte los
+  costos por hora en costo por varilla, así que vale la pena medirlo bien: si
+  está mal, todo el costeo está mal en la misma proporción.
+
+  La tabla tiene una sola fila, forzada por la clave primaria booleana con
+  `check (id)`: sólo `true` entra, y sólo una vez. Es un truco viejo, pero es
+  más honesto que una tabla de una fila que nadie garantiza que sea una.
+*/
+create table if not exists production_setup (
+  id                boolean primary key default true check (id),
+  varillas_por_hora numeric(10, 2) not null default 0 check (varillas_por_hora >= 0),
+  updated_at        timestamptz not null default now()
+);
+
+insert into production_setup (id) values (true) on conflict (id) do nothing;
+
+/*
+  Los cuatro conceptos que nombró el negocio, en cero: los montos los carga
+  quien los conoce. Un número inventado acá sería peor que un cero, porque
+  parecería el correcto y nadie lo revisaría.
+*/
+insert into production_costs (nombre, base, monto, orden)
+select * from (values
+  ('Materia prima', 'unidad', 0, 1),
+  ('Luz',           'hora',   0, 2),
+  ('Empleados',     'hora',   0, 3),
+  ('Galpón',        'hora',   0, 4)
+) as v(nombre, base, monto, orden)
+where not exists (select 1 from production_costs);
+
+/*
+  El desglose y el total, para que la pantalla no rehaga la cuenta y para que la
+  conteste igual quien la haga.
+
+  Sin varillas por hora cargadas, la parte horaria no se puede repartir: queda
+  en null en vez de en cero, porque cero diría "la luz no cuesta nada" cuando lo
+  que pasa es que falta un dato.
+*/
+drop view if exists costo_varilla;
+
+create view costo_varilla with (security_invoker = on) as
+  with sumas as (
+    select
+      coalesce(sum(monto) filter (where base = 'unidad'), 0) as por_unidad,
+      coalesce(sum(monto) filter (where base = 'hora'), 0)   as por_hora
+    from production_costs
+    where activo
+  )
+  select
+    s.por_unidad,
+    s.por_hora,
+    p.varillas_por_hora,
+    round(s.por_hora / nullif(p.varillas_por_hora, 0), 4) as por_hora_unitario,
+    /*
+      Si hay costos por hora y no hay varillas por hora, el costo no se puede
+      calcular: queda en null, no en "sólo los materiales". Devolver el número
+      incompleto sería peor que no devolver ninguno, porque se guardaría en cada
+      producción como si fuera el costo real y nadie lo revisaría.
+    */
+    case
+      when s.por_hora > 0 and coalesce(p.varillas_por_hora, 0) = 0 then null
+      else round(
+        s.por_unidad + coalesce(s.por_hora / nullif(p.varillas_por_hora, 0), 0),
+        4
+      )
+    end as costo_unitario
+  from sumas s
+  cross join production_setup p;
+
+/*
+  El costo con el que se produjo cada tanda.
+
+  Se guarda en el movimiento y no se recalcula al mirar, por lo mismo que el
+  precio de una varilla vive en el ítem del pedido: si mañana sube la luz, lo
+  que costó producir en marzo no puede cambiar. Un mes cerrado que se mueve solo
+  es un mes en el que ya no se puede confiar.
+
+  En null significa que esa producción se cargó antes de que existiera el
+  costeo. Cuenta como cero y la pantalla lo señala, en vez de inventarle el
+  costo de hoy.
+*/
+alter table stock_movements add column if not exists costo_unitario numeric(12, 4)
+  check (costo_unitario is null or costo_unitario >= 0);
+
 create index if not exists orders_seller_idx on orders (seller_id);
+-- ---------------------------------------------------------------------------
+-- Reciclado por encargo
+-- ---------------------------------------------------------------------------
+
+/*
+  Hay empresas que no compran varillas: nos traen su propio plástico para que se
+  lo reciclemos y se llevan las varillas que salen de ahí.
+
+  Es otro negocio, no otro precio. No se cobra mercadería —la materia prima es
+  de ellos— sino el tiempo de las máquinas: la que procesa el plástico y la de
+  producción tienen cada una su tarifa por hora, y el trabajo se factura por las
+  horas que llevó.
+
+  De ahí se desprende lo más fácil de malinterpretar: **esas varillas nunca
+  entran al stock**. No es un olvido, es que nunca fueron nuestras. Se anotan
+  igual en el pedido, porque es lo que se le entrega al cliente y hay que poder
+  contestar cuántas salieron de tantos kilos.
+*/
+create table if not exists service_rates (
+  id          uuid primary key default gen_random_uuid(),
+  nombre      text not null unique check (char_length(nombre) between 1 and 80),
+  precio_hora numeric(12, 2) not null check (precio_hora >= 0),
+  activo      boolean not null default true,
+  orden       integer not null default 0,
+  updated_at  timestamptz not null default now()
+);
+
+/*
+  Las horas que llevó un trabajo, con la tarifa que tenían el día que se cargó.
+
+  `precio_hora` se copia y no se lee de `service_rates` por lo mismo que el
+  precio de una varilla vive en el ítem y no en la lista: cuando suba la tarifa,
+  los trabajos ya facturados no pueden moverse solos.
+
+  `concepto` también se copia, para que renombrar o dar de baja una tarifa no
+  deje trabajos viejos diciendo "servicio borrado".
+*/
+create table if not exists order_services (
+  id          uuid primary key default gen_random_uuid(),
+  order_id    uuid not null references orders (id) on delete cascade,
+  rate_id     uuid references service_rates (id) on delete set null,
+  concepto    text not null check (char_length(concepto) between 1 and 80),
+  horas       numeric(8, 2) not null check (horas > 0),
+  precio_hora numeric(12, 2) not null check (precio_hora >= 0),
+  subtotal    numeric(14, 2) generated always as (horas * precio_hora) stored
+);
+
+create index if not exists order_services_order_idx on order_services (order_id);
+
+/*
+  Un cliente puede ser de tres clases ahora. `empresa` es la que trae su propio
+  plástico; no compra por lista de precios, así que no le corresponde ninguna.
+*/
+alter table customers drop constraint if exists customers_tipo_check;
+alter table customers add constraint customers_tipo_check
+  check (tipo in ('minorista', 'mayorista', 'empresa'));
+
+/*
+  Qué clase de trabajo es el pedido.
+
+  Vive en el pedido y no se deduce del cliente porque una empresa que nos manda
+  plástico también puede comprarnos varillas alguna vez, y ese pedido sería una
+  venta común. Se propone según el cliente al crearlo y se puede cambiar.
+
+  Los kilos que entraron y las varillas que salieron son del trabajo de
+  reciclado: en una venta quedan en null, que es lo que corresponde.
+*/
+alter table orders add column if not exists tipo text not null default 'venta';
+
+alter table orders drop constraint if exists orders_tipo_check;
+alter table orders add constraint orders_tipo_check check (tipo in ('venta', 'reciclado'));
+
+alter table orders add column if not exists kilos_recibidos numeric(10, 2)
+  check (kilos_recibidos is null or kilos_recibidos >= 0);
+alter table orders add column if not exists varillas_entregadas integer
+  check (varillas_entregadas is null or varillas_entregadas >= 0);
+
+create index if not exists orders_tipo_idx on orders (tipo);
+
 
 -- ---------------------------------------------------------------------------
 -- Vistas
@@ -645,6 +846,10 @@ create or replace view stock_actual with (security_invoker = on) as
   plata ajena. Un pedido anulado no devenga nada aunque tenga cobros: si hubo
   plata de por medio se devuelve, no se comisiona.
 
+  Un trabajo de reciclado tampoco: se cobra por hora de máquina, no hay
+  mercadería, y la cuenta da cero sola sin ninguna regla especial. Si algún día
+  hay que comisionar esas horas, esto es lo que habría que cambiar.
+
   Y las ventas a revendedores tampoco comisionan. Ya se les vende con la lista
   mayorista, que es más barata justamente porque compran todos los meses: el
   descuento *es* lo que se resigna, y encima pagar comisión sería resignarlo dos
@@ -661,9 +866,11 @@ create or replace view orders_summary with (security_invoker = on) as
     m.bruta                as mercaderia,
     m.descuento            as descuento,
     m.bruta - m.descuento  as mercaderia_neta,
-    m.bruta - m.descuento + coalesce(o.flete, 0) as total,
+    coalesce(s.servicios, 0) as servicios,
+    m.bruta - m.descuento + coalesce(s.servicios, 0) + coalesce(o.flete, 0) as total,
     coalesce(p.pagado, 0)  as pagado,
-    m.bruta - m.descuento + coalesce(o.flete, 0) - coalesce(p.pagado, 0) as saldo,
+    m.bruta - m.descuento + coalesce(s.servicios, 0) + coalesce(o.flete, 0)
+      - coalesce(p.pagado, 0) as saldo,
     case
       when o.estado = 'cancelado' then 0
       when c.tipo = 'mayorista' then 0
@@ -694,6 +901,13 @@ create or replace view orders_summary with (security_invoker = on) as
       coalesce(i.mercaderia, 0) as bruta,
       round(coalesce(i.mercaderia, 0) * o.descuento_pct / 100, 2) as descuento
   ) m on true
+  /*
+    Las horas de un trabajo de reciclado. En una venta no hay ninguna y suma
+    cero, así que la cuenta es la misma para los dos tipos de pedido.
+  */
+  left join lateral (
+    select sum(subtotal) as servicios from order_services where order_id = o.id
+  ) s on true
   left join lateral (
     select sum(monto) as pagado from payments where order_id = o.id
   ) p on true;
@@ -743,12 +957,34 @@ create or replace view finanzas_mensuales with (security_invoker = on) as
     from orders where estado not in ('presupuesto', 'cancelado')
     union
     select date_trunc('month', fecha)::date from expenses
+    union
+    select date_trunc('month', fecha)::date from stock_movements where tipo = 'produccion'
+  ),
+
+  /*
+    El costo de producción del mes: cuántas varillas se fabricaron por lo que
+    costaba hacerlas. Ya no se carga a mano como un gasto suelto —se cargaba
+    dos veces o ninguna— sino que sale del propio movimiento de stock.
+
+    `costo_unitario` en null es una producción cargada antes de que existiera
+    el costeo: suma cero y la pantalla lo señala, en vez de aplicarle el costo
+    de hoy a algo que se hizo con otros precios.
+  */
+  produccion as (
+    select
+      date_trunc('month', fecha)::date as mes,
+      sum(cantidad)::integer as varillas,
+      sum(cantidad * coalesce(costo_unitario, 0)) as costo
+    from stock_movements
+    where tipo = 'produccion'
+    group by 1
   ),
   ventas as (
     select
       date_trunc('month', o.fecha)::date as mes,
       count(*)::integer     as pedidos,
       sum(o.mercaderia_neta) as mercaderia,
+      sum(o.servicios)       as servicios,
       sum(o.descuento)       as descuento,
       sum(coalesce(o.flete, 0)) as flete,
       sum(o.pagado)         as cobrado,
@@ -768,15 +1004,20 @@ create or replace view finanzas_mensuales with (security_invoker = on) as
   costos as (
     select
       date_trunc('month', fecha)::date as mes,
-      sum(monto) as total,
-      sum(monto) filter (where tipo = 'produccion')    as produccion,
+      /*
+        El total excluye los gastos de tipo 'produccion': ese costo ahora sale
+        del stock. Los que hayan quedado cargados se muestran aparte para que se
+        vean y se puedan limpiar, pero no se suman a ningún lado —contarlos
+        sería cobrarse la producción dos veces.
+      */
+      sum(monto) filter (where tipo <> 'produccion')   as total,
+      sum(monto) filter (where tipo = 'produccion')    as produccion_manual,
       sum(monto) filter (where tipo = 'flete')         as flete,
       sum(monto) filter (where tipo = 'pauta')         as pauta,
       sum(monto) filter (where tipo = 'muestras')      as muestras,
       sum(monto) filter (where tipo = 'suscripciones') as suscripciones,
       sum(monto) filter (where tipo = 'otro')          as otros,
-      sum(monto) filter (where tipo in ('produccion', 'flete'))
-        as operativos,
+      sum(monto) filter (where tipo = 'flete') as operativos,
       sum(monto) filter (where tipo in ('pauta', 'muestras', 'suscripciones', 'otro'))
         as reinversion
     from expenses
@@ -786,37 +1027,45 @@ create or replace view finanzas_mensuales with (security_invoker = on) as
     m.mes,
     coalesce(v.pedidos, 0)     as pedidos,
     coalesce(v.mercaderia, 0)  as mercaderia,
+    coalesce(v.servicios, 0)   as servicios,
     coalesce(v.descuento, 0)   as descuento,
     coalesce(v.flete, 0)       as flete_facturado,
-    coalesce(v.mercaderia, 0) + coalesce(v.flete, 0) as facturado,
+    coalesce(v.mercaderia, 0) + coalesce(v.servicios, 0) + coalesce(v.flete, 0)
+      as facturado,
     coalesce(v.cobrado, 0)     as cobrado,
     coalesce(v.comisiones, 0)  as comisiones,
 
-    coalesce(c.produccion, 0)     as costo_produccion,
-    coalesce(c.flete, 0)          as costo_flete,
+    coalesce(pr.varillas, 0)         as varillas_producidas,
+    coalesce(pr.costo, 0)            as costo_produccion,
+    /* Lo que quedó cargado a mano como gasto de producción y ya no se cuenta. */
+    coalesce(c.produccion_manual, 0) as costo_produccion_cargado,
+    coalesce(c.flete, 0)             as costo_flete,
     coalesce(c.pauta, 0)          as costo_pauta,
     coalesce(c.muestras, 0)       as costo_muestras,
     coalesce(c.suscripciones, 0)  as costo_suscripciones,
     coalesce(c.otros, 0)          as costo_otros,
 
-    coalesce(c.operativos, 0)  as costos_operativos,
+    coalesce(c.operativos, 0) + coalesce(pr.costo, 0) as costos_operativos,
     coalesce(c.reinversion, 0) as costos_reinversion,
-    coalesce(c.total, 0)       as costos,
+    coalesce(c.total, 0) + coalesce(pr.costo, 0) as costos,
 
     /*
       La que se reparte: lo facturado menos lo que paga la empresa. Los gastos
       de reinversión no se restan acá porque no los paga la empresa, los paga
       una de las partes del reparto.
     */
-    coalesce(v.mercaderia, 0) + coalesce(v.flete, 0)
-      - coalesce(v.comisiones, 0) - coalesce(c.operativos, 0) as ganancia_base,
+    coalesce(v.mercaderia, 0) + coalesce(v.servicios, 0) + coalesce(v.flete, 0)
+      - coalesce(v.comisiones, 0)
+      - coalesce(c.operativos, 0) - coalesce(pr.costo, 0) as ganancia_base,
 
     /* El resultado de verdad del mes, con todo descontado. */
-    coalesce(v.mercaderia, 0) + coalesce(v.flete, 0)
-      - coalesce(v.comisiones, 0) - coalesce(c.total, 0) as ganancia_neta
+    coalesce(v.mercaderia, 0) + coalesce(v.servicios, 0) + coalesce(v.flete, 0)
+      - coalesce(v.comisiones, 0)
+      - coalesce(c.total, 0) - coalesce(pr.costo, 0) as ganancia_neta
   from meses m
   left join ventas v on v.mes = m.mes
-  left join costos c on c.mes = m.mes;
+  left join costos c on c.mes = m.mes
+  left join produccion pr on pr.mes = m.mes;
 
 /*
   De dónde vinieron los contactos del mes y qué terminaron dejando.
@@ -888,6 +1137,10 @@ alter table carrier_rates   enable row level security;
 alter table expenses        enable row level security;
 alter table profit_shares   enable row level security;
 alter table profit_payouts  enable row level security;
+alter table service_rates   enable row level security;
+alter table order_services  enable row level security;
+alter table production_costs enable row level security;
+alter table production_setup enable row level security;
 
 /*
   Supabase ya suele dar estos permisos sola al crear tablas nuevas, pero
@@ -926,7 +1179,9 @@ begin
     'price_tiers', 'customers', 'leads', 'products',
     'orders', 'order_items', 'payments', 'stock_movements',
     'sellers', 'carriers', 'carrier_zones', 'carrier_rates',
-    'expenses', 'profit_shares', 'profit_payouts'
+    'expenses', 'profit_shares', 'profit_payouts',
+    'service_rates', 'order_services',
+    'production_costs', 'production_setup'
   ] loop
     execute format('drop policy if exists "equipo" on %I', tabla);
     execute format(
@@ -1030,6 +1285,18 @@ begin
   end if;
 end
 $listas$;
+
+/*
+  Los dos conceptos que se le facturan a una empresa que trae su plástico. El
+  precio arranca en cero a propósito: no lo sé, lo carga quien lo cobra. Un
+  número inventado acá sería peor, porque parecería el correcto.
+*/
+insert into service_rates (nombre, precio_hora, orden)
+select * from (values
+  ('Hora de máquina (procesado de plástico)', 0, 1),
+  ('Hora de producción',                      0, 2)
+) as v(nombre, precio_hora, orden)
+where not exists (select 1 from service_rates);
 
 /*
   El reparto base de la planilla: 50 / 25 / 20 y un 5 de reinversión. Los

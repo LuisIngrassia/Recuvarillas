@@ -54,9 +54,20 @@ function NewOrderModal({ onClose }) {
   const [customerId, setCustomerId] = useState('')
   const [fecha, setFecha] = useState(todayISO)
   const [entrega, setEntrega] = useState('retiro')
+  const [tipo, setTipo] = useState('venta')
+  const [tipoTocado, setTipoTocado] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
+
+  /*
+    Una empresa es la que trae su propio plástico, así que su pedido arranca
+    como trabajo de reciclado. Es una propuesta, no una regla: esa misma empresa
+    puede comprarnos varillas alguna vez, y ahí es una venta común.
+  */
+  const cliente = customers.data?.find((item) => item.id === customerId)
+  const sugerido = cliente?.tipo === 'empresa' ? 'reciclado' : 'venta'
+  const tipoUsado = tipoTocado ? tipo : sugerido
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -70,7 +81,7 @@ function NewOrderModal({ onClose }) {
     setError('')
 
     try {
-      const order = await createOrder({ customer_id: customerId, fecha, entrega })
+      const order = await createOrder({ customer_id: customerId, fecha, entrega, tipo: tipoUsado })
       navigate(`/erp/pedidos/${order.id}`)
     } catch (err) {
       setError(err.message)
@@ -119,6 +130,26 @@ function NewOrderModal({ onClose }) {
             </Select>
           </Field>
         </div>
+
+        <Field
+          label="Tipo de trabajo"
+          hint={
+            tipoUsado === 'reciclado'
+              ? 'Se cobra por hora de máquina. Las varillas que salgan son del cliente y no entran al stock.'
+              : 'Se venden varillas nuestras, con la lista de precios del cliente.'
+          }
+        >
+          <Select
+            value={tipoUsado}
+            onChange={(event) => {
+              setTipoTocado(true)
+              setTipo(event.target.value)
+            }}
+          >
+            <option value="venta">Venta de varillas</option>
+            <option value="reciclado">Reciclado del plástico del cliente</option>
+          </Select>
+        </Field>
 
         <ErrorNote>{error || customers.error}</ErrorNote>
 
@@ -220,6 +251,11 @@ export default function Orders() {
                     >
                       #{order.numero}
                     </Link>
+                    {order.tipo === 'reciclado' && (
+                      <span className="ml-1.5">
+                        <Badge tone="info">reciclado</Badge>
+                      </span>
+                    )}
                   </Td>
                   <Td>
                     <Link
@@ -258,8 +294,22 @@ export default function Orders() {
                           : 'Sin fecha'}
                     </span>
                   </Td>
+                  {/* Un trabajo de reciclado no tiene unidades vendidas: lo que
+                      hay son las varillas que se le devolvieron al cliente. Un
+                      cero acá se leería como "no llevó nada". */}
                   <Td align="right" className="tabular-nums text-steel-600">
-                    {formatNumber(order.unidades)}
+                    {order.tipo === 'reciclado' ? (
+                      order.varillas_entregadas ? (
+                        <>
+                          {formatNumber(order.varillas_entregadas)}
+                          <span className="block text-xs text-steel-400">devueltas</span>
+                        </>
+                      ) : (
+                        <span className="text-steel-300">—</span>
+                      )
+                    ) : (
+                      formatNumber(order.unidades)
+                    )}
                   </Td>
                   <Td align="right">
                     <Money value={order.total} />

@@ -20,7 +20,7 @@ import {
 } from '../api/expenses'
 import { findOrderByNumber } from '../api/orders'
 import { useAsync } from '../lib/useAsync'
-import { currentMonth, formatDate, formatMonth, monthRange, todayISO } from '../lib/format'
+import { currentMonth, formatDate, formatMonth, formatPesos, monthRange, todayISO } from '../lib/format'
 import {
   Async,
   Badge,
@@ -42,7 +42,7 @@ import {
 
 const EMPTY = {
   fecha: '',
-  tipo: 'produccion',
+  tipo: 'flete',
   descripcion: '',
   monto: '',
   proveedor: '',
@@ -264,11 +264,21 @@ export default function Expenses() {
           tone="warn"
         />
         <Stat
-          label="Producción"
-          value={<Money value={totales.produccion} />}
-          hint="El costo de fabricar lo que se vendió"
+          label="Pauta"
+          value={<Money value={totales.pauta} />}
+          hint="La parte de la reinversión que más se mira"
         />
       </div>
+
+      {totales.retirados > 0 && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-800">
+          Hay <strong>{formatPesos(totales.retirados)}</strong> cargados como gasto
+          de <em>producción</em> en este mes. Ese costo ahora sale del stock —de lo
+          que costaba hacer cada varilla el día que se produjo—, así que estos ya
+          no se cuentan en ningún total. Conviene borrarlos o pasarlos a otro tipo
+          para que el mes no muestre plata que no se está sumando.
+        </div>
+      )}
 
       {error && (
         <div className="mb-4">

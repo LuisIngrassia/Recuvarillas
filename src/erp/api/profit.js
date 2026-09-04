@@ -97,30 +97,30 @@ export async function deletePayout(id) {
 export const ESCALERA_REINVERSION = [7.5, 10]
 
 /**
- * Reparte entre los socios una plata "a la inversa" de sus porcentajes.
+ * Liquida al socio minoritario el pozo de reinversión que sobró.
  *
- * El peso de cada uno es 1 dividido su parte, normalizado a 100: con 50/25/20
- * queda 18,18 / 36,36 / 45,45. El que menos tiene es el que más cobra.
+ * Va entero a uno solo, y no es una gentileza: **ese 5% es suyo**. El reparto
+ * de fondo entre los tres es 50 / 25 / 25, y el socio del 25 más chico resignó
+ * cinco puntos para financiar la reinversión —por eso su fila dice 20—. Si esa
+ * plata no se llegó a usar, vuelve a quien la puso.
  *
- * Se usa para liquidar el pozo de reinversión que sobró. La lógica es que ese
- * pozo se financió sacándole a los socios en proporción a lo suyo —el que más
- * tiene puso más—, así que al devolverlo sin haberlo usado se compensa a quien
- * proporcionalmente más le pesó ponerlo.
- *
- * Una parte en 0% quedaría con peso infinito, así que se descarta: no cobra.
+ * Minoritario es el de menor porcentaje, así que la regla se sostiene sola si
+ * mañana cambian los números. En un empate se reparte en partes iguales entre
+ * los empatados: desempatar por el orden de la lista sería decidir plata ajena
+ * según cómo quedó ordenada una tabla.
  */
-export function liquidacionInversa(monto, socios) {
-  const pesos = socios
-    .map((socio) => ({ ...socio, peso: 1 / Number(socio.porcentaje) }))
-    .filter((socio) => Number.isFinite(socio.peso) && socio.peso > 0)
+export function liquidacionAlMinoritario(monto, socios) {
+  if (socios.length === 0) return []
 
-  const totalPeso = pesos.reduce((sum, socio) => sum + socio.peso, 0)
-  if (totalPeso === 0) return []
+  const menor = Math.min(...socios.map((socio) => Number(socio.porcentaje)))
+  const elegidos = socios.filter(
+    (socio) => Math.abs(Number(socio.porcentaje) - menor) < 0.001,
+  )
 
-  return pesos.map((socio) => ({
+  return elegidos.map((socio) => ({
     ...socio,
-    fraccion: (socio.peso / totalPeso) * 100,
-    monto: (Number(monto) * socio.peso) / totalPeso,
+    fraccion: 100 / elegidos.length,
+    monto: Number(monto) / elegidos.length,
   }))
 }
 
@@ -154,9 +154,16 @@ export function liquidacionInversa(monto, socios) {
  *
  * Y la reserva tiene un mes de gracia, no más. El gasto consume primero la
  * plata más vieja; lo que venía del mes anterior y aun así no se usó ya no es
- * una reserva sino plata quieta, y se liquida a los socios a la inversa de sus
- * porcentajes. Así el pozo no puede engordar indefinidamente sin que nadie
- * decida nada.
+ * una reserva sino plata quieta, y vuelve al socio minoritario, que es quien
+ * resignó esos cinco puntos para financiarla. Así el pozo no puede engordar
+ * indefinidamente sin que nadie decida nada.
+ *
+ * Ojo con un caso: cuando la escalera subió la tasa, los puntos de más los
+ * pusieron los tres. Si después sobra, ese excedente igual se va entero al
+ * minoritario. Es la única parte donde la regla da más de lo que su propia
+ * lógica justifica; se deja así porque separar el origen de cada peso del pozo
+ * sería llevar dos contabilidades para un caso que casi no ocurre —se escala
+ * justamente cuando falta plata, no cuando sobra—.
  *
  * @param gananciaBase lo facturado menos costos operativos y comisiones
  * @param gastosReinversion pauta, muestras, suscripciones y otros del período
@@ -241,8 +248,9 @@ export function splitProfit(gananciaBase, gastosReinversion, shares, reservaEntr
       faltante,
     },
 
-    /* A quién le toca el pozo vencido, a la inversa de sus porcentajes. */
-    liquidacion: liquidacionInversa(vencido, socios),
+    /* El pozo vencido vuelve entero al socio minoritario, que es de quien
+       salió ese 5%. Ver `liquidacionAlMinoritario`. */
+    liquidacion: liquidacionAlMinoritario(vencido, socios),
   }
 }
 

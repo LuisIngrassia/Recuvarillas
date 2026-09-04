@@ -121,12 +121,19 @@ export async function listOrders({ estado, entrega, search, limit = 300 } = {}) 
 
 /** El pedido con todo lo que la pantalla de detalle necesita mostrar junto. */
 export async function getOrder(id) {
-  const [order, items, payments] = await Promise.all([
+  const [order, items, services, payments] = await Promise.all([
     db().from('orders_summary').select('*').eq('id', id).single().then(unwrap),
     db()
       .from('order_items')
       .select('*, product:products(id, codigo, nombre, drilled)')
       .eq('order_id', id)
+      .then(unwrap),
+    /* Las horas del trabajo de reciclado. En una venta vienen vacías. */
+    db()
+      .from('order_services')
+      .select('*')
+      .eq('order_id', id)
+      .order('concepto')
       .then(unwrap),
     db()
       .from('payments')
@@ -136,7 +143,7 @@ export async function getOrder(id) {
       .then(unwrap),
   ])
 
-  return { ...order, items, payments }
+  return { ...order, items, services, payments }
 }
 
 /**
