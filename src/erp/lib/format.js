@@ -74,18 +74,30 @@ export function formatMonth(value) {
   return date ? mesLargo.format(date) : ''
 }
 
+const waLink = (digits, message) =>
+  `https://wa.me/${digits}${message ? `?text=${encodeURIComponent(message)}` : ''}`
+
 /**
  * Link de WhatsApp a un teléfono cargado a mano.
  *
  * Los números llegan escritos de cualquier forma —"11 2395-8302", "0221
- * 15 456789", con o sin +54— porque los tipea gente distinta. wa.me quiere
- * sólo dígitos con el país adelante, así que se normaliza acá.
+ * 15 456789", "93516154503" tal como lo copia WhatsApp, con o sin +54— porque
+ * los tipea gente distinta y los pega de lugares distintos. wa.me quiere sólo
+ * dígitos con el país adelante, así que se normaliza acá.
  *
- * Devuelve null si el número no da: mejor no mostrar el botón que abrir un
- * chat con un número inventado.
+ * Devuelve null si el número no da: mejor no mostrar el botón que abrir un chat
+ * con alguien que no es. Pero "no da" tiene que significar eso y no "está
+ * escrito de una forma que no contemplamos": cuando la mayoría de los contactos
+ * se queda sin botón, el botón no sirve para nada.
  */
 export function whatsappLink(phone, message) {
-  let digits = String(phone ?? '').replace(/\D/g, '')
+  const escrito = String(phone ?? '').trim()
+
+  /* El + es la única señal de que el número es de otro país. Sin él, un número
+     que no encaja en ningún formato argentino no se puede ubicar. */
+  const conPais = escrito.startsWith('+')
+
+  let digits = escrito.replace(/\D/g, '')
   if (!digits) return null
 
   // El 0 de larga distancia no viaja en el formato internacional.
@@ -94,10 +106,14 @@ export function whatsappLink(phone, message) {
   /*
     El 15 tampoco, y va pegado después del código de área, que en Argentina
     tiene 2, 3 o 4 dígitos según la zona. Como el largo del área no se sabe de
-    antemano, se prueban las tres posiciones: un número nacional con 15 tiene
-    11 dígitos y sin él quedan los 10 de siempre.
+    antemano, se prueban las tres posiciones: un número nacional con 15 tiene 12
+    dígitos —área más 15 más abonado— y sin él quedan los 10 de siempre.
+
+    Se saltea si ya trae el 54 adelante, porque ahí esos 12 dígitos son país más
+    número y no área más 15. La distinción no es ambigua: el único código de área
+    de dos dígitos es el 11, y ninguno de los de tres o cuatro empieza con 54.
   */
-  if (digits.length === 11) {
+  if (digits.length === 12 && !digits.startsWith('54')) {
     for (const area of [2, 3, 4]) {
       if (digits.slice(area, area + 2) === '15') {
         digits = digits.slice(0, area) + digits.slice(area + 2)
@@ -106,14 +122,33 @@ export function whatsappLink(phone, message) {
     }
   }
 
+  /*
+    Las tres formas en que aparece un celular argentino, todas hacia el mismo
+    549 + área + abonado:
+
+    - 10 dígitos: área y abonado, como lo dicta alguien por teléfono.
+    - 11 empezando con 9: lo que copia y pega WhatsApp, con el 9 pero sin el
+      país. Es como llega casi todo lo que se carga a mano.
+    - Con 54 y sin el 9: el país puesto a mano, olvidándose del 9 de celular.
+  */
   if (digits.length === 10) digits = `549${digits}`
+  else if (digits.length === 11 && digits.startsWith('9')) digits = `54${digits}`
   else if (digits.startsWith('54') && !digits.startsWith('549')) {
     digits = `549${digits.slice(2)}`
   }
 
-  // 549 + área + abonado. Si no da ese largo, el número está mal cargado.
-  if (digits.length !== 13) return null
+  // 549 + área + abonado.
+  if (digits.startsWith('549') && digits.length === 13) return waLink(digits, message)
 
-  const text = message ? `?text=${encodeURIComponent(message)}` : ''
-  return `https://wa.me/${digits}${text}`
+  /*
+    No es argentino. Si lo escribieron con el + del país se lo toma como está:
+    hay clientes en Uruguay y no hay motivo para dejarlos sin botón. Los que
+    empiezan con 54 no entran acá a propósito: esos son argentinos mal cargados,
+    y completarlos a ojo es justo cómo se termina abriendo el chat equivocado.
+  */
+  if (conPais && !digits.startsWith('54') && digits.length >= 8 && digits.length <= 15) {
+    return waLink(digits, message)
+  }
+
+  return null
 }

@@ -33,6 +33,8 @@ import { useDebounced } from '../lib/useDebounced'
 import { formatDateTime, formatNumber, formatPesos, whatsappLink } from '../lib/format'
 import { usePriceTiers } from '../../lib/priceTiers'
 import { tierFor } from '../../lib/quote'
+import { findPostalCode, loadPostalCodes } from '../../lib/postalCodes'
+import { ROAD_FACTOR } from '../../data/pricing'
 import {
   Async,
   Badge,
@@ -100,30 +102,91 @@ function cotizacionDeLead(cantidad, agujereada, tiers) {
   return { cantidad, precio_unitario: precio, mercaderia: precio * cantidad }
 }
 
-/** Ficha para cambiar estado, corregir lo que pidió y anotar qué dijo. */
+/**
+ * La ficha del lead: todo lo suyo, editable.
+ *
+ * Empezó mostrando sólo estado y notas, con los datos del simulador escritos en
+ * gris arriba. Eso alcanzaba mientras el lead fuera un papelito para acordarse
+ * de llamar, pero dejó de alcanzar cuando el lead pasó a ser de dónde sale el
+ * cliente: el teléfono que llegó mal tipeado no se podía arreglar, el que dejó
+ * el mail por Instagram no tenía dónde anotarlo, y esos son justamente los
+ * datos que después se copian a la ficha del cliente.
+ *
+ * Así que se edita todo lo que el lead tiene. Lo único que no está acá es el
+ * CUIT y la dirección de facturación: no se le piden a alguien que todavía está
+ * preguntando un precio, y viven en la ficha del cliente, que es donde se
+ * completan cuando hace falta facturarle.
+ */
 function LeadModal({ lead, onClose, onSaved }) {
   const tiers = usePriceTiers()
-  const [estado, setEstado] = useState(lead.estado)
-  const [origen, setOrigen] = useState(lead.origen)
-  const [cantidad, setCantidad] = useState(
-    lead.cantidad === null ? '' : String(lead.cantidad),
-  )
-  const [agujereada, setAgujereada] = useState(lead.agujereada)
-  const [notas, setNotas] = useState(lead.notas ?? '')
+  /* El padrón son ~55 KB que se bajan una sola vez por sesión, y sólo si
+     alguien abre una ficha. Sirve para que corregir el código postal complete
+     la localidad y los kilómetros en lugar de dejarlos viejos. */
+  const padron = useAsync(loadPostalCodes, [])
+
+  const [form, setForm] = useState({
+    nombre: lead.nombre,
+    telefono: lead.telefono ?? '',
+    email: lead.email ?? '',
+    origen: lead.origen,
+    estado: lead.estado,
+    cantidad: lead.cantidad === null ? '' : String(lead.cantidad),
+    agujereada: lead.agujereada,
+    entrega: lead.entrega,
+    codigo_postal: lead.codigo_postal ?? '',
+    localidad: lead.localidad ?? '',
+    provincia: lead.provincia ?? '',
+    kilometros: lead.kilometros,
+    notas: lead.notas ?? '',
+  })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const vacia = cantidad.trim() === ''
-  const cantidadNum = vacia ? null : Number.parseInt(cantidad, 10)
+  const set = (key) => (event) =>
+    setForm((prev) => ({
+      ...prev,
+      [key]: event.target.type === 'checkbox' ? event.target.checked : event.target.value,
+    }))
+
+  /*
+    El código postal arrastra la localidad, la provincia y los kilómetros, que
+    es lo que hace el simulador de la web. Si no está en el padrón sólo se
+    guarda el código: los tres campos siguen siendo de texto y se pueden
+    escribir a mano, porque el padrón no tiene todo.
+  */
+  const setCodigoPostal = (event) => {
+    const codigo_postal = event.target.value
+    const lugar = padron.data ? findPostalCode(padron.data, codigo_postal) : null
+
+    setForm((prev) =>
+      lugar
+        ? {
+            ...prev,
+            codigo_postal,
+            localidad: lugar.name,
+            provincia: lugar.province,
+            kilometros: Math.round(lugar.km * ROAD_FACTOR),
+          }
+        : { ...prev, codigo_postal },
+    )
+  }
+
+  const vacia = form.cantidad.trim() === ''
+  const cantidadNum = vacia ? null : Number.parseInt(form.cantidad, 10)
   const cantidadValida = vacia || (Number.isFinite(cantidadNum) && cantidadNum >= 1)
 
   /* El monto se recalcula mientras se escribe, no al guardar: que el número se
      mueva a la vista es lo que hace que no sorprenda después. */
   const cotizacion = cantidadValida
-    ? cotizacionDeLead(cantidadNum, agujereada, tiers)
+    ? cotizacionDeLead(cantidadNum, form.agujereada, tiers)
     : null
 
   const save = async () => {
+    const nombre = form.nombre.trim()
+    if (!nombre) {
+      setError('El nombre no puede quedar vacío.')
+      return
+    }
     if (!cantidadValida) {
       setError('La cantidad tiene que ser un número de varillas, o quedar vacía.')
       return
@@ -133,9 +196,17 @@ function LeadModal({ lead, onClose, onSaved }) {
     setError('')
     try {
       await updateLead(lead.id, {
-        estado,
-        origen,
-        notas: notas.trim() || null,
+        nombre,
+        telefono: form.telefono.trim() || null,
+        email: form.email.trim() || null,
+        origen: form.origen,
+        estado: form.estado,
+        entrega: form.entrega,
+        codigo_postal: form.codigo_postal.trim() || null,
+        localidad: form.localidad.trim() || null,
+        provincia: form.provincia.trim() || null,
+        kilometros: form.kilometros ?? null,
+        notas: form.notas.trim() || null,
         ...cotizacion,
       })
       onSaved()
@@ -145,78 +216,115 @@ function LeadModal({ lead, onClose, onSaved }) {
     }
   }
 
+  /* Se prueba el número mientras se escribe: que la ficha diga ahí mismo si
+     sirve para WhatsApp evita el viaje de guardar, volver a la lista y ver que
+     el botón sigue sin aparecer. */
+  const wa = whatsappLink(form.telefono)
+
   return (
-    <Modal title={lead.nombre} onClose={onClose}>
+    <Modal title={lead.nombre} onClose={onClose} wide>
       <div className="space-y-4">
-        {/* Lo que no se edita acá: de dónde salió y a dónde va. El destino lo
-            dejó el simulador y se corrige al armar el pedido, que es donde se
-            cotiza el flete. */}
-        <div className="rounded-md bg-steel-50 p-3 text-xs text-steel-600">
-          <p>
-            {lead.entrega === 'envio'
-              ? `Envío a ${lead.localidad ?? '—'} (${lead.codigo_postal ?? '—'}), ${formatNumber(lead.kilometros ?? 0)} km.`
-              : 'Retira en fábrica.'}
-          </p>
-          <p className="mt-1 text-steel-400">{formatDateTime(lead.created_at)}</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Nombre">
+            <Input value={form.nombre} onChange={set('nombre')} />
+          </Field>
+          <Field
+            label="De dónde salió"
+            hint="Corregirlo cambia a qué canal se le atribuye este contacto."
+          >
+            <Select value={form.origen} onChange={set('origen')}>
+              {LEAD_ORIGINS.map((value) => (
+                <option key={value} value={value}>
+                  {LEAD_ORIGIN_LABELS[value]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field
+            label="Teléfono"
+            hint={
+              form.telefono.trim() === ''
+                ? 'Sin teléfono no hay botón de WhatsApp.'
+                : wa
+                  ? 'Sirve para WhatsApp.'
+                  : 'No se entiende como número: revisá el área, o poné el + del país si es del exterior.'
+            }
+          >
+            <Input value={form.telefono} onChange={set('telefono')} />
+          </Field>
+          <Field label="Email">
+            <Input type="email" value={form.email} onChange={set('email')} />
+          </Field>
         </div>
 
-        <Field
-          label="Cuántas quiere"
-          hint={
-            cotizacion?.cantidad
-              ? `${formatNumber(cotizacion.cantidad)} × ${formatPesos(cotizacion.precio_unitario)} = ${formatPesos(cotizacion.mercaderia)} + IVA, con la lista de hoy.`
-              : 'Vacío mientras no haya dicho cuántas necesita.'
-          }
-        >
-          <Input
-            type="number"
-            min="1"
-            step="1"
-            inputMode="numeric"
-            value={cantidad}
-            onChange={(event) => setCantidad(event.target.value)}
-          />
-        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Cuántas quiere"
+            hint={
+              cotizacion?.cantidad
+                ? `${formatNumber(cotizacion.cantidad)} × ${formatPesos(cotizacion.precio_unitario)} = ${formatPesos(cotizacion.mercaderia)} + IVA, con la lista de hoy.`
+                : 'Vacío mientras no haya dicho cuántas necesita.'
+            }
+          >
+            <Input
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              value={form.cantidad}
+              onChange={set('cantidad')}
+            />
+          </Field>
+          <Field label="Estado">
+            <Select value={form.estado} onChange={set('estado')}>
+              {LEAD_STATES.map((value) => (
+                <option key={value} value={value}>
+                  {LEAD_STATE_LABELS[value]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
 
         <label className="flex items-center gap-2 text-sm text-steel-600">
-          <input
-            type="checkbox"
-            checked={agujereada}
-            onChange={(event) => setAgujereada(event.target.checked)}
-          />
+          <input type="checkbox" checked={form.agujereada} onChange={set('agujereada')} />
           Las quiere agujereadas
         </label>
 
-        <Field
-          label="De dónde salió"
-          hint="Corregirlo cambia a qué canal se le atribuye este contacto."
-        >
-          <Select value={origen} onChange={(event) => setOrigen(event.target.value)}>
-            {LEAD_ORIGINS.map((value) => (
-              <option key={value} value={value}>
-                {LEAD_ORIGIN_LABELS[value]}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
-        <Field label="Estado">
-          <Select value={estado} onChange={(event) => setEstado(event.target.value)}>
-            {LEAD_STATES.map((value) => (
-              <option key={value} value={value}>
-                {LEAD_STATE_LABELS[value]}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Entrega">
+            <Select value={form.entrega} onChange={set('entrega')}>
+              <option value="retiro">Retira en fábrica</option>
+              <option value="envio">Con envío</option>
+            </Select>
+          </Field>
+          <Field
+            label="Código postal"
+            hint={
+              form.kilometros
+                ? `${formatNumber(form.kilometros)} km hasta la fábrica.`
+                : 'Completa la localidad y la distancia si está en el padrón.'
+            }
+          >
+            <Input value={form.codigo_postal} onChange={setCodigoPostal} />
+          </Field>
+          <Field label="Localidad">
+            <Input value={form.localidad} onChange={set('localidad')} />
+          </Field>
+          <Field label="Provincia">
+            <Input value={form.provincia} onChange={set('provincia')} />
+          </Field>
+        </div>
 
         <Field label="Notas" hint="Qué dijo, cuándo volver a llamar, qué lo frenó.">
           <Textarea
             rows={4}
-            value={notas}
-            onChange={(event) => setNotas(event.target.value)}
+            value={form.notas}
+            onChange={set('notas')}
           />
         </Field>
+
+        <p className="text-xs text-steel-400">Entró el {formatDateTime(lead.created_at)}.</p>
 
         <ErrorNote>{error}</ErrorNote>
 

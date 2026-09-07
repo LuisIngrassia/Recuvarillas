@@ -147,6 +147,23 @@ precio por Instagram todavía no cotizó nada. Esos campos quedan vacíos y la
 pantalla los muestra con un guión en vez de un cero, que se leería como si
 hubiera pedido cero varillas.
 
+**La ficha del lead se edita entera**: nombre, teléfono, email, canal, cuántas
+quiere, si las quiere agujereadas, entrega, código postal, localidad, provincia,
+estado y notas. Empezó mostrando sólo estado y notas, con lo del simulador
+escrito en gris arriba, y eso alcanzaba mientras el lead fuera un papelito para
+acordarse de llamar. Dejó de alcanzar cuando el lead pasó a ser de dónde sale el
+cliente: el teléfono mal tipeado no se podía arreglar y el mail que dejó por
+Instagram no tenía dónde anotarse, y son justo los datos que después se copian a
+la ficha del cliente.
+
+Lo único que no está ahí es el **CUIT y la dirección de facturación**. No se le
+piden a alguien que todavía está preguntando un precio, y viven en la ficha del
+cliente, que es donde se completan cuando hay que facturarle.
+
+**El código postal arrastra localidad, provincia y kilómetros**, como en el
+simulador de la web. Si el código no está en el padrón se guarda igual y los
+otros tres se escriben a mano: el padrón no lo tiene todo.
+
 **Cuántas quiere se corrige desde su ficha**, y también al presupuestarlo. La
 gente cambia de idea entre que pregunta y que compra, y el que llamó por 600
 termina llevando 800. Al cambiar la cantidad, el monto se recalcula solo con la
@@ -154,6 +171,14 @@ lista de hoy: cantidad, precio unitario y monto son un solo dato en tres
 columnas, y dejar dos viejas haría que la fila diga 800 varillas al lado del
 importe de 600. El precio que se usa es el de la lista minorista, la misma con
 la que cotiza el simulador: un lead todavía no tiene lista propia.
+
+**El botón de WhatsApp aparece cuando el teléfono se entiende.** Los números se
+cargan de cualquier forma —tal como los copia WhatsApp (`93516154503`), con el 0
+y el 15, con `+54` o sin nada— y todas esas formas llevan al mismo `549` más
+área más abonado. Los del exterior andan si se los escribe con el `+` del país:
+sin él no hay con qué saber de dónde son. Cuando el número no se entiende, la
+ficha lo dice mientras se escribe en vez de dejar que uno lo descubra al volver
+a la lista y ver que el botón sigue faltando.
 
 El canal se cruza con la pauta en **Rentabilidad**: ahí se ve cuántos contactos
 trajo cada uno, cuántos cerraron y cuánto facturaron, al lado de lo que se gastó
