@@ -242,7 +242,7 @@ export default function ProductionCost() {
               </div>
 
               <Card title="Cuántas varillas hace la máquina por hora">
-                <div className="flex flex-wrap items-end gap-3 px-4 py-4">
+                <div className="flex flex-wrap items-start gap-3 px-4 py-4">
                   <Field
                     label="Varillas por hora"
                     hint="Es lo que convierte la luz, los sueldos y el galpón en costo por varilla."
@@ -258,12 +258,12 @@ export default function ProductionCost() {
                     />
                   </Field>
                   {horaEditando !== null && Number(horaEditando) !== porHora && (
-                    <Button onClick={guardarHora} disabled={guardandoHora} className="mb-0.5">
+                    <Button onClick={guardarHora} disabled={guardandoHora} className="mt-5">
                       {guardandoHora ? 'Guardando…' : 'Guardar'}
                     </Button>
                   )}
                   {faltaRitmo && (
-                    <p className="mb-2 text-xs text-amber-600">
+                    <p className="mt-5 py-2 text-xs text-amber-600">
                       Mientras esté en cero, el costo por varilla no se puede calcular.
                     </p>
                   )}

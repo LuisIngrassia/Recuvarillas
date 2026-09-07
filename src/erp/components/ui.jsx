@@ -99,6 +99,21 @@ export function Select({ className = '', children, ...props }) {
   )
 }
 
+/**
+ * Un campo con su etiqueta y, si hace falta, una aclaración al pie.
+ *
+ * Una fila de campos se alinea por los controles, no por las cajas, y eso
+ * decide cómo se arma la fila que lo contiene: tiene que ser `items-start` y no
+ * `items-end`. Alinear por abajo parece lo mismo mientras todos los campos
+ * miden igual, pero el que lleva aclaración es más alto, y alinear los pies le
+ * empuja el control hacia arriba: la fila queda escalonada.
+ *
+ * Con `items-start` los controles quedan parejos —todas las etiquetas ocupan un
+ * renglón— y la aclaración cuelga abajo sin molestar a nadie. Lo que entra en
+ * la fila sin ser un campo, un botón o un cartel, se baja los 20px que mide la
+ * etiqueta (`mt-5`: el renglón de 16 más los 4 de aire) para quedar a la altura
+ * de los controles y no de los títulos.
+ */
 export function Field({ label, hint, children }) {
   return (
     <label className="block">

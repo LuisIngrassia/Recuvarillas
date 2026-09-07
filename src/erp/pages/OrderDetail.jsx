@@ -27,6 +27,7 @@ import { listSellers } from '../api/sellers'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
 import { formatDate, formatNumber, formatPesos, todayISO } from '../lib/format'
+import { formatMoneda } from '../lib/cotizacion'
 import { usePriceTiers } from '../../lib/priceTiers'
 import { tierFor } from '../../lib/quote'
 import {
@@ -134,7 +135,7 @@ function AddItem({ order, products, onAdded }) {
 
   return (
     <form onSubmit={handleSubmit} className="border-t border-steel-100 px-4 py-4">
-      <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end">
+      <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-start">
         <Field label="Producto">
           <Select value={productId} onChange={(event) => setProductId(event.target.value)}>
             {products.map((item) => (
@@ -174,7 +175,8 @@ function AddItem({ order, products, onAdded }) {
             }}
           />
         </Field>
-        <Button type="submit" disabled={saving}>
+        {/* Bajado a la altura de los controles: ver `Field` en components/ui. */}
+        <Button type="submit" disabled={saving} className="sm:mt-5">
           Agregar
         </Button>
       </div>
@@ -231,7 +233,7 @@ function AddService({ order, rates, onAdded }) {
 
   return (
     <form onSubmit={handleSubmit} className="border-t border-steel-100 px-4 py-4">
-      <div className="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
+      <div className="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-start">
         <Field label="Qué se hizo">
           <Select value={rateId} onChange={(event) => setRateId(event.target.value)}>
             {rates.map((item) => (
@@ -254,7 +256,7 @@ function AddService({ order, rates, onAdded }) {
             onChange={(event) => setHoras(event.target.value)}
           />
         </Field>
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving} className="sm:mt-5">
           Agregar
         </Button>
       </div>
@@ -397,7 +399,7 @@ function AddPayment({ order, onAdded }) {
 
   return (
     <form onSubmit={handleSubmit} className="border-t border-steel-100 px-4 py-4">
-      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-start">
         <Field
           label="Monto"
           hint={
@@ -437,7 +439,7 @@ function AddPayment({ order, onAdded }) {
             onChange={(event) => setFecha(event.target.value)}
           />
         </Field>
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving} className="sm:mt-5">
           Registrar
         </Button>
       </div>
@@ -1192,6 +1194,24 @@ export default function OrderDetail() {
                       value={<Money value={order.total} />}
                       strong
                     />
+                    {/*
+                      Cuando el presupuesto salió en dólares, a qué dólar salió.
+                      Las cuentas de arriba siguen en pesos porque es lo que se
+                      cobra, pero quien mira el pedido tiene que saber qué se le
+                      prometió al cliente: es la diferencia entre discutir un
+                      número y discutir el tipo de cambio de aquel día.
+                    */}
+                    {order.moneda === 'USD' && order.cotizacion && (
+                      <TotalRow
+                        label="Presupuestado en dólares"
+                        hint="Los totales de arriba son en pesos"
+                        value={
+                          <span className="text-steel-500">
+                            {formatMoneda(order.cotizacion)} / USD
+                          </span>
+                        }
+                      />
+                    )}
                     <TotalRow label="Cobrado" value={<Money value={order.pagado} />} />
                     <TotalRow
                       label="Saldo"

@@ -147,6 +147,14 @@ precio por Instagram todavía no cotizó nada. Esos campos quedan vacíos y la
 pantalla los muestra con un guión en vez de un cero, que se leería como si
 hubiera pedido cero varillas.
 
+**Cuántas quiere se corrige desde su ficha**, y también al presupuestarlo. La
+gente cambia de idea entre que pregunta y que compra, y el que llamó por 600
+termina llevando 800. Al cambiar la cantidad, el monto se recalcula solo con la
+lista de hoy: cantidad, precio unitario y monto son un solo dato en tres
+columnas, y dejar dos viejas haría que la fila diga 800 varillas al lado del
+importe de 600. El precio que se usa es el de la lista minorista, la misma con
+la que cotiza el simulador: un lead todavía no tiene lista propia.
+
 El canal se cruza con la pauta en **Rentabilidad**: ahí se ve cuántos contactos
 trajo cada uno, cuántos cerraron y cuánto facturaron, al lado de lo que se gastó
 en publicidad ese mes. Sin eso la pauta es un gasto que baja la ganancia sin que
@@ -180,6 +188,46 @@ Lo que sí faltaba, y ya está: cuando el que vuelve a preguntar **ya es cliente
 "Hacer cliente" ofrece engancharlo a la ficha que existe en vez de crear una
 nueva. Esa era la duplicación real.
 
+#### Presupuestar un lead
+
+**Presupuestar** arma el pedido con lo que la persona cotizó, sin volver a
+cargar nada. Antes había que hacerlo cliente, entrar a su ficha, crear un
+pedido, elegir el producto, tipear la cantidad y tipear el precio: seis pasos
+para copiar datos que ya estaban escritos, y en el medio la cantidad que se
+copia mal.
+
+El botón aparece sólo si el lead cotizó algo. Sin cantidad no hay nada que
+armar: el que preguntó un precio por Instagram todavía no dijo cuántas
+necesita.
+
+Lo único que se pregunta es lo que hay que decidir de verdad:
+
+- **A qué ficha va.** Cliente nuevo, o enganchado a uno que ya existe —la misma
+  pregunta que hace "Hacer cliente", porque el que ya compró y vuelve a
+  preguntar no tiene que terminar con dos fichas. Si el lead ya está enganchado
+  a un cliente, ni se pregunta.
+- **Cuántas lleva.** Viene puesta la que cotizó y se puede corregir ahí mismo,
+  que es donde se está hablando con la persona. Si se cambia, el lead queda
+  diciendo lo que pide ahora: es un solo número y no dos que se contradicen.
+- **A qué precio.** El que vio en la web puede no ser el de la lista de hoy: los
+  precios se mueven y el lead puede ser de hace tres semanas. Cuando difieren se
+  muestran los dos y se elige, en vez de resolverlo en silencio para cualquiera
+  de los dos lados. Cobrarle de más al que ya vio un número enoja, y cobrarle de
+  menos sin haberlo decidido es margen que se va sin que nadie lo note.
+
+  Si se cambió la cantidad, esa elección no aparece: el precio que vio era el de
+  otro escalón, y respetárselo para una cantidad distinta no es respetar nada.
+
+El pedido queda en **presupuesto**, con el destino y los kilómetros del lead ya
+puestos y el flete a cotizar, y la pantalla se abre en él para ponerle el
+transporte y el vendedor antes de mandarlo.
+
+**El lead pasa a "contactado", no a "ganado".** Armarle un presupuesto es
+haberlo trabajado, no haberle vendido: la venta se da por buena cuando alguien
+confirma el pedido. La ficha de cliente se crea porque un pedido necesita un
+dueño —la tabla no admite uno sin él—, y eso no lo vuelve cliente todavía:
+cliente es el que completó al menos un pedido.
+
 ### Presupuestos
 
 El presupuesto no es un documento aparte: **es el pedido**, en su primer estado.
@@ -194,7 +242,7 @@ con su número, y si el cliente compra se convierte en venta sin volver a cargar
 nada. También admite varias líneas: aquel formulario tenía una sola varilla más
 el agujereado, y un pedido de 600 comunes y 600 agujereadas no entraba.
 
-Dos cosas se manejan desde esa pantalla:
+Tres cosas se manejan desde esa pantalla:
 
 - **El descuento** es un porcentaje sobre la mercadería, no sobre el flete: lo
   que se resigna es margen propio y el transporte cobra igual. Es plata de
@@ -202,6 +250,24 @@ Dos cosas se manejan desde esa pantalla:
   la comisión del vendedor y la ganancia del mes. Se puede escribir para ver
   cómo queda antes de comprometerlo; hasta que no se guarda, se imprime pero no
   afecta ningún total, y la pantalla lo avisa.
+- **La moneda** puede ser pesos o dólares. En dólares, los precios de lista se
+  convierten solos: la cotización del día se trae de dolarapi.com y aparece
+  propuesta en el campo —el oficial, con el blue a un clic—, pero es un campo
+  que se escribe, porque el dólar con el que se cotiza suele ser el propio.
+
+  Lo que se convierte es **sólo el papel**. Los pagos, la cuenta corriente, las
+  comisiones y la ganancia del mes siguen contando en pesos, que es la moneda en
+  la que se cobra. Lo que sí se guarda en el pedido es a qué cotización salió:
+  un presupuesto en dólares es un compromiso a un tipo de cambio concreto, y sin
+  ese número no hay forma de volver a sacar el PDF que se mandó ni de saber qué
+  se prometió cuando el cliente conteste dos semanas después. La ficha del
+  pedido lo muestra, abajo del total.
+
+  La conversión se hace precio por precio y los subtotales se recalculan sobre
+  el unitario ya redondeado, para que el papel cierre cuando el cliente agarra
+  la calculadora. Si falta la cotización, el presupuesto se sigue viendo en
+  pesos y no se puede exportar: mostrar los importes de siempre bajo un
+  encabezado que diga dólares es la única forma de equivocarse feo acá.
 - **El IVA** es sólo una forma de mostrarlo. El sistema entero trabaja sin IVA
   —la lista impresa también— y eso no cambia: el 21% se agrega al papel para el
   cliente que lo pide, y no se guarda en ningún lado.
@@ -690,9 +756,12 @@ las pantallas.
 código y el simulador funciona; lo único que no pasa es que se guarde el lead en
 la base. El ERP, en cambio, avisa que falta configurarlo.
 
-**Los importes son todos sin IVA**, igual que la lista impresa. La única
-excepción es visual: el presupuesto se puede exportar con el 21% agregado para
-el cliente que lo pide, sin que eso toque lo que hay guardado.
+**Los importes son todos sin IVA y en pesos**, igual que la lista impresa. Las
+dos excepciones son visuales y viven en la misma pantalla: el presupuesto se
+puede exportar con el 21% agregado y se puede exportar en dólares, para el
+cliente que lo pide, sin que ninguna de las dos cosas toque lo que hay guardado.
+De la conversión sí queda registrada la cotización usada, que es lo único que no
+se puede reconstruir después.
 
 **El flete ya no se carga a ciegas.** Con el tarifario de Fletes cargado, el
 pedido propone los transportes que llegan al destino con su precio; el importe

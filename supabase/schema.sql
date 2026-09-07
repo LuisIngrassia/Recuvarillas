@@ -564,6 +564,29 @@ create index if not exists orders_fecha_entrega_idx on orders (fecha_entrega);
 alter table orders add column if not exists descuento_pct numeric(5, 2) not null default 0
   check (descuento_pct >= 0 and descuento_pct <= 100);
 
+/*
+  En qué moneda salió el presupuesto, y a qué dólar.
+
+  El sistema sigue llevando pesos: los pagos, la cuenta corriente, las
+  comisiones y la ganancia del mes se cuentan en la moneda en la que se cobra, y
+  convertir eso sería inventar un resultado que depende del día en que se mire.
+  Lo que se convierte es el papel, para el cliente que pide el presupuesto en
+  dólares.
+
+  La cotización se guarda en vez de recalcularse al abrir la pantalla, y esa es
+  la parte que importa: un presupuesto en dólares es un compromiso a un tipo de
+  cambio concreto, y el dólar del martes no es el del jueves. Sin este número no
+  hay forma de volver a sacar el PDF que se mandó, ni de saber qué se prometió
+  cuando el cliente conteste dos semanas después.
+
+  Null mientras el pedido sea en pesos: no hay tipo de cambio que registrar
+  cuando no se convirtió nada.
+*/
+alter table orders add column if not exists moneda text not null default 'ARS'
+  check (moneda in ('ARS', 'USD'));
+alter table orders add column if not exists cotizacion numeric(12, 2)
+  check (cotizacion is null or cotizacion > 0);
+
 -- ---------------------------------------------------------------------------
 -- Cuánto cuesta producir una varilla
 -- ---------------------------------------------------------------------------

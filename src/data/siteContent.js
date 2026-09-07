@@ -58,6 +58,17 @@ export const products = [
     ],
     datasheet: 'fichas/varilla-perforada.pdf',
   },
+  {
+    name: 'Alambre 17 / 15 galvanizado para alambrado rural',
+    description:
+      'El mejor alambre para alambrar todo ',
+    specs: ['Largo: 1000 mts', "Dimensiones: 17 / 15", 'Uso: alambrados y cercos eléctricos'],
+    media: [
+      { type: 'image', src: 'alambre.jpg' },
+      { type: 'image', src: 'alambre2.jpg' },
+    ],
+    datasheet: 'fichas/varilla-perforada.pdf',
+  },
 ]
 
 export const benefits = [

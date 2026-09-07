@@ -11,32 +11,38 @@
  * varilla más el agujereado, y un pedido de 600 comunes y 600 agujereadas no
  * entraba. Acá salen los ítems que tenga el pedido.
  *
+ * También puede salir en dólares, para el cliente que lo pide así. Lo que se
+ * convierte es sólo este papel: el pedido, los cobros y la cuenta corriente
+ * siguen en pesos, que es la moneda en la que se cobra. Del asunto se guarda a
+ * qué cotización se convirtió, porque es lo que hace falta para volver a sacar
+ * el mismo PDF y para saber qué se prometió cuando el cliente conteste.
+ *
  * La marca es la del documento original —el verde, la serif, la tipografía del
  * encabezado— y no la del ERP, porque esto lo mira el cliente y tiene que
  * seguir pareciéndose a lo que ya venía recibiendo.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getOrder, updateOrder } from '../api/orders'
 import { listSellers } from '../api/sellers'
 import { useAsync } from '../lib/useAsync'
 import { formatDate } from '../lib/format'
 import { contactoDe } from '../lib/documentos'
+import {
+  MONEDA_LABELS,
+  MONEDAS,
+  enMoneda,
+  formatMoneda,
+  loadCotizaciones,
+  redondear,
+} from '../lib/cotizacion'
 import { Async, Button, ErrorNote } from '../components/ui'
 
-/*
-  Dos decimales, como el documento de siempre. El resto del ERP los redondea a
-  peso entero porque son pantallas de trabajo; un presupuesto que va afuera
-  muestra el importe exacto.
-*/
-const pesos = new Intl.NumberFormat('es-AR', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
-
-const money = (value) => `$ ${pesos.format(Number(value) || 0)}`
-
 const IVA = 0.21
+
+/* Los controles de arriba son de pantalla, no del papel: se ven todos igual. */
+const CONTROL =
+  'rounded-md border border-steel-200 bg-white px-3 py-2 text-sm text-steel-800 focus:border-secondary-500 focus:outline-none'
 
 /** Los 15 días de validez, contados desde la fecha del pedido. */
 function validoHasta(fecha) {
@@ -235,19 +241,54 @@ export default function QuotePrint() {
   */
   const sellers = useAsync(() => listSellers(), [])
 
+  /* El dólar del día, para no tener que ir a buscarlo a otra pestaña. Es una
+     propuesta: el campo se escribe igual, y si la consulta falla la pantalla
+     sirve lo mismo con el número puesto a mano. */
+  const cotizaciones = useAsync(() => loadCotizaciones(), [])
+
   const [conIva, setConIva] = useState(false)
   const [descuento, setDescuento] = useState(null)
+  const [moneda, setMoneda] = useState('ARS')
+  const [cotizacion, setCotizacion] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
 
   const order = query.data
 
-  /* El descuento guardado es el punto de partida; a partir de ahí el campo vive
-     en la pantalla hasta que se lo guarde, para poder ver cómo queda el total
-     antes de comprometerlo. */
+  /* Lo que está guardado en el pedido es el punto de partida; a partir de ahí
+     los campos viven en la pantalla hasta que se los guarde, para poder ver
+     cómo queda el presupuesto antes de comprometerlo. */
   useEffect(() => {
-    if (order) setDescuento(String(Number(order.descuento_pct ?? 0)))
+    if (!order) return
+    setDescuento(String(Number(order.descuento_pct ?? 0)))
+    setMoneda(order.moneda ?? 'ARS')
+    setCotizacion(order.cotizacion == null ? '' : String(Number(order.cotizacion)))
   }, [order])
+
+  /*
+    Al pasar a dólares sin cotización cargada se propone la del día, una sola
+    vez. Que sea una sola vez es lo que hace que el campo se pueda editar: si se
+    repusiera cada vez que queda vacío, borrarlo para escribir otro número lo
+    volvería a llenar antes de que se termine de tipear.
+
+    El oficial y no el blue porque es el que se puede justificar en una factura.
+    El otro está a un clic.
+  */
+  const propuesta = useRef(false)
+
+  useEffect(() => {
+    if (moneda !== 'USD') {
+      propuesta.current = false
+      return
+    }
+    if (propuesta.current || cotizacion.trim()) return
+
+    const oficial = cotizaciones.data?.find((item) => item.casa === 'oficial')
+    if (oficial) {
+      propuesta.current = true
+      setCotizacion(String(oficial.valor))
+    }
+  }, [moneda, cotizacion, cotizaciones.data])
 
   const imprimir = () => {
     const titulo = document.title
@@ -269,24 +310,65 @@ export default function QuotePrint() {
         const pctValido = Number.isFinite(pct) && pct >= 0 && pct <= 100
         const pctUsado = pctValido ? pct : 0
 
-        const bruta = Number(pedido.mercaderia)
-        const montoDescuento = Math.round(bruta * pctUsado) / 100
+        const tipo = Number(cotizacion)
+        const tipoValido = cotizacion.trim() !== '' && Number.isFinite(tipo) && tipo > 0
+
+        /*
+          Sin una cotización válida no se convierte nada y el papel sigue en
+          pesos, rotulado como pesos. Mostrar los importes de siempre debajo de
+          un encabezado que diga dólares es la única forma de equivocarse feo
+          acá, y es la que no se permite: la pantalla lo avisa y no deja
+          exportar hasta que el número esté.
+        */
+        const enDolares = moneda === 'USD' && tipoValido
+        const monedaUsada = enDolares ? 'USD' : 'ARS'
+        const tipoUsado = enDolares ? tipo : null
+        const money = (value) => formatMoneda(value, monedaUsada)
+
+        /*
+          Cada línea se convierte por su precio unitario y el subtotal se
+          recalcula sobre ese número ya redondeado, así el papel cierra cuando
+          el cliente agarra la calculadora. Por eso la mercadería se suma acá en
+          vez de tomar la que ya trae el pedido: en pesos da lo mismo, en
+          dólares no.
+        */
+        const lineas = pedido.items.map((item) => {
+          const unitario = enMoneda(item.precio_unitario, tipoUsado)
+          return { item, unitario, subtotal: redondear(unitario * item.cantidad) }
+        })
+
+        const bruta = redondear(lineas.reduce((suma, linea) => suma + linea.subtotal, 0))
+        const montoDescuento = redondear((bruta * pctUsado) / 100)
         const neta = bruta - montoDescuento
-        const flete = pedido.flete === null ? 0 : Number(pedido.flete)
-        const iva = conIva ? neta * IVA : 0
+        const flete = pedido.flete === null ? 0 : enMoneda(pedido.flete, tipoUsado)
+        const iva = conIva ? redondear(neta * IVA) : 0
         const total = neta + iva + flete
 
-        const cambiado = pctUsado !== Number(pedido.descuento_pct ?? 0)
+        const faltaCotizacion = moneda === 'USD' && !tipoValido
+
+        const cambiado =
+          pctUsado !== Number(pedido.descuento_pct ?? 0) ||
+          moneda !== (pedido.moneda ?? 'ARS') ||
+          (moneda === 'USD' && tipoValido && tipo !== Number(pedido.cotizacion ?? 0))
+
+        const guardable = cambiado && pctValido && !faltaCotizacion
         const vence = validoHasta(pedido.fecha)
 
         const vendedor = sellers.data?.find((item) => item.id === pedido.seller_id) ?? null
         const contacto = contactoDe(vendedor)
 
-        const guardarDescuento = async () => {
+        const guardarPresupuesto = async () => {
           setGuardando(true)
           setError('')
           try {
-            await updateOrder(pedido.id, { descuento_pct: pctUsado })
+            await updateOrder(pedido.id, {
+              descuento_pct: pctUsado,
+              moneda,
+              /* En pesos no hay tipo de cambio que registrar, y dejar el de una
+                 versión anterior del presupuesto sería peor que no tener
+                 ninguno: diría que se convirtió algo que no se convirtió. */
+              cotizacion: moneda === 'USD' ? tipo : null,
+            })
             query.reload()
           } catch (err) {
             setError(err.message)
@@ -299,11 +381,18 @@ export default function QuotePrint() {
           <>
             <style>{ESTILOS}</style>
 
-            <div className="mx-auto mb-5 flex max-w-[800px] flex-wrap items-end justify-between gap-3 print:hidden">
-              <div className="flex flex-wrap items-end gap-4">
+            <div className="mx-auto mb-5 flex max-w-[800px] flex-wrap items-start justify-between gap-3 print:hidden">
+              <div className="flex flex-wrap items-start gap-4">
+                {/*
+                  Los `mt-5` de esta barra son los 20px que mide la etiqueta de
+                  un campo: lo que no la lleva —el link, la casilla, los
+                  botones— se baja a la altura de los controles en vez de
+                  quedar arriba con los títulos. La explicación larga está en
+                  `Field`, en components/ui.
+                */}
                 <Link
                   to={`/erp/pedidos/${pedido.id}`}
-                  className="inline-flex items-center rounded-md border border-steel-200 bg-white px-3 py-2 text-sm font-semibold text-steel-600 hover:border-steel-300"
+                  className="mt-5 inline-flex items-center rounded-md border border-steel-200 bg-white px-3 py-2 text-sm font-semibold text-steel-600 hover:border-steel-300"
                 >
                   Volver al pedido
                 </Link>
@@ -312,31 +401,79 @@ export default function QuotePrint() {
                   <span className="block text-xs font-semibold text-steel-600">
                     Descuento (%)
                   </span>
-                  <span className="mt-1 flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.5"
-                      inputMode="decimal"
-                      value={descuento ?? ''}
-                      onChange={(event) => setDescuento(event.target.value)}
-                      className="w-24 rounded-md border border-steel-200 bg-white px-3 py-2 text-sm text-steel-800 focus:border-secondary-500 focus:outline-none"
-                    />
-                    {cambiado && pctValido && (
-                      <Button
-                        variant="soft"
-                        className="px-2.5 py-1.5 text-xs"
-                        onClick={guardarDescuento}
-                        disabled={guardando}
-                      >
-                        {guardando ? 'Guardando…' : 'Guardar en el pedido'}
-                      </Button>
-                    )}
-                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    inputMode="decimal"
+                    value={descuento ?? ''}
+                    onChange={(event) => setDescuento(event.target.value)}
+                    className={`mt-1 w-24 ${CONTROL}`}
+                  />
                 </label>
 
-                <label className="flex items-center gap-2 pb-2 text-sm text-steel-600">
+                <label className="block">
+                  <span className="block text-xs font-semibold text-steel-600">Moneda</span>
+                  <select
+                    value={moneda}
+                    onChange={(event) => setMoneda(event.target.value)}
+                    className={`mt-1 w-40 ${CONTROL}`}
+                  >
+                    {MONEDAS.map((codigo) => (
+                      <option key={codigo} value={codigo}>
+                        {MONEDA_LABELS[codigo]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {moneda === 'USD' && (
+                  <div>
+                    <label className="block">
+                      <span className="block text-xs font-semibold text-steel-600">
+                        Cotización (pesos por dólar)
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        value={cotizacion}
+                        onChange={(event) => setCotizacion(event.target.value)}
+                        className={`mt-1 w-36 ${CONTROL}`}
+                      />
+                    </label>
+
+                    {/*
+                      La del día, a un clic, sin que deje de ser un campo que se
+                      escribe: el dólar con el que se cotiza suele ser el propio.
+                    */}
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-steel-400">
+                      {cotizaciones.data?.length ? (
+                        <>
+                          <span>Hoy:</span>
+                          {cotizaciones.data.map((item) => (
+                            <button
+                              key={item.casa}
+                              type="button"
+                              onClick={() => setCotizacion(String(item.valor))}
+                              className="rounded border border-steel-200 px-1.5 py-0.5 font-semibold text-steel-600 hover:border-secondary-500 hover:text-secondary-600"
+                            >
+                              {item.nombre} {formatMoneda(item.valor)}
+                            </button>
+                          ))}
+                        </>
+                      ) : cotizaciones.loading ? (
+                        <span>Buscando la cotización del día…</span>
+                      ) : (
+                        <span>No se pudo traer la cotización del día: escribila a mano.</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <label className="mt-5 flex items-center gap-2 py-2 text-sm text-steel-600">
                   <input
                     type="checkbox"
                     checked={conIva}
@@ -346,12 +483,30 @@ export default function QuotePrint() {
                 </label>
               </div>
 
-              <Button onClick={imprimir}>Exportar a PDF</Button>
+              <div className="mt-5 flex gap-2">
+                {guardable && (
+                  <Button variant="soft" onClick={guardarPresupuesto} disabled={guardando}>
+                    {guardando ? 'Guardando…' : 'Guardar en el pedido'}
+                  </Button>
+                )}
+                <Button onClick={imprimir} disabled={faltaCotizacion}>
+                  Exportar a PDF
+                </Button>
+              </div>
             </div>
 
             {!pctValido && (
               <div className="mx-auto mb-4 max-w-[800px] print:hidden">
                 <ErrorNote>El descuento tiene que ser un porcentaje entre 0 y 100.</ErrorNote>
+              </div>
+            )}
+
+            {faltaCotizacion && (
+              <div className="mx-auto mb-4 max-w-[800px] print:hidden">
+                <ErrorNote>
+                  Falta la cotización del dólar. Mientras no esté, el presupuesto
+                  se muestra en pesos y no se puede exportar.
+                </ErrorNote>
               </div>
             )}
 
@@ -361,11 +516,12 @@ export default function QuotePrint() {
               </div>
             )}
 
-            {cambiado && pctValido && (
+            {guardable && (
               <p className="mx-auto mb-4 max-w-[800px] rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700 print:hidden">
-                El descuento que se ve abajo todavía no está guardado en el
-                pedido: se imprime, pero no baja el total ni la cuenta corriente
-                hasta que lo guardes.
+                Lo que se ve abajo todavía no está guardado en el pedido: se
+                imprime igual, pero el descuento no baja el total ni la cuenta
+                corriente, y la cotización no queda registrada, hasta que lo
+                guardes.
               </p>
             )}
 
@@ -385,6 +541,18 @@ export default function QuotePrint() {
                     <dd>{String(pedido.numero).padStart(4, '0')}</dd>
                     <dt>Fecha</dt>
                     <dd>{formatDate(pedido.fecha)}</dd>
+                    {/*
+                      La cotización va arriba, con el número y la fecha, y no
+                      sólo en la letra chica: es un dato del documento. El
+                      cliente que recibe importes en dólares tiene que poder ver
+                      de dónde salieron sin buscarlos.
+                    */}
+                    {enDolares && (
+                      <>
+                        <dt>Cotización</dt>
+                        <dd>{formatMoneda(tipoUsado)} / USD</dd>
+                      </>
+                    )}
                   </dl>
                 </div>
 
@@ -406,26 +574,26 @@ export default function QuotePrint() {
                     <tr>
                       <th>Descripción</th>
                       <th className="num">Cantidad</th>
-                      <th className="num">Precio unitario (ARS)</th>
+                      <th className="num">Precio unitario ({monedaUsada})</th>
                       <th className="num">Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {pedido.items.length === 0 ? (
+                    {lineas.length === 0 ? (
                       <tr>
                         <td colSpan={4} style={{ textAlign: 'center', color: '#8a5a34' }}>
                           Este pedido todavía no tiene mercadería cargada.
                         </td>
                       </tr>
                     ) : (
-                      pedido.items.map((item) => (
+                      lineas.map(({ item, unitario, subtotal }) => (
                         <tr key={item.id}>
                           <td className="desc">{item.product.nombre}</td>
                           <td className="num">
                             {new Intl.NumberFormat('es-AR').format(item.cantidad)}
                           </td>
-                          <td className="num">{money(item.precio_unitario)}</td>
-                          <td className="num">{money(item.subtotal)}</td>
+                          <td className="num">{money(unitario)}</td>
+                          <td className="num">{money(subtotal)}</td>
                         </tr>
                       ))
                     )}
@@ -483,6 +651,9 @@ export default function QuotePrint() {
                       vence ? `Válido hasta el ${formatDate(
                         `${vence.getFullYear()}-${String(vence.getMonth() + 1).padStart(2, '0')}-${String(vence.getDate()).padStart(2, '0')}`,
                       )}.` : null,
+                      enDolares
+                        ? `Importes en dólares estadounidenses, convertidos a razón de ${formatMoneda(tipoUsado)} por dólar.`
+                        : null,
                       conIva ? 'Precios con IVA incluido.' : 'Precios sin IVA.',
                       pedido.entrega === 'retiro'
                         ? 'Retira en fábrica.'

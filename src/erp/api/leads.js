@@ -1,5 +1,6 @@
 /** Leads: todo el que preguntó, venga de donde venga. */
 import { db, searchTerm, unwrap } from './client'
+import { addOrderItem, createOrder, deleteOrder } from './orders'
 
 /**
  * De dónde salió el contacto.
@@ -66,7 +67,7 @@ export const LEAD_STATE_TONES = {
 export async function listLeads({ estado, origen, search, limit = 300 } = {}) {
   let query = db()
     .from('leads')
-    .select('*, customer:customers(id, nombre)')
+    .select('*, customer:customers(id, nombre, tipo)')
     .order('created_at', { ascending: false })
     .limit(limit)
 
@@ -115,34 +116,121 @@ export async function deleteLead(id) {
  */
 export async function convertLeadToCustomer(lead) {
   const customer = unwrap(
-    await db()
-      .from('customers')
-      .insert({
-        nombre: lead.nombre,
-        /*
-          Siempre minorista. Antes se marcaba mayorista a quien cotizaba mil o
-          más, cuando 'mayorista' quería decir "le toca el tramo de volumen".
-          Ahora quiere decir "es revendedor": lista más barata y sin comisión
-          para el vendedor, porque se supone que vuelve todos los meses.
-
-          Una compra grande de una sola vez no es eso, y el que decide que
-          alguien pasa a revendedor es una persona, no la cantidad que cotizó
-          la primera vez. Se cambia en la ficha del cliente.
-        */
-        tipo: 'minorista',
-        telefono: lead.telefono,
-        email: lead.email,
-        localidad: lead.localidad,
-        provincia: lead.provincia,
-        codigo_postal: lead.codigo_postal,
-      })
-      .select()
-      .single(),
+    await db().from('customers').insert(datosDeCliente(lead)).select().single(),
   )
 
   await updateLead(lead.id, { customer_id: customer.id, estado: 'ganado' })
 
   return customer
+}
+
+/**
+ * Los datos del lead que son también datos del cliente.
+ *
+ * Está aparte porque hay dos formas de terminar con una ficha nueva —hacerlo
+ * cliente, o armarle el presupuesto— y las dos tienen que copiar lo mismo. Que
+ * una copiara el email y la otra no es la clase de diferencia que nadie nota
+ * hasta que hace falta el dato.
+ */
+function datosDeCliente(lead) {
+  return {
+    nombre: lead.nombre,
+    /*
+      Siempre minorista. Antes se marcaba mayorista a quien cotizaba mil o
+      más, cuando 'mayorista' quería decir "le toca el tramo de volumen".
+      Ahora quiere decir "es revendedor": lista más barata y sin comisión
+      para el vendedor, porque se supone que vuelve todos los meses.
+
+      Una compra grande de una sola vez no es eso, y el que decide que
+      alguien pasa a revendedor es una persona, no la cantidad que cotizó
+      la primera vez. Se cambia en la ficha del cliente.
+    */
+    tipo: 'minorista',
+    telefono: lead.telefono,
+    email: lead.email,
+    localidad: lead.localidad,
+    provincia: lead.provincia,
+    codigo_postal: lead.codigo_postal,
+  }
+}
+
+/**
+ * Arma el presupuesto de lo que el lead cotizó.
+ *
+ * Es el atajo de un camino que se hacía a mano: convertirlo en cliente, entrar
+ * a su ficha, crear un pedido, elegir el producto, tipear la cantidad y tipear
+ * el precio. Todo eso ya está en el lead —lo escribió la persona en el
+ * simulador de la web— y volver a tipearlo es donde se cuelan los errores.
+ *
+ * El cliente se crea acá porque un pedido necesita uno: la tabla no admite un
+ * pedido sin dueño. Eso no lo vuelve cliente de verdad. Cliente es el que
+ * completó un pedido, y hasta entonces la ficha es nada más que dónde colgar
+ * este presupuesto; por eso el lead pasa de 'nuevo' a 'contactado' y no a
+ * 'ganado'. Presupuestar es haberlo trabajado, no haberle vendido: 'ganado' lo
+ * pone quien confirma el pedido.
+ *
+ * El precio llega desde afuera en vez de calcularse acá porque no siempre es el
+ * de la lista: si el cliente vio otro número en la web, a veces se le respeta
+ * ese. Esa decisión la toma quien atiende, no esta función.
+ *
+ * `leadChanges` es para cuando el que atiende corrige, en el mismo momento,
+ * cuántas quiere: el lead tiene que quedar diciendo lo que la persona pide
+ * ahora y no lo que pidió hace tres semanas. Va junto al resto de la
+ * actualización y no en una llamada aparte para que el lead no pueda quedar a
+ * medio corregir.
+ *
+ * Si la mercadería no entra, el pedido se borra. Un presupuesto vacío es peor
+ * que ninguno: queda en la lista de pedidos como si existiera y nadie sabe qué
+ * era.
+ */
+export async function createQuoteFromLead(
+  lead,
+  { customerId, productId, cantidad, precioUnitario, leadChanges },
+) {
+  let clienteId = customerId ?? lead.customer_id ?? null
+
+  if (!clienteId) {
+    const customer = unwrap(
+      await db().from('customers').insert(datosDeCliente(lead)).select('id').single(),
+    )
+    clienteId = customer.id
+  }
+
+  const order = await createOrder({
+    customer_id: clienteId,
+    lead_id: lead.id,
+    tipo: 'venta',
+    entrega: lead.entrega,
+    localidad: lead.localidad,
+    provincia: lead.provincia,
+    codigo_postal: lead.codigo_postal,
+    kilometros: lead.kilometros,
+  })
+
+  try {
+    await addOrderItem({
+      order_id: order.id,
+      product_id: productId,
+      cantidad,
+      precio_unitario: precioUnitario,
+    })
+  } catch (error) {
+    /* Si tampoco se puede borrar, el error que importa es el de arriba. */
+    try {
+      await deleteOrder(order.id)
+    } catch {
+      /* nada que hacer */
+    }
+    throw error
+  }
+
+  await updateLead(lead.id, {
+    customer_id: clienteId,
+    estado: lead.estado === 'nuevo' ? 'contactado' : lead.estado,
+    ...leadChanges,
+  })
+
+  return order
 }
 
 /**
