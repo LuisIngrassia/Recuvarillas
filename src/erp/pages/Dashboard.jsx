@@ -63,9 +63,9 @@ export default function Dashboard() {
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <Stat
-                label="Leads sin contactar"
+                label="Acciones para hoy"
                 value={formatNumber(data.nuevos)}
-                hint={data.nuevos > 0 ? 'Gente que cotizó y espera respuesta' : 'Al día'}
+                hint={data.nuevos > 0 ? 'Leads esperando que alguien haga algo' : 'Al día'}
                 tone={data.nuevos > 0 ? 'warn' : 'good'}
               />
               <Stat
@@ -305,8 +305,8 @@ export default function Dashboard() {
                         <Money value={lead.mercaderia} />
                       </Td>
                       <Td>
-                        <Badge tone={LEAD_STATE_TONES[lead.estado]}>
-                          {LEAD_STATE_LABELS[lead.estado]}
+                        <Badge tone={LEAD_STATE_TONES[lead.status]}>
+                          {LEAD_STATE_LABELS[lead.status]}
                         </Badge>
                       </Td>
                       <Td className="whitespace-nowrap text-xs text-steel-400">

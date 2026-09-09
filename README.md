@@ -125,6 +125,16 @@ Reemplazar por la información real de la empresa. Las imágenes son
 placeholders marcados con `[ ... ]` dentro de cada componente en
 [`src/components`](src/components).
 
+## Reseñas
+
+La sección de testimonios se carga a mano desde
+[`src/data/siteContent.js`](src/data/siteContent.js): cuando entra una buena
+reseña en el perfil de Google, se copia ahí. Sin claves, sin servicios de
+terceros y sin factura. La misma sección cierra con un botón que
+invita a los clientes a dejar la suya. Cómo copiarlas, de dónde sale ese enlace
+y por qué las reseñas no se traen solas de la API de Google:
+[`docs/resenas.md`](docs/resenas.md).
+
 ## Paleta de colores
 
 Definida en [`src/index.css`](src/index.css) como escalas de Tailwind:

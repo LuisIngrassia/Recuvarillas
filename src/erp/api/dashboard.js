@@ -30,10 +30,17 @@ export async function loadDashboard() {
     agenda,
     finanzas,
   ] = await Promise.all([
+      /*
+        Cuántas acciones vencen hoy, no cuántos leads sin contactar hay.
+
+        Con los cuatro estados de antes "nuevo" era lo mismo que "pendiente",
+        pero ahora un lead puede estar en negociación hace tres semanas y ser
+        igual de urgente que uno recién entrado. Lo que importa es qué hay que
+        hacer hoy, y eso lo contesta `leads_hoy`.
+      */
       db()
-        .from('leads')
+        .from('leads_hoy')
         .select('id', { count: 'exact', head: true })
-        .eq('estado', 'nuevo')
         .then(({ count, error }) => unwrap({ data: count ?? 0, error })),
 
       db()
@@ -69,7 +76,7 @@ export async function loadDashboard() {
 
       db()
         .from('leads')
-        .select('id, nombre, telefono, cantidad, agujereada, mercaderia, estado, created_at')
+        .select('id, nombre, telefono, cantidad, agujereada, mercaderia, status, created_at')
         .order('created_at', { ascending: false })
         .limit(6)
         .then(unwrap),

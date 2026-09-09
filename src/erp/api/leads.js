@@ -1,61 +1,224 @@
-/** Leads: todo el que preguntó, venga de donde venga. */
+/** Leads: todo el que preguntó, venga de donde venga, y en qué anda cada uno. */
 import { db, searchTerm, unwrap } from './client'
 import { addOrderItem, createOrder, deleteOrder } from './orders'
+
+/**
+ * Las etapas del embudo.
+ *
+ * Reemplazan a los cuatro estados de antes (`nuevo / contactado / ganado /
+ * perdido`). "Contactado" tapaba tres situaciones que se trabajan distinto —le
+ * mandé la lista, le mandé el presupuesto, está regateando— y no había forma de
+ * saber en cuál de las tres se caía la venta.
+ *
+ * El orden de esta lista es el del kanban y el de las pantallas: es el camino
+ * que recorre un lead de izquierda a derecha.
+ */
+export const LEAD_STATES = [
+  'new',
+  'qualifying',
+  'qualified',
+  'quoted',
+  'negotiating',
+  'closing',
+  'won',
+  'dormant',
+  'lost',
+]
+
+/** Los estados en los que el lead todavía se trabaja. */
+export const LEAD_STATES_ACTIVE = [
+  'new',
+  'qualifying',
+  'qualified',
+  'quoted',
+  'negotiating',
+  'closing',
+]
+
+/** Las columnas del kanban. `dormant` y `lost` van en paneles aparte. */
+export const LEAD_BOARD = [...LEAD_STATES_ACTIVE, 'won']
+
+export const LEAD_STATE_LABELS = {
+  new: 'Nuevo',
+  qualifying: 'En calificación',
+  qualified: 'Calificado',
+  quoted: 'Presupuesto enviado',
+  negotiating: 'En negociación',
+  closing: 'Por cerrar',
+  won: 'Ganado',
+  dormant: 'Dormido',
+  lost: 'Perdido',
+}
+
+export const LEAD_STATE_TONES = {
+  new: 'info',
+  qualifying: 'info',
+  qualified: 'warn',
+  quoted: 'warn',
+  negotiating: 'warn',
+  closing: 'warn',
+  won: 'good',
+  dormant: 'neutral',
+  lost: 'neutral',
+}
+
+/**
+ * A dónde puede ir cada estado.
+ *
+ * Es una copia de `lead_transicion_valida` en `schema.sql`, y la de allá es la
+ * que manda: ésta existe nada más que para saber qué botones ofrecer. Si las
+ * dos se separan, el error que se ve es un rechazo de la base al guardar —
+ * molesto, pero no un dato mal escrito.
+ */
+export const LEAD_TRANSITIONS = {
+  new: ['qualifying', 'qualified', 'lost'],
+  qualifying: ['qualified', 'quoted', 'dormant', 'lost'],
+  qualified: ['quoted', 'dormant', 'lost'],
+  quoted: ['negotiating', 'closing', 'dormant', 'lost'],
+  negotiating: ['closing', 'quoted', 'dormant', 'lost'],
+  closing: ['won', 'negotiating', 'dormant', 'lost'],
+  dormant: ['qualified', 'quoted', 'lost', 'new'],
+  won: [],
+  lost: ['dormant'],
+}
+
+export function puedePasarA(desde, hasta) {
+  return (LEAD_TRANSITIONS[desde] ?? []).includes(hasta)
+}
+
+/**
+ * Qué campos hay que pedir antes de dejar entrar a un estado.
+ *
+ * Los valida la base igual (ver `leads_guard`), pero pedirlos antes convierte
+ * un error rojo al guardar en un formulario que dice qué falta.
+ */
+export const LEAD_STATE_REQUIRES = {
+  qualified: ['localidad', 'cantidad', 'agujereada'],
+  quoted: ['quote_amount'],
+  won: ['won_amount'],
+  lost: ['lost_reason'],
+}
+
+/** Qué es el que pregunta. Define con qué lista de precios se le cotiza. */
+export const LEAD_TYPES = ['end_user', 'installer', 'retailer', 'distributor']
+
+export const LEAD_TYPE_LABELS = {
+  end_user: 'Consumidor final',
+  installer: 'Alambrador',
+  retailer: 'Corralón / agropecuaria',
+  distributor: 'Distribuidor',
+}
+
+/**
+ * Los revendedores llevan lista mayorista; el resto, minorista.
+ *
+ * Está acá y no en la pantalla porque es la misma regla que decide el `tipo`
+ * del cliente cuando el lead se convierte, y tenerla escrita dos veces es cómo
+ * terminan cotizando distinto la ficha y el presupuesto.
+ */
+export const LEAD_TYPE_PRICE_LIST = {
+  end_user: 'minorista',
+  installer: 'minorista',
+  retailer: 'mayorista',
+  distributor: 'mayorista',
+}
 
 /**
  * De dónde salió el contacto.
  *
  * 'web' lo pone el simulador solo y es el único que se puede cargar sin sesión
- * (ver la política de `leads` en `schema.sql`). Los demás se eligen a mano
- * cuando alguien escribe por Instagram, llama o lo trae un conocido.
+ * (ver la política de `leads` en `schema.sql`). Los demás se eligen a mano.
  *
- * Esta lista tiene que coincidir con el `check` de `leads.origen`.
+ * Esta lista tiene que coincidir con el enum `lead_source` de la base.
  */
-export const LEAD_ORIGINS = [
+export const LEAD_SOURCES = [
   'web',
+  'whatsapp_organic',
   'instagram',
-  'whatsapp',
-  'telefono',
-  'referido',
-  'feria',
-  'otro',
+  'facebook',
+  'tiktok',
+  'referral',
+  'cold_outreach',
+  'phone',
+  'fair',
+  'other',
 ]
 
-export const LEAD_ORIGIN_LABELS = {
+export const LEAD_SOURCE_LABELS = {
   web: 'Web',
+  whatsapp_organic: 'WhatsApp',
   instagram: 'Instagram',
-  whatsapp: 'WhatsApp',
-  telefono: 'Teléfono',
-  referido: 'Referido',
-  feria: 'Feria',
-  otro: 'Otro',
+  facebook: 'Facebook',
+  tiktok: 'TikTok',
+  referral: 'Referido',
+  cold_outreach: 'Prospección',
+  phone: 'Teléfono',
+  fair: 'Feria',
+  other: 'Otro',
 }
 
-export const LEAD_ORIGIN_TONES = {
+export const LEAD_SOURCE_TONES = {
   web: 'info',
+  whatsapp_organic: 'good',
   instagram: 'warn',
-  whatsapp: 'good',
-  telefono: 'neutral',
-  referido: 'good',
-  feria: 'neutral',
-  otro: 'neutral',
+  facebook: 'warn',
+  tiktok: 'warn',
+  referral: 'good',
+  cold_outreach: 'neutral',
+  phone: 'neutral',
+  fair: 'neutral',
+  other: 'neutral',
 }
 
-export const LEAD_STATES = ['nuevo', 'contactado', 'ganado', 'perdido']
+/** Por qué se perdió. Sin esto, "perdido" no explica nada y no se corrige nada. */
+export const LOST_REASONS = [
+  'price',
+  'freight',
+  'lead_time',
+  'chose_wood',
+  'chose_competitor',
+  'not_target',
+  'no_response',
+  'other',
+]
 
-export const LEAD_STATE_LABELS = {
-  nuevo: 'Nuevo',
-  contactado: 'Contactado',
-  ganado: 'Ganado',
-  perdido: 'Perdido',
+export const LOST_REASON_LABELS = {
+  price: 'Precio',
+  freight: 'Costo de flete',
+  lead_time: 'Plazo de entrega',
+  chose_wood: 'Compró madera',
+  chose_competitor: 'Compró a competidor',
+  not_target: 'No era el target',
+  no_response: 'Nunca contestó',
+  other: 'Otro',
 }
 
-export const LEAD_STATE_TONES = {
-  nuevo: 'info',
-  contactado: 'warn',
-  ganado: 'good',
-  perdido: 'neutral',
+export const LEAD_EVENT_LABELS = {
+  inbound_message: 'Mensaje recibido',
+  auto_reply_sent: 'Respuesta automática',
+  price_list_sent: 'Lista de precios enviada',
+  quote_sent: 'Presupuesto enviado',
+  followup_sent: 'Seguimiento',
+  objection_raised: 'Objeción',
+  sample_requested: 'Pidió muestra',
+  status_change: 'Cambio de estado',
+  note: 'Nota',
+  reactivation_attempt: 'Intento de recontacto',
 }
+
+/** Los eventos que se pueden anotar a mano desde la ficha. */
+export const LEAD_EVENT_TYPES = [
+  'note',
+  'inbound_message',
+  'price_list_sent',
+  'followup_sent',
+  'objection_raised',
+  'sample_requested',
+]
+
+/* -------------------------------------------------------------------------- */
+/* Lecturas                                                                    */
+/* -------------------------------------------------------------------------- */
 
 /**
  * Trae los leads más nuevos primero, que es el orden en el que se trabajan.
@@ -64,15 +227,16 @@ export const LEAD_STATE_TONES = {
  * un lead de hace ocho meses no se llama, y para revisar el histórico está el
  * buscador por nombre o teléfono.
  */
-export async function listLeads({ estado, origen, search, limit = 300 } = {}) {
+export async function listLeads({ status, source, owner, search, limit = 300 } = {}) {
   let query = db()
     .from('leads')
     .select('*, customer:customers(id, nombre, tipo)')
     .order('created_at', { ascending: false })
     .limit(limit)
 
-  if (estado) query = query.eq('estado', estado)
-  if (origen) query = query.eq('origen', origen)
+  if (status) query = query.eq('status', status)
+  if (source) query = query.eq('source', source)
+  if (owner) query = query.eq('owner', owner)
 
   const term = searchTerm(search)
   if (term) {
@@ -85,12 +249,64 @@ export async function listLeads({ estado, origen, search, limit = 300 } = {}) {
 }
 
 /**
+ * Lo que hay que hacer hoy.
+ *
+ * No es una lista de leads sino de acciones: lo que vence hoy o antes, más los
+ * dormidos a los que les llegó la fecha de recontacto. El orden lo pone la
+ * vista `leads_hoy` y es por cuán cerca está la plata, no por fecha: primero el
+ * que está por cerrar, último el que recién entró.
+ */
+export async function listToday() {
+  return unwrap(await db().from('leads_hoy').select('*'))
+}
+
+/** El tablero completo, para el kanban. */
+export async function listPipeline({ limit = 500 } = {}) {
+  return unwrap(
+    await db()
+      .from('leads')
+      .select('*')
+      .order('next_action_at', { ascending: true, nullsFirst: false })
+      .limit(limit),
+  )
+}
+
+export async function getLead(id) {
+  return unwrap(
+    await db()
+      .from('leads')
+      .select('*, customer:customers(id, nombre, tipo)')
+      .eq('id', id)
+      .single(),
+  )
+}
+
+/** El historial de un lead, del más nuevo al más viejo. */
+export async function listLeadEvents(leadId) {
+  return unwrap(
+    await db()
+      .from('lead_events')
+      .select('*')
+      .eq('lead_id', leadId)
+      .order('created_at', { ascending: false }),
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* Escrituras                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
  * Alta a mano de un lead que no vino por la web.
  *
  * Los campos del simulador —cantidad, precio, kilómetros— quedan en null y está
  * bien: el que escribe por Instagram preguntando un precio todavía no cotizó
  * nada. Inventar una cantidad para llenar la fila sería peor que dejarla vacía,
  * porque después esa cifra se lee como si la hubiera pedido el cliente.
+ *
+ * La próxima acción la pone la base sola si no viene: todo lead activo tiene
+ * que tener una, y que dependa de que la pantalla se acuerde es cómo terminan
+ * apareciendo leads que nadie vuelve a mirar.
  */
 export async function createLead(values) {
   return unwrap(await db().from('leads').insert(values).select().single())
@@ -105,21 +321,159 @@ export async function deleteLead(id) {
 }
 
 /**
+ * Anota algo en el historial.
+ *
+ * Los cambios de estado los escribe la base sola con un trigger; esto es para
+ * lo demás: que mandó la lista, que pidió una muestra, que objetó el precio. Es
+ * lo que después permite reconstruir por qué se cayó una venta.
+ */
+export async function addLeadEvent(leadId, { type, note }) {
+  return unwrap(
+    await db()
+      .from('lead_events')
+      .insert({ lead_id: leadId, type, note: note || null })
+      .select()
+      .single(),
+  )
+}
+
+/**
+ * Mueve un lead de etapa.
+ *
+ * Los campos obligatorios del estado destino van en `extra` y los valida la
+ * base; acá se chequea antes nada más que para no mandar una escritura que se
+ * sabe que va a rebotar.
+ *
+ * La fecha de la próxima acción se recalcula sola con el plazo de la etapa
+ * nueva, salvo que se mande una en `extra`. Eso es a propósito: quien está
+ * hablando con la persona sabe mejor que la tabla cuándo hay que volver a
+ * llamarla, pero si no dice nada, algo tiene que quedar agendado igual.
+ */
+export async function changeLeadStatus(lead, status, extra = {}) {
+  if (lead.status === status) return lead
+
+  if (!puedePasarA(lead.status, status)) {
+    throw new Error(
+      `Un lead en "${LEAD_STATE_LABELS[lead.status]}" no puede pasar a "${LEAD_STATE_LABELS[status]}".`,
+    )
+  }
+
+  const faltan = (LEAD_STATE_REQUIRES[status] ?? []).filter((campo) => {
+    const valor = extra[campo] ?? lead[campo]
+    return valor === null || valor === undefined || valor === ''
+  })
+
+  if (faltan.length) {
+    throw new Error(`Faltan datos para pasar a "${LEAD_STATE_LABELS[status]}": ${faltan.join(', ')}.`)
+  }
+
+  return updateLead(lead.id, { status, ...extra })
+}
+
+/**
+ * Registra un intento de recontacto sobre un lead dormido.
+ *
+ * El contador se sube acá y no en el barrido nocturno a propósito: si lo subiera
+ * el job, un lead dormido llegaría a dos "intentos" en dos días sin que nadie lo
+ * haya llamado, y a los dos intentos el job lo da por perdido. Contar acá es
+ * contar los recontactos que de verdad ocurrieron.
+ *
+ * Si se reactiva, el contador **no** se resetea: haber costado tres recontactos
+ * es parte de lo que hay que saber de ese lead.
+ */
+export async function registerReactivation(lead, { status, dormant_until, ...extra } = {}) {
+  const changes = {
+    reactivation_count: (lead.reactivation_count ?? 0) + 1,
+    ...extra,
+  }
+
+  if (status) {
+    if (!puedePasarA(lead.status, status)) {
+      throw new Error(
+        `Un lead en "${LEAD_STATE_LABELS[lead.status]}" no puede pasar a "${LEAD_STATE_LABELS[status]}".`,
+      )
+    }
+    changes.status = status
+  } else {
+    /* Sigue dormido: se corre la fecha para volver a intentarlo más adelante. */
+    changes.dormant_until = dormant_until ?? enDias(75)
+  }
+
+  const actualizado = await updateLead(lead.id, changes)
+  await addLeadEvent(lead.id, {
+    type: 'reactivation_attempt',
+    note: status ? `Reactivado a ${LEAD_STATE_LABELS[status]}` : 'Sin respuesta, se reprograma',
+  })
+
+  return actualizado
+}
+
+function enDias(dias) {
+  const fecha = new Date()
+  fecha.setDate(fecha.getDate() + dias)
+  return fecha.toISOString().slice(0, 10)
+}
+
+/**
+ * Corre el barrido de vencimientos.
+ *
+ * En la base hay un `pg_cron` que lo dispara a las 7, pero el proyecto puede no
+ * tener la extensión habilitada, así que el ERP lo llama también al abrirse: lo
+ * corre la primera persona que entra cada día. Es idempotente, así que llamarlo
+ * de más no hace nada.
+ */
+export async function runLeadSla() {
+  return unwrap(await db().rpc('run_lead_sla'))
+}
+
+/**
+ * El lead abierto de un teléfono, si lo hay.
+ *
+ * Es la deduplicación: cuando vuelve a escribir alguien que ya está en la base,
+ * se retoma el lead que está en vez de abrir uno nuevo, y el historial queda
+ * entero en vez de partido en dos fichas. Los ganados no cuentan como abiertos:
+ * el que ya compró y vuelve es una recompra, y ésa sí merece un lead nuevo para
+ * que la métrica la pueda contar.
+ */
+export async function findOpenLeadByPhone(telefono) {
+  if (!telefono) return null
+
+  const filas = unwrap(
+    await db()
+      .from('leads')
+      .select('*')
+      .eq('telefono', telefono)
+      .neq('status', 'won')
+      .order('created_at', { ascending: false })
+      .limit(1),
+  )
+
+  return filas[0] ?? null
+}
+
+/* -------------------------------------------------------------------------- */
+/* Clientes y presupuestos                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
  * Convierte un lead en cliente y deja los dos enlazados.
  *
  * Se copian los datos que el lead ya tiene en vez de pedirlos de nuevo: el
  * destino del envío suele ser la dirección del cliente, y quien atiende no
  * debería tener que volver a tipear lo que la persona ya escribió en la web.
  *
- * El lead queda en 'ganado' porque convertirlo es, justamente, el momento en
- * que la venta se dio por buena.
+ * **Ya no lo pasa a "ganado".** Antes lo hacía, porque con cuatro estados hacer
+ * cliente a alguien era lo más parecido a haberle vendido. Ahora ganar es una
+ * etapa del embudo con monto y fecha, a la que sólo se llega desde "por cerrar":
+ * tener ficha de cliente y haber comprado dejaron de ser lo mismo, y de hecho
+ * nunca lo fueron —la ficha se crea para poder colgarle un presupuesto—.
  */
 export async function convertLeadToCustomer(lead) {
   const customer = unwrap(
     await db().from('customers').insert(datosDeCliente(lead)).select().single(),
   )
 
-  await updateLead(lead.id, { customer_id: customer.id, estado: 'ganado' })
+  await updateLead(lead.id, { customer_id: customer.id })
 
   return customer
 }
@@ -136,16 +490,17 @@ function datosDeCliente(lead) {
   return {
     nombre: lead.nombre,
     /*
-      Siempre minorista. Antes se marcaba mayorista a quien cotizaba mil o
-      más, cuando 'mayorista' quería decir "le toca el tramo de volumen".
-      Ahora quiere decir "es revendedor": lista más barata y sin comisión
-      para el vendedor, porque se supone que vuelve todos los meses.
+      El tipo sale de qué es el que pregunta, que ahora el lead lo sabe: un
+      corralón o un distribuidor son revendedores y llevan lista mayorista; el
+      consumidor final y el alambrador, minorista.
 
-      Una compra grande de una sola vez no es eso, y el que decide que
-      alguien pasa a revendedor es una persona, no la cantidad que cotizó
-      la primera vez. Se cambia en la ficha del cliente.
+      Antes era siempre minorista porque el lead no tenía dónde decirlo, y
+      marcar mayorista por la cantidad cotizada estaba mal: una compra grande de
+      una sola vez no es un revendedor. Con `lead_type` cargado eso ya no hay
+      que adivinarlo. Sin cargar, se sigue asumiendo minorista, que es el caso
+      común y el que no regala margen.
     */
-    tipo: 'minorista',
+    tipo: LEAD_TYPE_PRICE_LIST[lead.lead_type] ?? 'minorista',
     telefono: lead.telefono,
     email: lead.email,
     localidad: lead.localidad,
@@ -165,19 +520,11 @@ function datosDeCliente(lead) {
  * El cliente se crea acá porque un pedido necesita uno: la tabla no admite un
  * pedido sin dueño. Eso no lo vuelve cliente de verdad. Cliente es el que
  * completó un pedido, y hasta entonces la ficha es nada más que dónde colgar
- * este presupuesto; por eso el lead pasa de 'nuevo' a 'contactado' y no a
- * 'ganado'. Presupuestar es haberlo trabajado, no haberle vendido: 'ganado' lo
- * pone quien confirma el pedido.
+ * este presupuesto.
  *
  * El precio llega desde afuera en vez de calcularse acá porque no siempre es el
  * de la lista: si el cliente vio otro número en la web, a veces se le respeta
  * ese. Esa decisión la toma quien atiende, no esta función.
- *
- * `leadChanges` es para cuando el que atiende corrige, en el mismo momento,
- * cuántas quiere: el lead tiene que quedar diciendo lo que la persona pide
- * ahora y no lo que pidió hace tres semanas. Va junto al resto de la
- * actualización y no en una llamada aparte para que el lead no pueda quedar a
- * medio corregir.
  *
  * Si la mercadería no entra, el pedido se borra. Un presupuesto vacío es peor
  * que ninguno: queda en la lista de pedidos como si existiera y nadie sabe qué
@@ -224,13 +571,49 @@ export async function createQuoteFromLead(
     throw error
   }
 
-  await updateLead(lead.id, {
-    customer_id: clienteId,
-    estado: lead.estado === 'nuevo' ? 'contactado' : lead.estado,
-    ...leadChanges,
+  const monto = Number(cantidad) * Number(precioUnitario)
+
+  await moverAPresupuestado(lead, monto, { customer_id: clienteId, ...leadChanges })
+
+  await addLeadEvent(lead.id, {
+    type: 'quote_sent',
+    note: `Presupuesto #${order.numero ?? ''} por ${cantidad} unidades`.trim(),
   })
 
   return order
+}
+
+/**
+ * Deja el lead en "presupuesto enviado", pasando por donde haya que pasar.
+ *
+ * Un lead recién entrado no puede saltar directo a presupuestado: la matriz de
+ * transiciones no lo permite, y con razón, porque saltearse la calificación es
+ * justamente lo que hace que después no se sepa dónde se cayó la venta. Cuando
+ * el lead está en "nuevo" se lo pasa antes por "en calificación", que es lo que
+ * de verdad ocurrió: alguien lo atendió y le sacó los datos.
+ *
+ * Desde "por cerrar" no se vuelve a presupuestado —la matriz tampoco lo
+ * permite— así que en ese caso se actualiza el monto y se deja el estado quieto.
+ * Es el caso de §8.4 de la spec: al lead se le pueden mandar varios
+ * presupuestos, el campo guarda el último y el historial los guarda a todos.
+ */
+async function moverAPresupuestado(lead, monto, extra) {
+  const cambios = {
+    quote_amount: monto,
+    quote_sent_at: new Date().toISOString(),
+    ...extra,
+  }
+
+  if (lead.status === 'new') {
+    await updateLead(lead.id, { status: 'qualifying' })
+    return updateLead(lead.id, { status: 'quoted', ...cambios })
+  }
+
+  if (puedePasarA(lead.status, 'quoted')) {
+    return updateLead(lead.id, { status: 'quoted', ...cambios })
+  }
+
+  return updateLead(lead.id, cambios)
 }
 
 /**
@@ -241,10 +624,17 @@ export async function createQuoteFromLead(
  * persona con la cuenta corriente partida al medio: la duplicación que uno
  * quiere evitar no la genera tener dos tablas, la genera no poder decir "este
  * es aquel".
+ *
+ * Tampoco toca el estado, por lo mismo que `convertLeadToCustomer`: enganchar
+ * una ficha no es haber vendido.
  */
 export async function linkLeadToCustomer(leadId, customerId) {
-  return updateLead(leadId, { customer_id: customerId, estado: 'ganado' })
+  return updateLead(leadId, { customer_id: customerId })
 }
+
+/* -------------------------------------------------------------------------- */
+/* Métricas                                                                    */
+/* -------------------------------------------------------------------------- */
 
 /**
  * Cuántos contactos trajo cada canal en un período y cuánto facturaron.
@@ -281,4 +671,72 @@ export async function listLeadsByOrigin({ desde, hasta } = {}) {
   }
 
   return [...porOrigen.values()].sort((a, b) => b.leads - a.leads)
+}
+
+/**
+ * Todo el tablero de métricas del embudo, de una sola vez.
+ *
+ * Van juntas porque la pantalla las muestra juntas y pedirlas de a una haría
+ * seis viajes para dibujar una sola sección. Se calculan sobre `lead_events` y
+ * no sobre el estado actual: un lead perdido hoy tiene status 'lost' y nada
+ * más, pero su historial cuenta que llegó a estar por cerrar, y ése es
+ * justamente el dato que dice dónde se cae la venta.
+ */
+export async function loadFunnelMetrics({ desde, hasta } = {}) {
+  const cliente = db()
+
+  let outcomes = cliente.from('lead_outcomes').select('*')
+  if (desde) outcomes = outcomes.gte('mes', desde)
+  if (hasta) outcomes = outcomes.lte('mes', hasta)
+
+  let motivos = cliente.from('lead_lost_reasons').select('*')
+  if (desde) motivos = motivos.gte('mes', desde)
+  if (hasta) motivos = motivos.lte('mes', hasta)
+
+  const [funnel, tiempos, transiciones, resultados, perdidas, reactivaciones] = await Promise.all([
+    cliente.from('lead_funnel').select('*'),
+    cliente.from('lead_stage_times').select('*'),
+    cliente.from('lead_transitions').select('*'),
+    outcomes,
+    motivos,
+    cliente.from('lead_reactivations').select('*').single(),
+  ])
+
+  return {
+    funnel: unwrap(funnel),
+    tiempos: unwrap(tiempos),
+    transiciones: unwrap(transiciones),
+    resultados: unwrap(resultados),
+    perdidas: unwrap(perdidas),
+    reactivaciones: unwrap(reactivaciones),
+  }
+}
+
+/**
+ * La conversión de cada paso del embudo.
+ *
+ * "De los que llegaron a presupuestado, cuántos siguieron" — que es distinto de
+ * "cuántos hay hoy en presupuestado". El denominador sale de `lead_funnel`
+ * (cuántos pasaron alguna vez por la etapa) y el numerador, de las transiciones
+ * que salieron de ahí hacia adelante.
+ */
+export function conversionPorEtapa({ funnel, transiciones }) {
+  const alcanzados = new Map(funnel.map((f) => [f.status, f.leads]))
+  const orden = LEAD_STATES_ACTIVE
+
+  return orden.map((status, i) => {
+    const siguientes = orden.slice(i + 1).concat('won')
+    const avanzaron = transiciones
+      .filter((t) => t.from_status === status && siguientes.includes(t.to_status))
+      .reduce((suma, t) => suma + t.veces, 0)
+
+    const llegaron = alcanzados.get(status) ?? 0
+
+    return {
+      status,
+      llegaron,
+      avanzaron,
+      conversion: llegaron ? avanzaron / llegaron : null,
+    }
+  })
 }

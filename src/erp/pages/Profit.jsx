@@ -20,7 +20,7 @@ import {
   splitProfit,
   updateShare,
 } from '../api/profit'
-import { LEAD_ORIGIN_LABELS, listLeadsByOrigin } from '../api/leads'
+import { LEAD_SOURCE_LABELS, listLeadsByOrigin } from '../api/leads'
 import { useAsync } from '../lib/useAsync'
 import {
   currentMonth,
@@ -954,7 +954,7 @@ export default function Profit() {
                         return (
                           <tr key={fila.origen} className="hover:bg-steel-50">
                             <Td className="font-medium text-steel-700">
-                              {LEAD_ORIGIN_LABELS[fila.origen] ?? fila.origen}
+                              {LEAD_SOURCE_LABELS[fila.origen] ?? fila.origen}
                             </Td>
                             <Td align="right" className="tabular-nums text-steel-600">
                               {formatNumber(fila.leads)}

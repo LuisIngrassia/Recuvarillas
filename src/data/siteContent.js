@@ -94,15 +94,96 @@ export const benefits = [
   },
 ]
 
+/**
+ * Las reseñas que muestra la sección de testimonios.
+ *
+ * Se cargan a mano: cuando entra una buena en el perfil de Google, se copia
+ * acá. No se traen solas de Google a propósito —el porqué, y cómo copiarlas
+ * bien, está en `docs/resenas.md`—.
+ *
+ * De cada una:
+ *
+ * - `author`  obligatorio. Como figura en Google: el nombre y, si está, la
+ *             inicial del apellido. Nunca inventar ni completar el apellido.
+ * - `text`    obligatorio. La reseña tal cual la escribieron, sin retocar.
+ * - `rating`  de 1 a 5. Sin esto la tarjeta sale sin estrellas.
+ * - `when`    cuándo la publicaron, en texto libre: 'Marzo de 2026'. Va el mes
+ *             y no "hace 3 meses" para que no envejezca sola.
+ * - `place`   opcional, de dónde es. Sale abajo del nombre.
+ * - `photo`   opcional, un archivo dentro de `public/`. Sin foto se dibuja la
+ *             inicial del nombre, que queda bien y evita bajar una imagen más.
+ * - `url`     opcional, el enlace a esa reseña en Google.
+ */
 export const testimonials = [
   {
-    quote:
-      'Cambiamos varios kilómetros de alambrado con varillas de Recuvarilla y el ahorro fue notable, sin resignar calidad.',
-    author: 'Cliente de campo — Provincia de Buenos Aires',
+    author: 'Juan Cordone',
+    place: 'Provincia de Buenos Aires',
+    rating: 5,
+    text: 'Cambiamos varios kilómetros de alambrado, todo excelente.',
   },
   {
-    quote:
-      'Buena atención, cumplieron con el plazo de entrega acordado y la varilla llegó en muy buen estado.',
-    author: 'Cliente de campo — La Pampa',
+    author: 'Lucas Garde',
+    place: 'La Pampa, Argentina',
+    rating: 5,
+    text: 'Buena atención, cumplieron con el plazo de entrega.',
+  },
+  {
+    author: 'Alejandro García Lemos',
+    rating: 5,
+    text: "Me sacaron todas las dudas que tenía sobre las varillas.",
+  },
+  {
+    author: 'Juan seg. Addamo',
+    rating: 5,
+    text: 'Excelente atención.',
+  },
+  {
+    author: 'Nahuel David',
+    rating: 5,
+    text: 'Muy satisfecho con el servicio.',
+  },
+  {
+    author: 'Joaquin Sartini',
+    rating: 5,
+    text: 'Gran calidad en las varillas de 1,20.',
   },
 ]
+
+/**
+ * El resumen del perfil de Google: el promedio, cuántas reseñas hay y el
+ * enlace al perfil.
+ *
+ * Es la insignia grande de la sección y probablemente lo que más convence,
+ * porque ese número lo pone Google y no nosotros. Justamente por eso tiene que
+ * ser el real: se copia del perfil y se revisa cada tanto, aunque no se
+ * agreguen reseñas nuevas acá abajo.
+ *
+ * Arranca en `null` para no publicar un promedio inventado. Mientras lo esté,
+ * la insignia no se dibuja y la sección muestra sólo las tarjetas. Cuando
+ * estén los datos de verdad:
+ *
+ *     export const reviewsSummary = {
+ *       rating: 4.9,
+ *       total: 27,
+ *       url: 'https://g.page/r/CXxxxxxxxxxxEBM',
+ *     }
+ */
+export const reviewsSummary = "https://g.page/r/CUp2AeSkJoIDEBM/review"
+
+/**
+ * El enlace para que un cliente escriba su reseña.
+ *
+ * Abre el formulario de Google con las estrellas listas para tocar, sin pasar
+ * por buscar el negocio primero. Ese paso de menos es casi todo: la mayoría de
+ * la gente que quiere dejar una reseña abandona buscando dónde.
+ *
+ * Se saca del panel del perfil de empresa, en **Pedir reseñas**, y tiene la
+ * forma `https://g.page/r/XXXXXXXX/review`. Si esa opción no aparece, el
+ * enlace largo hace lo mismo y se arma con el Place ID:
+ * `https://search.google.com/local/writereview?placeid=ChIJ...`
+ *
+ * Vacío, el botón de la sección de testimonios no se dibuja. El mismo enlace
+ * sirve para mandar por WhatsApp después de una entrega, que es cuando más
+ * gente contesta.
+ */
+export const reviewLink = 'https://g.page/r/CUp2AeSkJoIDEBM/review'

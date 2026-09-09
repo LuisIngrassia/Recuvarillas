@@ -42,19 +42,25 @@ async function sendToSheet(payload) {
  * La política de Supabase deja insertar sin sesión pero no leer ni editar, así
  * que desde la web sólo se puede agregar un contacto nuevo.
  *
- * `origen` va escrito y no librado al valor por defecto de la columna, aunque
- * el default diga lo mismo: la política exige `origen = 'web'` para las
- * inserciones anónimas, y si algún día ese default cambia, esto dejaría de
- * pasar el filtro. Como el error se traga a propósito —abajo, para no romperle
- * el formulario a nadie— el síntoma sería que los leads dejan de llegar sin que
- * nada avise. Mejor que la condición esté a la vista de quien lea esta función.
+ * `source` y `status` van escritos y no librados al valor por defecto de la
+ * columna, aunque los defaults digan lo mismo: la política exige `source =
+ * 'web'` y `status = 'new'` para las inserciones anónimas, y si algún día esos
+ * defaults cambian, esto dejaría de pasar el filtro. Como el error se traga a
+ * propósito —abajo, para no romperle el formulario a nadie— el síntoma sería
+ * que los leads dejan de llegar sin que nada avise. Mejor que la condición esté
+ * a la vista de quien lea esta función.
+ *
+ * Lo del embudo —próxima acción, fecha, responsable— no se manda: lo completa
+ * la base sola al insertar, y la política anónima justamente no deja escribirlo
+ * desde acá.
  */
 async function sendToSupabase(lead) {
   if (!isSupabaseConfigured) return false
 
   try {
     await restInsert('leads', {
-      origen: 'web',
+      source: 'web',
+      status: 'new',
       nombre: lead.nombre,
       telefono: lead.telefono || null,
       email: lead.email || null,

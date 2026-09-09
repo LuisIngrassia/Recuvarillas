@@ -53,6 +53,15 @@ Está escrito para eso: las tablas usan `if not exists`, las columnas que
 llegaron después se agregan con `alter table`, las vistas se tiran abajo y se
 rehacen, y las semillas sólo entran si la tabla está vacía.
 
+> **La corrida que trae el embudo de leads migra datos y no se puede deshacer.**
+> Convierte los estados viejos (`nuevo`→nuevo, `contactado`→en calificación,
+> `ganado`→ganado, `perdido`→perdido con motivo "otro"), pasa `origen` a `source`
+> y **borra las dos columnas viejas**. Los ganados sin monto anotado se quedan
+> con lo que hubiera cotizado el simulador, o en cero. Los activos quedan con la
+> próxima acción para hoy, así aparecen todos en "Hoy" y se repasan de una vez.
+> Conviene sacar un backup antes (Database → Backups). Después de esa corrida el
+> archivo vuelve a ser idempotente como siempre.
+
 ### 3. Enchufar las claves
 
 En **Project Settings → API** vas a encontrar dos datos: la **URL** del proyecto
@@ -120,21 +129,137 @@ los archivos que existen, así que las imágenes y el JS no pasan por esa regla.
 ### El circuito de una venta
 
 ```
-Alguien cotiza en la web
+Alguien cotiza en la web o escribe por WhatsApp
         ↓
-   Lead (nuevo)  ──── se lo llama ────→  contactado
-        ↓
-   "Hacer cliente"  →  Cliente + lead marcado como ganado
-        ↓
-   Nuevo pedido  →  presupuesto
-        ↓ se carga la mercadería y se confirma
-   confirmado  →  en producción  →  entregado
-                                        ↓
-                             el stock se descuenta solo
+   nuevo → en calificación → calificado → presupuesto enviado
+                                                  ↓
+                                       en negociación → por cerrar → GANADO
+        ↓ en cualquier punto                                            ↓
+   dormido (recontacto a 75 días)                          "Hacer cliente"
+        ↓ dos intentos sin respuesta                                    ↓
+   perdido (siempre con motivo)                       Nuevo pedido → presupuesto
+                                                                        ↓
+                                            confirmado → en producción → entregado
+                                                                        ↓
+                                                        el stock se descuenta solo
 ```
+
+El embudo de la primera mitad es nuevo: reemplazó a los cuatro estados de antes
+(`nuevo / contactado / ganado / perdido`). El detalle está abajo, en
+[El embudo](#el-embudo).
 
 Los cobros se cargan desde el pedido, en cualquier momento del circuito, y bajan
 el saldo de la cuenta corriente del cliente.
+
+### El embudo
+
+Un lead ya no tiene cuatro estados sueltos sino un camino, con plazos y con
+campos obligatorios en cada paso. El cambio salió de un problema concreto:
+"contactado" tapaba tres situaciones que se trabajan distinto —le mandé la
+lista, le mandé el presupuesto, está regateando— y como quedaban indistinguibles
+no había forma de saber en cuál de las tres se caía la venta.
+
+| Etapa | Qué significa | Si nadie lo toca |
+|---|---|---|
+| **Nuevo** | Entró y todavía no lo atendió nadie | a las 24 hs pasa a calificación |
+| **En calificación** | Se le está tratando de sacar zona, cantidad y si van agujereadas | a los 7 días se duerme |
+| **Calificado** | Ya están los tres datos: se le puede cotizar | sólo avisa |
+| **Presupuesto enviado** | Se le mandó el número | a los 10 días se duerme |
+| **En negociación** | Objetó el precio, pidió muestra, contrapropuso | sólo avisa |
+| **Por cerrar** | Dijo que sí, falta coordinar seña y entrega | sólo avisa |
+| **Ganado** | Compró. Terminal | — |
+| **Dormido** | No se cayó: se recontacta a los 75 días | dos intentos sin respuesta y se pierde |
+| **Perdido** | Se cayó, **siempre con un motivo** | — |
+
+**La regla que ordena todo: un lead activo siempre tiene una próxima acción con
+fecha.** No es una recomendación, la base no deja guardarlo de otra forma. Un
+lead activo sin próxima acción es un lead perdido que todavía no se detectó, y
+así es como se pierden: nadie decide no llamarlos, simplemente dejan de aparecer.
+
+Cuando se lo mueve de etapa, la fecha se recalcula sola con el plazo de la nueva
+—dos horas para uno recién entrado, dos días después de un presupuesto— salvo
+que se ponga una a mano. Quien está hablando con la persona sabe mejor que la
+tabla cuándo hay que volver a llamarla; pero si no dice nada, algo queda
+agendado igual.
+
+**No se puede saltar de cualquier etapa a cualquier otra.** De "nuevo" no se
+llega a "ganado": hay que pasar por el medio. Eso es a propósito, porque
+saltearse las etapas es exactamente lo que hacía que después no se supiera dónde
+se cae la venta. La regla vive en la base, no en la pantalla, así que también
+vale para una corrección hecha a mano desde el panel de Supabase.
+
+Cada etapa pide lo suyo antes de dejar entrar:
+
+- **Calificado** exige localidad, cantidad y si van agujereadas. Calificar *es*
+  tener con qué cotizar; sin esos datos el estado mentiría.
+- **Presupuesto enviado** exige el monto.
+- **Ganado** exige el monto de la venta.
+- **Perdido** exige el motivo. Sin él, "perdido" no explica nada y no se corrige
+  nada: los motivos son los que dicen si el problema es el precio, el flete o el
+  producto.
+
+**Todo cambio de etapa queda en el historial**, con quién lo hizo y cuándo. Es
+append-only: no se puede editar ni borrar, ni desde el ERP ni con la clave del
+equipo. Si una entrada del historial se pudiera corregir, dejaría de ser
+historial y las métricas pasarían a medir lo que alguien quiso que dijeran.
+
+#### Las cuatro pantallas
+
+- **Hoy** es con la que abre el ERP. No es una lista de leads sino de acciones:
+  lo que vence hoy o antes, más los dormidos a los que les llegó la fecha de
+  recontacto. Ordenada por cuán cerca está la plata —primero el que está por
+  cerrar, último el que recién entró— y no por fecha: dos días de atraso en
+  alguien que ya dijo "dale, mandámelas" no valen lo mismo que dos días de
+  atraso en alguien que preguntó un precio.
+- **Tablero** es el embudo entero en columnas. Se arrastra una tarjeta para
+  moverla; si el destino pide datos, se abren a preguntar. Sirve sobre todo para
+  ver dónde se amontonan los leads: una columna de presupuestos enviados que no
+  baja nunca dice más que cualquier informe.
+- **Embudo** son las métricas: cuántos llegan a cada etapa, cuánto tardan en
+  salir, tasa de cierre, por qué se pierden, y la conversión por canal y por tipo
+  de cliente. Todo calculado sobre el historial y no sobre el estado actual,
+  porque un lead perdido hoy dice "perdido" y nada más, mientras que su historia
+  cuenta que llegó a estar por cerrar.
+- **Leads** es el archivo: buscador y filtros, para encontrar a alguien puntual.
+
+**El panel de siempre** —facturación, pedidos, caja— sigue estando, ahora en
+**Panel**. Se corrió de la entrada porque contesta cómo viene el negocio, y lo
+que se necesita al abrir el sistema a la mañana es qué hay que hacer ahora.
+
+#### El barrido de la mañana
+
+Todos los días a las 7 corre un barrido que mueve lo vencido: el nuevo que nadie
+atendió pasa a calificación, el que lleva una semana sin dar datos o diez días
+sin contestar el presupuesto se duerme, y el dormido que ya tuvo dos recontactos
+sin respuesta se da por perdido con motivo "nunca contestó".
+
+Lo dispara `pg_cron` en Supabase. Si el proyecto no tiene esa extensión
+habilitada no pasa nada: el ERP llama al mismo barrido al abrirse, así que lo
+corre la primera persona que entra cada día. Es idempotente, así que correrlo de
+más no hace nada.
+
+Dos cosas que el barrido **no** hace, a propósito:
+
+- **No marca "vencido" en una columna.** Se calcula al mirar la pantalla. Una
+  columna escrita a la noche queda mintiendo apenas alguien mueve una fecha a la
+  mañana siguiente.
+- **No cuenta los recontactos.** Si los contara él, un lead dormido llegaría a
+  dos "intentos" en dos días sin que nadie lo haya llamado —y a los dos
+  intentos se da por perdido—. El contador lo sube quien de verdad hace el
+  recontacto, con el botón de "Hoy".
+
+#### Cuando vuelve alguien que ya está en la base
+
+Si el que escribe tiene un lead **abierto**, se retoma ése en vez de abrir uno
+nuevo: el historial queda entero en vez de partido en dos fichas. Si su único
+lead está **ganado**, sí se abre uno nuevo, porque eso es una recompra y hay que
+poder contarla como tal.
+
+Por eso el teléfono **no** es único en la base, aunque la spec lo pedía: un lead
+es un hecho —"alguien preguntó por 500 el 3 de septiembre"— y la misma persona
+genera varios en dos años. Un único global chocaría con la recompra y, además,
+no se podría ni crear: en la base ya hay gente que cotizó tres veces desde la
+web.
 
 ### Leads y de dónde vienen
 
@@ -147,18 +272,33 @@ precio por Instagram todavía no cotizó nada. Esos campos quedan vacíos y la
 pantalla los muestra con un guión en vez de un cero, que se leería como si
 hubiera pedido cero varillas.
 
-**La ficha del lead se edita entera**: nombre, teléfono, email, canal, cuántas
-quiere, si las quiere agujereadas, entrega, código postal, localidad, provincia,
-estado y notas. Empezó mostrando sólo estado y notas, con lo del simulador
+**La ficha del lead se edita entera**: nombre, teléfono, email, canal, qué es el
+que pregunta, responsable, cuántas quiere, si las quiere agujereadas, entrega,
+código postal, localidad, provincia y notas. **La etapa no está en esa lista**:
+se mueve con los botones de la ficha, que piden lo que cada una necesita. Un
+desplegable libre dejaría saltar de "nuevo" a "ganado" sin monto ni historia, que
+es justo lo que se vino a arreglar. Empezó mostrando sólo estado y notas, con lo del simulador
 escrito en gris arriba, y eso alcanzaba mientras el lead fuera un papelito para
 acordarse de llamar. Dejó de alcanzar cuando el lead pasó a ser de dónde sale el
 cliente: el teléfono mal tipeado no se podía arreglar y el mail que dejó por
 Instagram no tenía dónde anotarse, y son justo los datos que después se copian a
 la ficha del cliente.
 
+**Qué es el que pregunta** —consumidor final, alambrador, corralón,
+distribuidor— define con qué lista se le cotiza y con qué tipo se crea su ficha
+de cliente. Antes se asumía siempre minorista porque el lead no tenía dónde
+decirlo, y marcar mayorista por la cantidad cotizada estaba mal: una compra
+grande de una sola vez no es un revendedor. Sin cargar, se sigue asumiendo
+minorista, que es el caso común y el que no regala margen.
+
 Lo único que no está ahí es el **CUIT y la dirección de facturación**. No se le
 piden a alguien que todavía está preguntando un precio, y viven en la ficha del
 cliente, que es donde se completan cuando hay que facturarle.
+
+**Si van agujereadas tiene tres respuestas y no dos**: sí, no, y todavía no se
+sabe. La tercera es la de casi todo lead recién entrado, y sin ella no habría
+cómo distinguir al que dijo que las quería lisas del que no contestó —que es uno
+de los tres datos que hay que sacarle a alguien para poder calificarlo—.
 
 **El código postal arrastra localidad, provincia y kilómetros**, como en el
 simulador de la web. Si el código no está en el padrón se guarda igual y los
@@ -209,6 +349,12 @@ ficha del cliente ya muestra todas las suyas. Y hay una razón de seguridad:
 así que unificarlas pondría los CUIT y las direcciones en una tabla donde puede
 escribir cualquiera con la clave pública.
 
+"Hacer cliente" **ya no marca el lead como ganado**. Antes lo hacía, porque con
+cuatro estados sueltos crear la ficha era lo más parecido a haber vendido. Ahora
+ganar tiene monto, fecha y un camino que hay que recorrer; tener ficha y haber
+comprado dejaron de ser lo mismo —y de hecho nunca lo fueron, porque la ficha se
+crea para poder colgarle un presupuesto—.
+
 Lo que sí faltaba, y ya está: cuando el que vuelve a preguntar **ya es cliente**,
 "Hacer cliente" ofrece engancharlo a la ficha que existe en vez de crear una
 nueva. Esa era la duplicación real.
@@ -247,11 +393,18 @@ El pedido queda en **presupuesto**, con el destino y los kilómetros del lead ya
 puestos y el flete a cotizar, y la pantalla se abre en él para ponerle el
 transporte y el vendedor antes de mandarlo.
 
-**El lead pasa a "contactado", no a "ganado".** Armarle un presupuesto es
-haberlo trabajado, no haberle vendido: la venta se da por buena cuando alguien
-confirma el pedido. La ficha de cliente se crea porque un pedido necesita un
-dueño —la tabla no admite uno sin él—, y eso no lo vuelve cliente todavía:
-cliente es el que completó al menos un pedido.
+**El lead pasa a "presupuesto enviado", no a "ganado".** Armarle un presupuesto
+es haberlo trabajado, no haberle vendido: ganar es una etapa aparte, con monto y
+fecha, a la que sólo se llega desde "por cerrar". La ficha de cliente se crea
+porque un pedido necesita un dueño —la tabla no admite uno sin él—, y eso no lo
+vuelve cliente todavía: cliente es el que completó al menos un pedido.
+
+Si el lead venía en "nuevo", pasa antes por "en calificación", que es lo que de
+verdad ocurrió: alguien lo atendió y le sacó los datos. Y si ya estaba en "por
+cerrar", el estado no se mueve —volver atrás no tendría sentido— pero el monto
+se actualiza y el presupuesto queda anotado en el historial. A un mismo lead se
+le pueden mandar varios: el campo guarda el último, el historial los guarda a
+todos.
 
 ### Presupuestos
 
@@ -767,6 +920,13 @@ que ya tenía la planilla de Google, y para juntar contactos que la gente deja
 voluntariamente no es un problema. Lo que no puede hacer nadie desde afuera es
 *leerlos*: la política sólo permite insertar. Por las dudas, no guardes nada
 sensible en esa tabla.
+
+Lo que sí se acotó es **qué** puede insertar: sin sesión, un lead sólo puede
+entrar como `nuevo` y con canal `web`, y no puede traer responsable, tipo de
+cliente ni monto. Si no, cualquiera con la clave pública podría cargar contactos
+firmados como "referido" o ya "ganados" por diez millones, y la medición que
+decide dónde se pone la plata de la pauta pasaría a ser un número que se puede
+inventar desde afuera.
 
 **El ERP no aparece en Google.** `public/robots.txt` lo excluye y la pantalla
 agrega una etiqueta `noindex`. De todos modos pide login, así que eso es sólo

@@ -256,7 +256,11 @@ export default function CustomerDetail() {
                             {formatNumber(lead.cantidad)}
                           </Td>
                           <Td className="text-xs text-steel-500">
-                            {lead.agujereada ? 'Agujereada' : 'Común'}
+                            {lead.agujereada === null
+                              ? 'Sin definir'
+                              : lead.agujereada
+                                ? 'Agujereada'
+                                : 'Común'}
                           </Td>
                           <Td align="right">
                             <Money value={lead.precio_unitario} />

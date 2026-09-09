@@ -78,37 +78,756 @@ create table if not exists leads (
   kilometros      integer,
   precio_unitario numeric(12, 2),
   mercaderia      numeric(14, 2),
-  estado          text not null default 'nuevo'
-                  check (estado in ('nuevo', 'contactado', 'ganado', 'perdido')),
   notas           text,
   customer_id     uuid references customers (id) on delete set null
 );
 
 create index if not exists leads_created_at_idx on leads (created_at desc);
-create index if not exists leads_estado_idx on leads (estado);
+
+-- ---------------------------------------------------------------------------
+-- Pipeline de leads
+-- ---------------------------------------------------------------------------
 
 /*
-  De dónde salió el contacto.
+  El embudo comercial: en qué anda cada consulta y qué hay que hacer con ella.
 
-  Al principio los leads sólo podían venir del simulador de la web, así que no
-  hacía falta preguntarlo. Ahora se cargan también a mano —el que escribe por
-  Instagram, el que llama, el que te pasó un conocido— y sin esta columna todos
-  esos quedarían mezclados con los de la web y la pauta sería plata que se gasta
-  a ciegas.
+  Reemplaza a los cuatro estados de antes (`nuevo / contactado / ganado /
+  perdido`), que alcanzaban para una lista de pendientes pero no para saber
+  dónde se cae la venta. "Contactado" tapaba tres situaciones que se trabajan
+  distinto —le mandé la lista, le mandé el presupuesto, está regateando— y las
+  tres quedaban indistinguibles.
 
-  El default es 'web' porque es el único origen que existía hasta acá: los leads
-  ya cargados vinieron todos de ahí.
+  El principio que ordena todo lo de abajo: **todo lead en estado activo tiene
+  que tener una próxima acción con fecha**. Un lead activo sin próxima acción es
+  un lead perdido que todavía no se detectó, y la base no lo deja guardar.
 
-  La restricción se rehace en vez de crearse a secas para que el archivo se
-  pueda volver a correr: `add constraint` sin más falla si ya está.
+  Los enums se crean adentro de un bloque porque `create type` no admite
+  `if not exists` y este archivo se vuelve a correr entero.
 */
-alter table leads add column if not exists origen text not null default 'web';
+do $tipos$
+begin
+  if not exists (select 1 from pg_type where typname = 'lead_status') then
+    create type lead_status as enum (
+      'new', 'qualifying', 'qualified', 'quoted',
+      'negotiating', 'closing', 'won', 'dormant', 'lost'
+    );
+  end if;
 
-alter table leads drop constraint if exists leads_origen_check;
-alter table leads add constraint leads_origen_check
-  check (origen in ('web', 'instagram', 'whatsapp', 'telefono', 'referido', 'feria', 'otro'));
+  /* Qué es el que pregunta. Define qué lista de precios se le manda. */
+  if not exists (select 1 from pg_type where typname = 'lead_type') then
+    create type lead_type as enum ('end_user', 'installer', 'retailer', 'distributor');
+  end if;
 
-create index if not exists leads_origen_idx on leads (origen);
+  /*
+    De dónde salió el contacto.
+
+    Los tres últimos no están en la spec y se agregan para no perder lo que ya
+    estaba cargado en la columna `origen`. 'web' además es el único origen que
+    el simulador puede escribir sin sesión: sacarlo dejaría a la landing sin
+    poder dejar un lead.
+  */
+  if not exists (select 1 from pg_type where typname = 'lead_source') then
+    create type lead_source as enum (
+      'whatsapp_organic', 'instagram', 'cold_outreach', 'referral',
+      'facebook', 'tiktok', 'other',
+      'web', 'phone', 'fair'
+    );
+  end if;
+
+  /*
+    Por qué se perdió. Es el dato que dice si el problema es el precio, el flete
+    o el producto; sin él "perdido" no explica nada y no se puede corregir.
+  */
+  if not exists (select 1 from pg_type where typname = 'lost_reason') then
+    create type lost_reason as enum (
+      'price', 'freight', 'lead_time', 'chose_wood',
+      'chose_competitor', 'not_target', 'no_response', 'other'
+    );
+  end if;
+
+  if not exists (select 1 from pg_type where typname = 'lead_event_type') then
+    create type lead_event_type as enum (
+      'inbound_message', 'auto_reply_sent', 'price_list_sent', 'quote_sent',
+      'followup_sent', 'objection_raised', 'sample_requested',
+      'status_change', 'note', 'reactivation_attempt'
+    );
+  end if;
+end
+$tipos$;
+
+/*
+  Las columnas del embudo.
+
+  Los nombres nuevos van en inglés. Los que ya existían —`nombre`, `telefono`,
+  `cantidad`, `agujereada`, `localidad`— se quedan como están: renombrarlos
+  obliga a tocar el insert anónimo de la landing, donde el error se traga a
+  propósito para no romperle el formulario a nadie, y un desfasaje entre esta
+  migración y el deploy haría que los leads dejen de llegar sin que nada avise.
+  El mapeo con los nombres de la spec:
+
+    spec           acá
+    -------------  ----------
+    name           nombre
+    phone          telefono
+    zone           localidad
+    qty_estimated  cantidad
+    drilled        agujereada
+*/
+alter table leads add column if not exists status             lead_status not null default 'new';
+alter table leads add column if not exists lead_type          lead_type;
+alter table leads add column if not exists source             lead_source not null default 'web';
+alter table leads add column if not exists next_action        text;
+alter table leads add column if not exists next_action_at     timestamptz;
+alter table leads add column if not exists owner              text;
+alter table leads add column if not exists lost_reason        lost_reason;
+alter table leads add column if not exists lost_notes         text;
+alter table leads add column if not exists quote_amount       numeric(12, 2);
+alter table leads add column if not exists quote_sent_at      timestamptz;
+alter table leads add column if not exists won_amount         numeric(12, 2);
+alter table leads add column if not exists won_at             timestamptz;
+alter table leads add column if not exists dormant_until      date;
+alter table leads add column if not exists reactivation_count integer not null default 0;
+alter table leads add column if not exists updated_at         timestamptz not null default now();
+
+/*
+  Si van agujereadas dejó de ser sí o no: ahora hay un tercer caso, "todavía no
+  se sabe", que es el de casi todo lead recién entrado. Sin ese null no hay cómo
+  distinguir al que dijo que las quería lisas del que todavía no contestó, y es
+  justo uno de los tres datos que hay que sacarle a alguien para poder cotizar.
+*/
+alter table leads alter column agujereada drop default;
+alter table leads alter column agujereada drop not null;
+
+/*
+  Lo que se apoyaba en las columnas viejas, fuera antes de tocarlas.
+
+  Postgres no deja borrar una columna de la que dependen otros objetos, y en una
+  base que ya venía andando hay dos: la vista `leads_por_origen`, que agrupaba
+  por `origen` y contaba por `estado`, y la política del simulador, que exigía
+  `estado = 'nuevo'` y `origen = 'web'`.
+
+  Las dos se vuelven a crear más abajo en este mismo archivo, ya escritas contra
+  `status` y `source`, así que tirarlas acá no pierde nada. Va antes de la
+  migración de datos y no después porque el `drop column` está adentro de ella.
+*/
+drop view if exists leads_por_origen;
+drop policy if exists "el simulador deja leads" on leads;
+
+/*
+  Migración de los estados viejos.
+
+  Corre una sola vez: en cuanto la columna `estado` deja de existir, el bloque
+  se saltea solo. `contactado` cae en `qualifying` y no en `qualified` porque
+  quería decir "le escribí", que es exactamente calificar todavía sin datos.
+
+  Los perdidos viejos quedan con motivo 'other'. No hay forma de saber por qué
+  se perdieron, y ponerles 'price' porque suele ser el motivo más común sería
+  inventar justo el dato que vinimos a medir.
+*/
+do $migra_estado$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'leads' and column_name = 'estado'
+  ) then
+    update leads set
+      status = case estado
+        when 'nuevo'      then 'new'
+        when 'contactado' then 'qualifying'
+        when 'ganado'     then 'won'
+        when 'perdido'    then 'lost'
+        else 'new'
+      end::lead_status,
+      lost_reason = case when estado = 'perdido' then 'other'::lost_reason else lost_reason end,
+      /*
+        Los ganados viejos no tienen monto de venta anotado. Se usa lo que había
+        cotizado el simulador, que es lo más cerca que se puede estar sin
+        inventar; si no cotizó nada queda en cero, que se ve y se corrige,
+        mientras que un null no se ve.
+      */
+      won_amount = case when estado = 'ganado' then coalesce(mercaderia, 0) else won_amount end,
+      won_at     = case when estado = 'ganado' then created_at else won_at end,
+      /*
+        Los que quedan activos necesitan próxima acción, porque el guardián no
+        deja guardar un lead activo sin ella y si no la tuvieran quedarían
+        imposibles de editar. Se les pone para hoy: son leads que venían del
+        modelo viejo sin nadie a cargo, y lo correcto es que aparezcan todos en
+        la pantalla de "Hoy" para repasarlos de una vez.
+      */
+      next_action_at = case
+        when estado in ('nuevo', 'contactado') then coalesce(next_action_at, now())
+        else next_action_at
+      end,
+      next_action = case
+        when estado in ('nuevo', 'contactado')
+          then coalesce(next_action, 'Repasar: viene del modelo anterior')
+        else next_action
+      end;
+
+    alter table leads drop column estado;
+  end if;
+end
+$migra_estado$;
+
+/* Los canales viejos, a los valores del enum. */
+do $migra_origen$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'leads' and column_name = 'origen'
+  ) then
+    update leads set source = case origen
+      when 'web'       then 'web'
+      when 'instagram' then 'instagram'
+      when 'facebook'  then 'facebook'
+      when 'whatsapp'  then 'whatsapp_organic'
+      when 'telefono'  then 'phone'
+      when 'referido'  then 'referral'
+      when 'feria'     then 'fair'
+      else 'other'
+    end::lead_source;
+
+    alter table leads drop column origen;
+  end if;
+end
+$migra_origen$;
+
+drop index if exists leads_estado_idx;
+drop index if exists leads_origen_idx;
+
+create index if not exists leads_status_idx         on leads (status);
+create index if not exists leads_source_idx         on leads (source);
+create index if not exists leads_next_action_at_idx on leads (next_action_at);
+create index if not exists leads_dormant_until_idx  on leads (dormant_until);
+create index if not exists leads_localidad_idx      on leads (localidad);
+
+/*
+  El teléfono se indexa para buscar, pero **no** es único.
+
+  La spec lo pide único como clave de deduplicación (§2.1) y a la vez pide abrir
+  un lead nuevo cuando un cliente ganado vuelve a comprar (§8.1). Las dos cosas
+  no pueden ser ciertas a la vez, y la segunda es la que coincide con cómo
+  funciona esto: un lead es un hecho —"alguien preguntó por 500 el 3 de
+  septiembre"— y la misma persona genera varios en dos años. Un único global
+  además fallaría al crearse, porque en la base ya hay gente que cotizó tres
+  veces desde la web.
+
+  La deduplicación que la spec quiere de verdad —no abrir un lead nuevo cuando
+  ya hay uno abierto para ese teléfono— la resuelve `lead_abierto(text)`, más
+  abajo, que aplica la regla sin borrar historia.
+*/
+create index if not exists leads_telefono_idx on leads (telefono);
+
+/*
+  El historial de cada lead. Append-only: nada de acá se edita ni se borra.
+
+  El estado actual dice dónde está el lead hoy; sólo el historial dice por dónde
+  pasó, cuánto tardó en cada etapa y cuántas veces se lo intentó reactivar. Las
+  métricas del embudo se calculan sobre esta tabla y no sobre `leads.status`,
+  porque el estado actual de un lead perdido no cuenta que antes llegó a estar
+  por cerrar.
+*/
+create table if not exists lead_events (
+  id          uuid primary key default gen_random_uuid(),
+  lead_id     uuid not null references leads (id) on delete cascade,
+  type        lead_event_type not null,
+  from_status lead_status,
+  to_status   lead_status,
+  note        text,
+  actor       text not null default 'system',
+  created_at  timestamptz not null default now()
+);
+
+create index if not exists lead_events_lead_idx    on lead_events (lead_id, created_at desc);
+create index if not exists lead_events_type_idx    on lead_events (type);
+create index if not exists lead_events_created_idx on lead_events (created_at);
+
+comment on table lead_events is
+  'Historial de cada lead, append-only. Sobre esto se calculan las métricas del embudo.';
+
+/* Los estados en los que el lead todavía se trabaja. */
+create or replace function lead_activo(estado lead_status) returns boolean
+language sql immutable
+as $activo$
+  select estado in ('new', 'qualifying', 'qualified', 'quoted', 'negotiating', 'closing');
+$activo$;
+
+/*
+  Qué transiciones son legales.
+
+  Está acá y no en el ERP porque es una regla del negocio, no de una pantalla:
+  el kanban, la ficha, el job nocturno y cualquier corrección hecha a mano desde
+  el panel de Supabase tienen que respetar la misma tabla. Una regla que vive en
+  el navegador es una regla que se saltea abriendo otra pestaña.
+*/
+create or replace function lead_transicion_valida(desde lead_status, hasta lead_status)
+returns boolean
+language sql immutable
+as $transicion$
+  select case desde
+    when 'new'         then hasta in ('qualifying', 'qualified', 'lost')
+    when 'qualifying'  then hasta in ('qualified', 'quoted', 'dormant', 'lost')
+    when 'qualified'   then hasta in ('quoted', 'dormant', 'lost')
+    when 'quoted'      then hasta in ('negotiating', 'closing', 'dormant', 'lost')
+    when 'negotiating' then hasta in ('closing', 'quoted', 'dormant', 'lost')
+    when 'closing'     then hasta in ('won', 'negotiating', 'dormant', 'lost')
+    when 'dormant'     then hasta in ('qualified', 'quoted', 'lost', 'new')
+    /* Ganado es terminal: el que vuelve a comprar genera un lead nuevo. */
+    when 'won'         then false
+    /* Perdido sólo se reabre a mano, y reabrirlo es despertarlo. */
+    when 'lost'        then hasta = 'dormant'
+  end;
+$transicion$;
+
+/*
+  Quién hizo el cambio.
+
+  Sale del mail del JWT de Supabase. Si no hay sesión —el simulador de la web
+  escribe sin ella— o el claim no viene, queda 'system'. Envuelto en un bloque
+  con `exception` porque esto corre adentro de un trigger que no puede fallar
+  por no saber quién fue: perder el nombre del autor es molesto, perder el lead
+  es grave.
+*/
+create or replace function lead_actor() returns text
+language plpgsql stable
+as $actor$
+begin
+  return coalesce(
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email',
+    'system'
+  );
+exception when others then
+  return 'system';
+end;
+$actor$;
+
+/*
+  El guardián del embudo: completa lo que falta y rechaza lo que no cierra.
+
+  Hace tres cosas, en este orden:
+
+  1. **Valida la transición** contra `lead_transicion_valida`.
+  2. **Pone los defaults** de próxima acción al cambiar de estado, para que
+     nadie tenga que acordarse de escribir "seguimiento post-presupuesto" cada
+     vez. Si quien guarda ya puso una fecha, se respeta la suya.
+  3. **Exige los campos obligatorios** de cada estado. Un lead perdido sin
+     motivo o un presupuestado sin monto son filas que después no se pueden
+     medir, y el momento de pedirlos es cuando se guarda, no seis meses después
+     cuando alguien intenta sacar el informe.
+*/
+create or replace function leads_guard() returns trigger
+language plpgsql
+as $guard$
+declare
+  cambio   boolean := tg_op = 'INSERT' or new.status is distinct from old.status;
+  plazo    interval;
+  sugerida text;
+begin
+  new.updated_at := now();
+
+  if tg_op = 'UPDATE' and new.status is distinct from old.status
+     and not lead_transicion_valida(old.status, new.status) then
+    raise exception 'No se puede pasar un lead de % a %.', old.status, new.status
+      using errcode = 'check_violation';
+  end if;
+
+  if cambio then
+    if new.status = 'dormant' then
+      /* Dormido no tiene próxima acción: la fecha de recontacto hace ese papel. */
+      new.next_action    := null;
+      new.next_action_at := null;
+      new.dormant_until  := coalesce(new.dormant_until, current_date + 75);
+
+    elsif lead_activo(new.status) then
+      plazo := case new.status
+        when 'new'         then interval '2 hours'
+        when 'qualifying'  then interval '1 day'
+        when 'qualified'   then interval '1 day'
+        when 'quoted'      then interval '2 days'
+        when 'negotiating' then interval '2 days'
+        when 'closing'     then interval '1 day'
+      end;
+
+      sugerida := case new.status
+        when 'new'         then 'Responder y pedir zona, cantidad y si van agujereadas'
+        when 'qualifying'  then 'Reintento pidiendo datos'
+        when 'qualified'   then 'Armar y mandar presupuesto'
+        when 'quoted'      then 'Seguimiento post-presupuesto'
+        when 'negotiating' then 'Resolver objeción o contrapropuesta'
+        when 'closing'     then 'Coordinar seña y entrega'
+      end;
+
+      /*
+        La fecha se **recalcula** con el plazo del estado nuevo, no se conserva.
+        Un lead que pasa de recién entrado a presupuestado arrastraría si no el
+        vencimiento de dos horas que le tocaba al entrar, y aparecería vencido
+        en la pantalla de Hoy el mismo día en que se le mandó el presupuesto.
+
+        La excepción es que quien guarda haya puesto una fecha a propósito en la
+        misma operación: ésa gana, porque el que está hablando con la persona
+        sabe mejor que esta tabla cuándo hay que volver a llamarla.
+      */
+      if tg_op = 'INSERT' then
+        new.next_action_at := coalesce(new.next_action_at, now() + plazo);
+        new.next_action    := coalesce(new.next_action, sugerida);
+      else
+        if new.next_action_at is null
+           or new.next_action_at is not distinct from old.next_action_at then
+          new.next_action_at := now() + plazo;
+        end if;
+
+        if new.next_action is null
+           or new.next_action is not distinct from old.next_action then
+          new.next_action := sugerida;
+        end if;
+      end if;
+    end if;
+
+    if new.status = 'quoted' then new.quote_sent_at := coalesce(new.quote_sent_at, now()); end if;
+    if new.status = 'won'    then new.won_at        := coalesce(new.won_at, now());        end if;
+  end if;
+
+  /* Las de abajo son invariantes: se revisan siempre, cambie el estado o no. */
+
+  if lead_activo(new.status) and new.next_action_at is null then
+    raise exception 'Un lead en % necesita una próxima acción con fecha.', new.status
+      using errcode = 'check_violation';
+  end if;
+
+  if new.status = 'lost' and new.lost_reason is null then
+    raise exception 'Para dar un lead por perdido hay que decir por qué.'
+      using errcode = 'check_violation';
+  end if;
+
+  if new.status = 'dormant' and new.dormant_until is null then
+    raise exception 'Un lead dormido necesita fecha de recontacto.'
+      using errcode = 'check_violation';
+  end if;
+
+  if new.status = 'quoted' and new.quote_amount is null then
+    raise exception 'Un lead presupuestado necesita el monto del presupuesto.'
+      using errcode = 'check_violation';
+  end if;
+
+  if new.status = 'won' and new.won_amount is null then
+    raise exception 'Un lead ganado necesita el monto de la venta.'
+      using errcode = 'check_violation';
+  end if;
+
+  /*
+    Calificar es, justamente, tener los tres datos con los que se puede cotizar.
+    Sin ellos el estado diría que el lead está listo para presupuestar y no lo
+    está.
+  */
+  if new.status = 'qualified'
+     and (new.localidad is null or new.cantidad is null or new.agujereada is null) then
+    raise exception 'Para calificar un lead hacen falta localidad, cantidad y si van agujereadas.'
+      using errcode = 'check_violation';
+  end if;
+
+  return new;
+end;
+$guard$;
+
+drop trigger if exists leads_guard_trigger on leads;
+create trigger leads_guard_trigger
+  before insert or update on leads
+  for each row
+  execute function leads_guard();
+
+/*
+  Todo cambio de estado deja rastro. Sin excepción: el historial es lo que
+  después permite medir dónde se cae el embudo, y un cambio sin registrar es un
+  agujero que no se nota hasta que el informe da cualquier cosa.
+
+  `security definer` porque el simulador de la web escribe leads sin sesión y
+  no tiene —ni debe tener— permiso sobre `lead_events`.
+*/
+create or replace function leads_log_status() returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $log$
+begin
+  if tg_op = 'INSERT' then
+    insert into lead_events (lead_id, type, to_status, note, actor)
+    values (new.id, 'status_change', new.status, 'Lead creado', lead_actor());
+
+  elsif new.status is distinct from old.status then
+    insert into lead_events (lead_id, type, from_status, to_status, note, actor)
+    values (new.id, 'status_change', old.status, new.status, new.lost_notes, lead_actor());
+  end if;
+
+  return null;
+end;
+$log$;
+
+drop trigger if exists leads_log_status_trigger on leads;
+create trigger leads_log_status_trigger
+  after insert or update on leads
+  for each row
+  execute function leads_log_status();
+
+/*
+  El lead abierto de un teléfono, si lo hay.
+
+  Es la deduplicación de §5.2: cuando vuelve a escribir alguien que ya está en
+  la base, no se abre un lead nuevo —se retoma el que está—, y así el historial
+  queda entero en vez de partido en dos fichas.
+
+  "Abierto" excluye a los ganados a propósito: el que ya compró y vuelve es una
+  recompra, y ésa sí merece un lead nuevo para que la métrica la pueda contar.
+*/
+create or replace function lead_abierto(tel text) returns uuid
+language sql stable
+as $abierto$
+  select l.id
+  from leads l
+  where l.telefono is not null
+    and tel is not null
+    and l.telefono = tel
+    and l.status <> 'won'
+  order by l.created_at desc
+  limit 1;
+$abierto$;
+
+/*
+  El barrido de vencimientos. Corre solo una vez por día y se puede correr a
+  mano cuantas veces haga falta: es idempotente.
+
+  Los estados nuevos no ponen la fecha a mano —la dejan en null— para que el
+  guardián de arriba les aplique el default que corresponde al estado destino.
+  Así el plazo de cada etapa está escrito en un solo lugar.
+
+  Dos cosas que la spec pide y acá se resuelven distinto, por lo mismo en los
+  dos casos: tal como están escritas, corriendo todos los días harían daño.
+
+  - **El `overdue` de los estados que sólo alertan** (`qualified`,
+    `negotiating`, `closing`) no se guarda en ninguna columna: se calcula en la
+    vista `leads_hoy`. Una columna se escribe una vez por noche y queda mintiendo
+    en cuanto alguien mueve la fecha de la próxima acción a la mañana siguiente.
+
+  - **El contador de reactivación no se toca acá.** Si el job lo subiera cada
+    día, un lead dormido llegaría a dos "intentos" en dos días sin que nadie lo
+    haya llamado, y la tarea de recontacto desaparecería de la vista el mismo
+    día en que apareció. El contador lo sube quien de verdad hace el recontacto,
+    desde el ERP. Del job queda sólo la regla de rendirse: el que ya tuvo dos
+    intentos y sigue sin contestar se da por perdido.
+*/
+create or replace function run_lead_sla() returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $sla$
+declare
+  a_calificar integer;
+  a_dormir    integer;
+  perdidos    integer;
+begin
+  /* Sin trabajar el primer día: pasa a calificación y se le reintenta. */
+  with movidos as (
+    update leads set status = 'qualifying', next_action = null, next_action_at = null
+    where status = 'new' and next_action_at < now() - interval '1 day'
+    returning 1
+  )
+  select count(*)::integer into a_calificar from movidos;
+
+  /*
+    Una semana sin sacarle los datos, o diez días sin respuesta al presupuesto,
+    y el lead se duerme. No se pierde: dormido es la base de recontacto, que es
+    lo más valioso que tiene un negocio estacional como éste.
+  */
+  with movidos as (
+    update leads set status = 'dormant', dormant_until = null
+    where (status = 'qualifying' and next_action_at < now() - interval '7 days')
+       or (status = 'quoted'     and next_action_at < now() - interval '10 days')
+    returning 1
+  )
+  select count(*)::integer into a_dormir from movidos;
+
+  /* Dos recontactos sin respuesta: se cierra con motivo, no en silencio. */
+  with cerrados as (
+    update leads set
+      status = 'lost',
+      lost_reason = 'no_response',
+      lost_notes = coalesce(lost_notes, 'Sin respuesta después de dos intentos de recontacto.')
+    where status = 'dormant'
+      and dormant_until <= current_date
+      and reactivation_count >= 2
+    returning 1
+  )
+  select count(*)::integer into perdidos from cerrados;
+
+  return jsonb_build_object(
+    'a_calificar', a_calificar,
+    'a_dormir', a_dormir,
+    'perdidos', perdidos,
+    'corrido_el', now()
+  );
+end;
+$sla$;
+
+/*
+  El job de las 7 de la mañana, si el proyecto tiene pg_cron habilitado.
+
+  Si no lo tiene, no pasa nada malo: el ERP llama a `run_lead_sla()` al abrirse,
+  así que el barrido igual ocurre: lo dispara la primera persona que entra cada
+  día. La extensión se habilita desde el panel de Supabase, en Database →
+  Extensions.
+*/
+do $cron$
+begin
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    if exists (select 1 from cron.job where jobname = 'lead-sla') then
+      perform cron.unschedule('lead-sla');
+    end if;
+
+    /* 10:00 UTC son las 7:00 en Argentina. */
+    perform cron.schedule('lead-sla', '0 10 * * *', $job$select run_lead_sla()$job$);
+  end if;
+end
+$cron$;
+
+/*
+  La pantalla de "Hoy": no es una lista de leads, es una lista de acciones.
+
+  Trae lo que vence hoy o antes, más los dormidos a los que les llegó la fecha
+  de recontacto, ordenado por cuán cerca está la plata: primero el que está por
+  cerrar, último el que recién entró.
+
+  `dias_vencido` en cero quiere decir "es para hoy"; en 3, que hace tres días
+  que alguien tendría que haber hecho algo.
+*/
+/*
+  Se tira y se rehace en vez de `create or replace`, porque trae `l.*`: el día
+  que `leads` gane una columna, la vista tendría una columna más y `create or
+  replace` no admite cambiar la lista —falla con "cannot change name of view
+  column"— y este archivo dejaría de poder correrse dos veces.
+*/
+drop view if exists leads_hoy;
+
+create view leads_hoy with (security_invoker = on) as
+  select
+    l.*,
+    coalesce(l.next_action_at::date, l.dormant_until) as vence_el,
+    greatest(0, current_date - coalesce(l.next_action_at::date, l.dormant_until))::integer
+      as dias_vencido,
+    (lead_activo(l.status) and l.next_action_at < now()) as overdue
+  from leads l
+  where (lead_activo(l.status) and l.next_action_at::date <= current_date)
+     or (l.status = 'dormant' and l.dormant_until <= current_date)
+  order by
+    case l.status
+      when 'closing'     then 1
+      when 'negotiating' then 2
+      when 'qualified'   then 3
+      when 'quoted'      then 4
+      when 'new'         then 5
+      when 'qualifying'  then 6
+      else 7
+    end,
+    coalesce(l.next_action_at, l.dormant_until::timestamptz) asc;
+
+-- ---------------------------------------------------------------------------
+-- Métricas del embudo
+-- ---------------------------------------------------------------------------
+
+/*
+  Todas se calculan sobre `lead_events` y no sobre el estado actual, salvo las
+  que preguntan por dónde está parado el lead hoy. La diferencia importa: un
+  lead perdido tiene status 'lost' y nada más, pero su historial cuenta que
+  llegó a estar por cerrar, y ése es justamente el dato que dice dónde se cae la
+  venta.
+*/
+
+/* Cuántos leads llegaron alguna vez a cada etapa. El embudo, literal. */
+create or replace view lead_funnel with (security_invoker = on) as
+  select
+    e.to_status as status,
+    count(distinct e.lead_id)::integer as leads
+  from lead_events e
+  where e.type = 'status_change' and e.to_status is not null
+  group by 1;
+
+/* Cuánto se tarda en salir de cada etapa: dónde se traba el embudo. */
+create or replace view lead_stage_times with (security_invoker = on) as
+  with pasos as (
+    select
+      e.from_status,
+      e.created_at,
+      coalesce(
+        lag(e.created_at) over (partition by e.lead_id order by e.created_at),
+        l.created_at
+      ) as entro
+    from lead_events e
+    join leads l on l.id = e.lead_id
+    where e.type = 'status_change' and e.from_status is not null
+  )
+  select
+    from_status as status,
+    count(*)::integer as salidas,
+    round(avg(extract(epoch from (created_at - entro)) / 86400)::numeric, 1) as dias_promedio
+  from pasos
+  group by 1;
+
+/* De qué etapa a cuál: la conversión de cada paso. */
+create or replace view lead_transitions with (security_invoker = on) as
+  select
+    from_status,
+    to_status,
+    count(*)::integer as veces
+  from lead_events
+  where type = 'status_change' and from_status is not null
+  group by 1, 2;
+
+/*
+  El resultado por mes, canal y tipo de cliente. De acá salen la tasa de cierre,
+  la conversión por canal y por tipo, y el ticket promedio.
+
+  El mes es el de entrada del lead y no el de la venta, igual que en
+  `leads_por_origen` y por la misma razón: se está midiendo captación, y al que
+  preguntó en septiembre lo trajo la plata gastada en septiembre.
+*/
+create or replace view lead_outcomes with (security_invoker = on) as
+  select
+    date_trunc('month', l.created_at)::date as mes,
+    l.source,
+    l.lead_type,
+    count(*)::integer as leads,
+    count(*) filter (where l.status = 'won')::integer     as ganados,
+    count(*) filter (where l.status = 'lost')::integer    as perdidos,
+    count(*) filter (where l.status = 'dormant')::integer as dormidos,
+    count(*) filter (where lead_activo(l.status))::integer as abiertos,
+    coalesce(sum(l.won_amount) filter (where l.status = 'won'), 0) as facturado
+  from leads l
+  group by 1, 2, 3;
+
+/* Por qué se pierden. El dato que dice si el problema es precio, flete o producto. */
+create or replace view lead_lost_reasons with (security_invoker = on) as
+  select
+    date_trunc('month', l.updated_at)::date as mes,
+    l.lost_reason,
+    count(*)::integer as leads
+  from leads l
+  where l.status = 'lost' and l.lost_reason is not null
+  group by 1, 2;
+
+/*
+  Si mantener la base dormida sirve o no.
+
+  `reactivados` cuenta a los que volvieron a moverse después de un recontacto;
+  `ganados`, a los que además terminaron comprando. Si la segunda columna da
+  siempre cero, el recontacto es tiempo que se está tirando.
+*/
+create or replace view lead_reactivations with (security_invoker = on) as
+  select
+    count(*) filter (where reactivation_count > 0)::integer as intentados,
+    count(*) filter (
+      where reactivation_count > 0
+        and status in ('qualified', 'quoted', 'negotiating', 'closing', 'won')
+    )::integer as reactivados,
+    count(*) filter (where reactivation_count > 0 and status = 'won')::integer as ganados
+  from leads;
 
 -- ---------------------------------------------------------------------------
 -- Productos y pedidos
@@ -1131,11 +1850,11 @@ create or replace view leads_por_origen with (security_invoker = on) as
   )
   select
     date_trunc('month', l.created_at)::date as mes,
-    l.origen,
+    l.source as origen,
     count(*)::integer as leads,
-    count(*) filter (where l.estado = 'ganado')::integer   as ganados,
-    count(*) filter (where l.estado = 'perdido')::integer  as perdidos,
-    count(*) filter (where l.estado = 'nuevo')::integer    as sin_contactar,
+    count(*) filter (where l.status = 'won')::integer   as ganados,
+    count(*) filter (where l.status = 'lost')::integer  as perdidos,
+    count(*) filter (where l.status = 'new')::integer   as sin_contactar,
     coalesce(sum(v.facturado), 0) as facturado
   from leads l
   left join ventas v on v.lead_id = l.id
@@ -1148,6 +1867,7 @@ create or replace view leads_por_origen with (security_invoker = on) as
 alter table price_tiers     enable row level security;
 alter table customers       enable row level security;
 alter table leads           enable row level security;
+alter table lead_events     enable row level security;
 alter table products        enable row level security;
 alter table orders          enable row level security;
 alter table order_items     enable row level security;
@@ -1188,6 +1908,31 @@ revoke execute on function cp_numero(text) from public;
 revoke execute on function cotizar_flete(text, integer) from public;
 grant execute on function cp_numero(text) to authenticated;
 grant execute on function cotizar_flete(text, integer) to authenticated;
+
+/*
+  El barrido de vencimientos lo dispara el ERP al abrirse, así que hace falta
+  poder llamarlo con sesión —pero sólo con sesión: es una función que mueve
+  leads de estado y no tiene por qué ser un botón abierto al mundo.
+*/
+revoke execute on function run_lead_sla() from public;
+grant execute on function run_lead_sla() to authenticated;
+
+/*
+  El historial es de sólo agregar. El equipo lo lee y escribe en él, pero no
+  puede editarlo ni borrarlo: si una entrada del historial se pudiera corregir,
+  dejaría de ser historial y las métricas del embudo pasarían a medir lo que
+  alguien quiso que dijera. Se revoca además el permiso de tabla, para que la
+  regla no dependa sólo de la política.
+*/
+revoke update, delete on lead_events from authenticated;
+
+drop policy if exists "el equipo lee el historial" on lead_events;
+create policy "el equipo lee el historial" on lead_events
+  for select to authenticated using (true);
+
+drop policy if exists "el equipo anota en el historial" on lead_events;
+create policy "el equipo anota en el historial" on lead_events
+  for insert to authenticated with check (true);
 
 /*
   Adentro del ERP no hay grados: cualquiera con sesión iniciada trabaja con
@@ -1233,16 +1978,26 @@ drop policy if exists "el simulador deja leads" on leads;
 create policy "el simulador deja leads" on leads
   for insert to anon
   with check (
-    estado = 'nuevo'
+    status = 'new'
     and customer_id is null
     /*
       Sin sesión sólo se puede dejar un lead diciendo que vino de la web, que es
       de donde efectivamente viene el simulador. Si no, cualquiera con la clave
       pública podría cargar leads firmados como "referido" o "instagram" y la
       medición de la pauta pasaría a ser un número que se puede inventar desde
-      afuera. Los otros orígenes se cargan a mano, con sesión.
+      afuera. Los otros canales se cargan a mano, con sesión.
     */
-    and origen = 'web'
+    and source = 'web'
+    /*
+      Y tampoco puede llegar apuntado a nadie ni con plata escrita: los campos
+      del embudo los completa el ERP. Sin esto, cualquiera con la clave pública
+      podría dejar leads ya "ganados" por diez millones y ensuciar la métrica
+      que decide dónde se pone la plata de la pauta.
+    */
+    and owner is null
+    and lead_type is null
+    and quote_amount is null
+    and won_amount is null
     and char_length(nombre) between 1 and 160
     and (cantidad is null or cantidad between 1 and 1000000)
     and (notas is null or char_length(notas) <= 500)

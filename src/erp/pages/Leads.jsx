@@ -1,23 +1,29 @@
 /**
  * Leads: todo el que preguntó, venga de donde venga.
  *
- * La pantalla está armada alrededor de una sola pregunta —¿a quién llamo
- * ahora?— así que arranca filtrada por los que nadie tocó todavía y el botón
- * más a mano es el de WhatsApp, con el mensaje ya escrito.
+ * Es la vista de archivo: todo el que preguntó, con buscador y filtros. La
+ * pregunta de "¿a quién llamo ahora?" la contesta "Hoy", que ordena por
+ * vencimiento y no por fecha de entrada; acá se viene a buscar a alguien
+ * puntual o a repasar una etapa entera.
+ *
+ * Por eso ya no arranca filtrada por los sin contactar: con el embudo, "nuevo"
+ * dejó de ser sinónimo de pendiente —un lead puede estar en negociación hace
+ * tres semanas y ser mucho más urgente— y esa lista ahora vive en "Hoy".
  *
  * Al principio los leads sólo llegaban del simulador de la web. Ahora también
  * se cargan a mano, porque el que escribe por Instagram o llama por teléfono es
  * exactamente igual de lead y antes no tenía dónde anotarse.
  */
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
-  LEAD_ORIGINS,
-  LEAD_ORIGIN_LABELS,
-  LEAD_ORIGIN_TONES,
+  LEAD_SOURCES,
+  LEAD_SOURCE_LABELS,
+  LEAD_SOURCE_TONES,
   LEAD_STATES,
   LEAD_STATE_LABELS,
-  LEAD_STATE_TONES,
+  LEAD_TYPES,
+  LEAD_TYPE_LABELS,
   convertLeadToCustomer,
   createLead,
   createQuoteFromLead,
@@ -27,10 +33,11 @@ import {
   updateLead,
 } from '../api/leads'
 import { listCustomerOptions } from '../api/customers'
+import { StatusBadge } from '../components/LeadPipeline'
 import { listProducts } from '../api/stock'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
-import { formatDateTime, formatNumber, formatPesos, whatsappLink } from '../lib/format'
+import { formatDate, formatDateTime, formatNumber, formatPesos, whatsappLink } from '../lib/format'
 import { usePriceTiers } from '../../lib/priceTiers'
 import { tierFor } from '../../lib/quote'
 import { findPostalCode, loadPostalCodes } from '../../lib/postalCodes'
@@ -70,7 +77,7 @@ function saludo(lead) {
   }
 
   const tipo = lead.agujereada ? 'agujereadas' : 'sin agujerear'
-  const donde = lead.origen === 'web' ? ' en nuestra web' : ''
+  const donde = lead.source === 'web' ? ' en nuestra web' : ''
 
   return `${arranque} Vi que cotizaste ${formatNumber(lead.cantidad)} varillas ${tipo}${donde}. ¿Te sirve que repasemos el presupuesto?`
 }
@@ -128,8 +135,9 @@ function LeadModal({ lead, onClose, onSaved }) {
     nombre: lead.nombre,
     telefono: lead.telefono ?? '',
     email: lead.email ?? '',
-    origen: lead.origen,
-    estado: lead.estado,
+    source: lead.source,
+    lead_type: lead.lead_type ?? '',
+    owner: lead.owner ?? '',
     cantidad: lead.cantidad === null ? '' : String(lead.cantidad),
     agujereada: lead.agujereada,
     entrega: lead.entrega,
@@ -199,8 +207,9 @@ function LeadModal({ lead, onClose, onSaved }) {
         nombre,
         telefono: form.telefono.trim() || null,
         email: form.email.trim() || null,
-        origen: form.origen,
-        estado: form.estado,
+        source: form.source,
+        lead_type: form.lead_type || null,
+        owner: form.owner.trim() || null,
         entrega: form.entrega,
         codigo_postal: form.codigo_postal.trim() || null,
         localidad: form.localidad.trim() || null,
@@ -232,10 +241,10 @@ function LeadModal({ lead, onClose, onSaved }) {
             label="De dónde salió"
             hint="Corregirlo cambia a qué canal se le atribuye este contacto."
           >
-            <Select value={form.origen} onChange={set('origen')}>
-              {LEAD_ORIGINS.map((value) => (
+            <Select value={form.source} onChange={set('source')}>
+              {LEAD_SOURCES.map((value) => (
                 <option key={value} value={value}>
-                  {LEAD_ORIGIN_LABELS[value]}
+                  {LEAD_SOURCE_LABELS[value]}
                 </option>
               ))}
             </Select>
@@ -275,11 +284,22 @@ function LeadModal({ lead, onClose, onSaved }) {
               onChange={set('cantidad')}
             />
           </Field>
-          <Field label="Estado">
-            <Select value={form.estado} onChange={set('estado')}>
-              {LEAD_STATES.map((value) => (
+          {/*
+            El estado ya no se elige de una lista.
+
+            Con cuatro estados sueltos daba igual, pero ahora hay un camino: cada
+            etapa pide sus datos y sólo lleva a algunas otras. Un desplegable
+            libre permitiría saltar de "nuevo" a "ganado" sin monto ni historia,
+            que es exactamente lo que hacía que después no se supiera dónde se
+            caía la venta. Se mueve con los botones de la ficha, que piden lo que
+            falta.
+          */}
+          <Field label="Qué es el que pregunta" hint="Define con qué lista se le cotiza.">
+            <Select value={form.lead_type} onChange={set('lead_type')}>
+              <option value="">Sin definir</option>
+              {LEAD_TYPES.map((value) => (
                 <option key={value} value={value}>
-                  {LEAD_STATE_LABELS[value]}
+                  {LEAD_TYPE_LABELS[value]}
                 </option>
               ))}
             </Select>
@@ -345,7 +365,7 @@ const NUEVO = {
   nombre: '',
   telefono: '',
   email: '',
-  origen: 'instagram',
+  source: 'whatsapp_organic',
   cantidad: '',
   agujereada: false,
   localidad: '',
@@ -393,12 +413,16 @@ function NewLeadModal({ onClose, onSaved }) {
         nombre,
         telefono: form.telefono.trim() || null,
         email: form.email.trim() || null,
-        origen: form.origen,
+        source: form.source,
         cantidad,
-        agujereada: form.agujereada,
+        /*
+          Sin marcar queda en null y no en `false`: "todavía no se sabe" y "las
+          quiere lisas" son cosas distintas, y es uno de los tres datos que hay
+          que sacarle a alguien para poder calificarlo.
+        */
+        agujereada: form.agujereada ? true : null,
         localidad: form.localidad.trim() || null,
         notas: form.notas.trim() || null,
-        estado: 'nuevo',
       })
       onSaved()
     } catch (err) {
@@ -415,10 +439,10 @@ function NewLeadModal({ onClose, onSaved }) {
             <Input value={form.nombre} onChange={set('nombre')} autoFocus />
           </Field>
           <Field label="De dónde salió">
-            <Select value={form.origen} onChange={set('origen')}>
-              {LEAD_ORIGINS.map((value) => (
+            <Select value={form.source} onChange={set('source')}>
+              {LEAD_SOURCES.map((value) => (
                 <option key={value} value={value}>
-                  {LEAD_ORIGIN_LABELS[value]}
+                  {LEAD_SOURCE_LABELS[value]}
                 </option>
               ))}
             </Select>
@@ -819,8 +843,8 @@ function QuoteModal({ lead, onClose, onDone }) {
 }
 
 export default function Leads() {
-  const [estado, setEstado] = useState('nuevo')
-  const [origen, setOrigen] = useState('')
+  const [status, setStatus] = useState('')
+  const [source, setSource] = useState('')
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState(null)
   const [creating, setCreating] = useState(false)
@@ -831,8 +855,8 @@ export default function Leads() {
   // El buscador espera a que dejes de escribir antes de consultar.
   const term = useDebounced(search)
   const query = useAsync(
-    () => listLeads({ estado, origen, search: term }),
-    [estado, origen, term],
+    () => listLeads({ status, source, search: term }),
+    [status, source, term],
   )
   const navigate = useNavigate()
 
@@ -851,17 +875,24 @@ export default function Leads() {
     <>
       <PageHeader
         title="Leads"
-        description="Todo el que preguntó: por la web, por Instagram, por teléfono. Cada uno es alguien a quien llamar."
-        actions={<Button onClick={() => setCreating(true)}>Nuevo lead</Button>}
+        description="Todo el que preguntó, esté donde esté del embudo. Para trabajar el día está “Hoy”; acá se busca."
+        actions={
+          <>
+            <Link to="/erp/leads/tablero">
+              <Button variant="ghost">Tablero</Button>
+            </Link>
+            <Button onClick={() => setCreating(true)}>Nuevo lead</Button>
+          </>
+        }
       />
 
       <div className="mb-4 flex flex-wrap gap-3">
         <Select
-          value={estado}
-          onChange={(event) => setEstado(event.target.value)}
+          value={status}
+          onChange={(event) => setStatus(event.target.value)}
           className="w-auto"
         >
-          <option value="">Todos los estados</option>
+          <option value="">Todas las etapas</option>
           {LEAD_STATES.map((value) => (
             <option key={value} value={value}>
               {LEAD_STATE_LABELS[value]}
@@ -869,14 +900,14 @@ export default function Leads() {
           ))}
         </Select>
         <Select
-          value={origen}
-          onChange={(event) => setOrigen(event.target.value)}
+          value={source}
+          onChange={(event) => setSource(event.target.value)}
           className="w-auto"
         >
-          <option value="">Todos los orígenes</option>
-          {LEAD_ORIGINS.map((value) => (
+          <option value="">Todos los canales</option>
+          {LEAD_SOURCES.map((value) => (
             <option key={value} value={value}>
-              {LEAD_ORIGIN_LABELS[value]}
+              {LEAD_SOURCE_LABELS[value]}
             </option>
           ))}
         </Select>
@@ -898,22 +929,18 @@ export default function Leads() {
       <Card>
         <Async
           query={query}
-          empty={
-            estado === 'nuevo'
-              ? 'No hay leads sin contactar. Al día.'
-              : 'No hay leads con ese filtro.'
-          }
+          empty={status ? 'No hay leads en esa etapa.' : 'No hay leads con ese filtro.'}
         >
           {(leads) => (
             <Table
               head={
                 <>
                   <Th>Contacto</Th>
-                  <Th>Origen</Th>
+                  <Th>Canal</Th>
                   <Th align="right">Cotizó</Th>
                   <Th align="right">Monto</Th>
                   <Th>Entrega</Th>
-                  <Th>Estado</Th>
+                  <Th>Etapa</Th>
                   <Th>Fecha</Th>
                   <Th align="right">Acciones</Th>
                 </>
@@ -925,13 +952,12 @@ export default function Leads() {
                 return (
                   <tr key={lead.id} className="hover:bg-steel-50">
                     <Td>
-                      <button
-                        type="button"
-                        onClick={() => setEditing(lead)}
+                      <Link
+                        to={`/erp/leads/${lead.id}`}
                         className="text-left font-medium text-steel-700 hover:text-secondary-500"
                       >
                         {lead.nombre}
-                      </button>
+                      </Link>
                       <span className="block text-xs text-steel-400">
                         {lead.telefono}
                         {lead.email ? ` · ${lead.email}` : ''}
@@ -943,8 +969,8 @@ export default function Leads() {
                       )}
                     </Td>
                     <Td>
-                      <Badge tone={LEAD_ORIGIN_TONES[lead.origen]}>
-                        {LEAD_ORIGIN_LABELS[lead.origen]}
+                      <Badge tone={LEAD_SOURCE_TONES[lead.source]}>
+                        {LEAD_SOURCE_LABELS[lead.source]}
                       </Badge>
                     </Td>
                     {/* Un lead cargado a mano no cotizó nada: mostrar 0 haría
@@ -956,7 +982,11 @@ export default function Leads() {
                         <>
                           {formatNumber(lead.cantidad)}
                           <span className="block text-xs text-steel-400">
-                            {lead.agujereada ? 'agujereada' : 'común'}
+                            {lead.agujereada === null
+                          ? 'sin definir'
+                          : lead.agujereada
+                            ? 'agujereada'
+                            : 'común'}
                           </span>
                         </>
                       )}
@@ -974,9 +1004,12 @@ export default function Leads() {
                         : (lead.localidad ?? 'Retira')}
                     </Td>
                     <Td>
-                      <Badge tone={LEAD_STATE_TONES[lead.estado]}>
-                        {LEAD_STATE_LABELS[lead.estado]}
-                      </Badge>
+                      <StatusBadge status={lead.status} />
+                      {lead.next_action_at && (
+                        <span className="mt-1 block text-xs text-steel-400">
+                          {formatDate(lead.next_action_at)}
+                        </span>
+                      )}
                     </Td>
                     <Td className="whitespace-nowrap text-xs text-steel-400">
                       {formatDateTime(lead.created_at)}

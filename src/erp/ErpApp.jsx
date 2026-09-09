@@ -19,6 +19,10 @@ import Login from './pages/Login'
 import { Loading } from './components/ui'
 
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+const LeadsToday = lazy(() => import('./pages/LeadsToday'))
+const LeadsBoard = lazy(() => import('./pages/LeadsBoard'))
+const LeadDetail = lazy(() => import('./pages/LeadDetail'))
+const LeadsFunnel = lazy(() => import('./pages/LeadsFunnel'))
 const Leads = lazy(() => import('./pages/Leads'))
 const Customers = lazy(() => import('./pages/Customers'))
 const CustomerDetail = lazy(() => import('./pages/CustomerDetail'))
@@ -45,8 +49,18 @@ const DocDatasheet = lazy(() => import('./pages/DocDatasheet'))
   todos igual de importantes, que es como no tener menú.
 */
 const SECTIONS = [
-  { to: '/erp', label: 'Dashboard', end: true },
-  { to: '/erp/leads', label: 'Leads' },
+  /*
+    "Hoy" es la pantalla de entrada, no el dashboard.
+
+    El dashboard contesta cómo viene el negocio; "Hoy" contesta qué hay que
+    hacer ahora, y eso es lo que se necesita al abrir el sistema a la mañana. El
+    panel de siempre no se perdió: quedó acá abajo como "Panel".
+  */
+  { to: '/erp', label: 'Hoy', end: true },
+  { to: '/erp/leads/tablero', label: 'Tablero' },
+  { to: '/erp/leads/embudo', label: 'Embudo' },
+  { to: '/erp/leads', label: 'Leads', end: true },
+  { to: '/erp/panel', label: 'Panel' },
   { to: '/erp/clientes', label: 'Clientes' },
   { to: '/erp/pedidos', label: 'Pedidos' },
   { to: '/erp/stock', label: 'Stock' },
@@ -192,8 +206,13 @@ function Gate() {
     <Shell email={session.user.email}>
       <Suspense fallback={<Loading />}>
         <Routes>
-          <Route index element={<Dashboard />} />
+          <Route index element={<LeadsToday />} />
+          <Route path="panel" element={<Dashboard />} />
           <Route path="leads" element={<Leads />} />
+          {/* El tablero va antes que `:id` para que "tablero" no se lea como un id. */}
+          <Route path="leads/tablero" element={<LeadsBoard />} />
+          <Route path="leads/embudo" element={<LeadsFunnel />} />
+          <Route path="leads/:id" element={<LeadDetail />} />
           <Route path="clientes" element={<Customers />} />
           <Route path="clientes/:id" element={<CustomerDetail />} />
           <Route path="pedidos" element={<Orders />} />
