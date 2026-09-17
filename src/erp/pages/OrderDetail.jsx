@@ -27,6 +27,7 @@ import { listSellers } from '../api/sellers'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
 import { formatDate, formatNumber, formatPesos, todayISO } from '../lib/format'
+import { nombreDeItem } from '../lib/items'
 import { formatMoneda } from '../lib/cotizacion'
 import { usePriceTiers } from '../../lib/priceTiers'
 import { tierFor } from '../../lib/quote'
@@ -76,6 +77,13 @@ function TotalRow({ label, value, strong, hint }) {
 function AddItem({ order, products, onAdded }) {
   const tiers = usePriceTiers()
   const [productId, setProductId] = useState(products[0]?.id ?? '')
+  /*
+    El agujereado es de la línea y no del producto: en el depósito hay varillas,
+    y la que sale agujereada se agujerea contra este pedido. Antes eran dos
+    productos y elegir "agujereada" te mandaba contra un stock que siempre
+    estaba en cero.
+  */
+  const [agujereada, setAgujereada] = useState(false)
   const [cantidad, setCantidad] = useState('')
   const [precio, setPrecio] = useState('')
   const [tocado, setTocado] = useState(false)
@@ -89,8 +97,8 @@ function AddItem({ order, products, onAdded }) {
     if (!product || !Number.isFinite(cantidadNum) || cantidadNum < 1) return null
     const yaCargadas = order.items.reduce((sum, item) => sum + item.cantidad, 0)
     const tier = tierFor(yaCargadas + cantidadNum, tiers, order.cliente_tipo)
-    return product.drilled ? tier.drilled : tier.plain
-  }, [product, cantidadNum, order.items, tiers, order.cliente_tipo])
+    return agujereada ? tier.drilled : tier.plain
+  }, [product, agujereada, cantidadNum, order.items, tiers, order.cliente_tipo])
 
   // Mientras nadie escriba un precio a mano, el campo sigue al sugerido.
   const precioMostrado = tocado ? precio : (sugerido ?? '')
@@ -119,6 +127,7 @@ function AddItem({ order, products, onAdded }) {
       await addOrderItem({
         order_id: order.id,
         product_id: productId,
+        agujereada,
         cantidad: cantidadNum,
         precio_unitario: precioNum,
       })
@@ -135,7 +144,7 @@ function AddItem({ order, products, onAdded }) {
 
   return (
     <form onSubmit={handleSubmit} className="border-t border-steel-100 px-4 py-4">
-      <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-start">
+      <div className="grid gap-3 sm:grid-cols-[2fr_1.3fr_1fr_1fr_auto] sm:items-start">
         <Field label="Producto">
           <Select value={productId} onChange={(event) => setProductId(event.target.value)}>
             {products.map((item) => (
@@ -143,6 +152,15 @@ function AddItem({ order, products, onAdded }) {
                 {item.nombre}
               </option>
             ))}
+          </Select>
+        </Field>
+        <Field label="Acabado">
+          <Select
+            value={agujereada ? 'true' : 'false'}
+            onChange={(event) => setAgujereada(event.target.value === 'true')}
+          >
+            <option value="false">Sin agujerear</option>
+            <option value="true">Agujereada</option>
           </Select>
         </Field>
         <Field label="Cantidad">
@@ -1053,7 +1071,7 @@ export default function OrderDetail() {
                     >
                       {order.items.map((item) => (
                         <tr key={item.id}>
-                          <Td className="text-steel-700">{item.product.nombre}</Td>
+                          <Td className="text-steel-700">{nombreDeItem(item)}</Td>
                           <Td align="right" className="tabular-nums text-steel-600">
                             {formatNumber(item.cantidad)}
                           </Td>

@@ -2,9 +2,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  ORDER_STATES,
+  ORDER_SOLD_STATES,
   ORDER_STATE_LABELS,
   ORDER_STATE_TONES,
+  antiguedadDe,
+  countOrders,
   createOrder,
   entregaInfo,
   listOrders,
@@ -166,39 +168,108 @@ function NewOrderModal({ onClose }) {
   )
 }
 
+/**
+ * Las dos solapas.
+ *
+ * El presupuesto y el pedido son el mismo registro —confirmar una venta no
+ * obliga a recargar nada, que es todo el punto— pero no son lo mismo de mirar.
+ * Un presupuesto es trabajo comercial que puede no ir a ningún lado; un pedido
+ * es mercadería que hay que fabricar, despachar y cobrar. En una sola lista, la
+ * que apremia se pierde entre la que no, y eran las dos terceras partes de la
+ * pantalla diciendo "presupuesto" en gris.
+ *
+ * El número al lado no es adorno: una pila de presupuestos que no baja nunca
+ * dice que se cotiza mucho y se cierra poco, y es de las pocas cosas que se ven
+ * solas si están a la vista.
+ */
+function Solapas({ vista, onVista, totales }) {
+  return (
+    <div className="mb-4 flex gap-1 border-b border-steel-200">
+      {[
+        ['pedidos', 'Pedidos', totales?.pedidos],
+        ['presupuestos', 'Presupuestos', totales?.presupuestos],
+      ].map(([valor, etiqueta, total]) => (
+        <button
+          key={valor}
+          type="button"
+          onClick={() => onVista(valor)}
+          className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition-colors ${
+            vista === valor
+              ? 'border-secondary-500 text-secondary-600'
+              : 'border-transparent text-steel-500 hover:text-steel-700'
+          }`}
+        >
+          {etiqueta}
+          {total !== undefined && (
+            <span
+              className={`ml-2 rounded-full px-2 py-0.5 text-xs tabular-nums ${
+                vista === valor ? 'bg-secondary-50 text-secondary-600' : 'bg-steel-100 text-steel-500'
+              }`}
+            >
+              {formatNumber(total)}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function Orders() {
+  const [vista, setVista] = useState('pedidos')
   const [estado, setEstado] = useState('')
   const [entrega, setEntrega] = useState('')
   const [search, setSearch] = useState('')
   const [creating, setCreating] = useState(false)
 
+  const presupuestos = vista === 'presupuestos'
+
   const term = useDebounced(search)
   const query = useAsync(
-    () => listOrders({ estado, entrega, search: term }),
-    [estado, entrega, term],
+    () => listOrders({ vista, estado, entrega, search: term }),
+    [vista, estado, entrega, term],
   )
+  const totales = useAsync(countOrders, [])
+
+  /* Cambiar de solapa limpia el filtro de estado: los estados de un lado no
+     existen del otro, y dejarlo puesto devolvería una lista vacía sin que se
+     entienda por qué. */
+  const cambiarVista = (valor) => {
+    setVista(valor)
+    setEstado('')
+  }
 
   return (
     <>
       <PageHeader
-        title="Pedidos"
-        description="Todo lo vendido, con lo que falta cobrar de cada uno."
+        title={presupuestos ? 'Presupuestos' : 'Pedidos'}
+        description={
+          presupuestos
+            ? 'Lo cotizado que todavía no se vendió. No cuenta en facturación ni reserva stock.'
+            : 'Todo lo vendido, con lo que falta cobrar de cada uno.'
+        }
         actions={<Button onClick={() => setCreating(true)}>Nuevo pedido</Button>}
       />
 
+      <Solapas vista={vista} onVista={cambiarVista} totales={totales.data} />
+
       <div className="mb-4 flex flex-wrap gap-3">
-        <Select
-          value={estado}
-          onChange={(event) => setEstado(event.target.value)}
-          className="w-auto"
-        >
-          <option value="">Todos los estados</option>
-          {ORDER_STATES.map((value) => (
-            <option key={value} value={value}>
-              {ORDER_STATE_LABELS[value]}
-            </option>
-          ))}
-        </Select>
+        {/* En presupuestos el estado es uno solo: el filtro no tendría nada que
+            filtrar y sólo ocuparía lugar. */}
+        {!presupuestos && (
+          <Select
+            value={estado}
+            onChange={(event) => setEstado(event.target.value)}
+            className="w-auto"
+          >
+            <option value="">Todos los estados</option>
+            {ORDER_SOLD_STATES.map((value) => (
+              <option key={value} value={value}>
+                {ORDER_STATE_LABELS[value]}
+              </option>
+            ))}
+          </Select>
+        )}
         <Select
           value={entrega}
           onChange={(event) => setEntrega(event.target.value)}
@@ -210,7 +281,11 @@ export default function Orders() {
         </Select>
         <Input
           type="search"
-          placeholder="Buscar por número de pedido o cliente"
+          placeholder={
+            presupuestos
+              ? 'Buscar por número de presupuesto o cliente'
+              : 'Buscar por número de pedido o cliente'
+          }
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           className="w-auto min-w-[16rem] flex-1"
@@ -218,19 +293,30 @@ export default function Orders() {
       </div>
 
       <Card>
-        <Async query={query} empty="No hay pedidos con ese filtro.">
+        <Async
+          query={query}
+          empty={
+            presupuestos
+              ? 'No hay presupuestos con ese filtro.'
+              : 'No hay pedidos con ese filtro.'
+          }
+        >
           {(orders) => (
             <Table
               head={
                 <>
-                  <Th>Pedido</Th>
+                  <Th>{presupuestos ? 'Presupuesto' : 'Pedido'}</Th>
                   <Th>Cliente</Th>
-                  <Th>Estado</Th>
+                  {/* En presupuestos el estado es siempre el mismo, y lo que de
+                      verdad dice si sigue vivo es hace cuánto se mandó. */}
+                  <Th>{presupuestos ? 'Mandado' : 'Estado'}</Th>
                   <Th>Fecha</Th>
                   <Th>Cómo y cuándo sale</Th>
                   <Th align="right">Unidades</Th>
                   <Th align="right">Total</Th>
-                  <Th align="right">Saldo</Th>
+                  {/* Un presupuesto no es una deuda: su saldo es el total
+                      entero y mostrarlo en ámbar diría que alguien debe algo. */}
+                  {!presupuestos && <Th align="right">Saldo</Th>}
                 </>
               }
             >
@@ -241,6 +327,7 @@ export default function Orders() {
                    hacer. */
                 const pendiente =
                   order.estado === 'confirmado' || order.estado === 'en_produccion'
+                const antiguedad = presupuestos ? antiguedadDe(order) : null
 
                 return (
                 <tr key={order.id} className="hover:bg-steel-50">
@@ -266,9 +353,15 @@ export default function Orders() {
                     </Link>
                   </Td>
                   <Td>
-                    <Badge tone={ORDER_STATE_TONES[order.estado]}>
-                      {ORDER_STATE_LABELS[order.estado]}
-                    </Badge>
+                    {antiguedad ? (
+                      <span className={`text-xs ${TONO_ENTREGA[antiguedad.tono]}`}>
+                        {antiguedad.texto}
+                      </span>
+                    ) : (
+                      <Badge tone={ORDER_STATE_TONES[order.estado]}>
+                        {ORDER_STATE_LABELS[order.estado]}
+                      </Badge>
+                    )}
                   </Td>
                   <Td className="whitespace-nowrap text-xs text-steel-400">
                     {formatDate(order.fecha)}
@@ -314,16 +407,18 @@ export default function Orders() {
                   <Td align="right">
                     <Money value={order.total} />
                   </Td>
-                  <Td align="right">
-                    <Money
-                      value={order.saldo}
-                      className={
-                        Number(order.saldo) > 0
-                          ? 'font-semibold text-amber-600'
-                          : 'text-steel-400'
-                      }
-                    />
-                  </Td>
+                  {!presupuestos && (
+                    <Td align="right">
+                      <Money
+                        value={order.saldo}
+                        className={
+                          Number(order.saldo) > 0
+                            ? 'font-semibold text-amber-600'
+                            : 'text-steel-400'
+                        }
+                      />
+                    </Td>
+                  )}
                 </tr>
                 )
               })}

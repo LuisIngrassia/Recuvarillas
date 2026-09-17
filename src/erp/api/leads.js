@@ -532,7 +532,7 @@ function datosDeCliente(lead) {
  */
 export async function createQuoteFromLead(
   lead,
-  { customerId, productId, cantidad, precioUnitario, leadChanges },
+  { customerId, productId, agujereada, cantidad, precioUnitario, leadChanges },
 ) {
   let clienteId = customerId ?? lead.customer_id ?? null
 
@@ -558,6 +558,7 @@ export async function createQuoteFromLead(
     await addOrderItem({
       order_id: order.id,
       product_id: productId,
+      agujereada,
       cantidad,
       precio_unitario: precioUnitario,
     })
@@ -577,7 +578,11 @@ export async function createQuoteFromLead(
 
   await addLeadEvent(lead.id, {
     type: 'quote_sent',
-    note: `Presupuesto #${order.numero ?? ''} por ${cantidad} unidades`.trim(),
+    /* El acabado va en el historial: es la mitad del precio y sin él, tres
+       presupuestos al mismo lead se leen como el mismo número repetido. */
+    note: `Presupuesto #${order.numero ?? ''} por ${cantidad} ${
+      agujereada ? 'agujereadas' : 'sin agujerear'
+    }`.trim(),
   })
 
   return order

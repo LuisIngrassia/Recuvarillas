@@ -833,12 +833,16 @@ create or replace view lead_reactivations with (security_invoker = on) as
 -- Productos y pedidos
 -- ---------------------------------------------------------------------------
 
+/*
+  Lo que se vende. El agujereado no está acá: es un acabado de la línea del
+  pedido, no un producto distinto. El porqué está en la sección "El agujereado
+  es un acabado, no otro producto", más abajo.
+*/
 create table if not exists products (
-  id      uuid primary key default gen_random_uuid(),
-  codigo  text not null unique,
-  nombre  text not null,
-  drilled boolean not null default false,
-  activo  boolean not null default true
+  id     uuid primary key default gen_random_uuid(),
+  codigo text not null unique,
+  nombre text not null,
+  activo boolean not null default true
 );
 
 /*
@@ -883,6 +887,37 @@ create table if not exists order_items (
 );
 
 create index if not exists order_items_order_idx on order_items (order_id);
+
+/*
+  El agujereado es un acabado, no otro producto.
+
+  Al principio la varilla agujereada era un producto aparte, con su código y su
+  stock. Es la forma obvia de modelarlo y es la equivocada, porque en el
+  depósito no hay dos cosas: hay varillas. Cuando alguien pide agujereadas se
+  agarra una varilla y se la agujerea en el momento.
+
+  Con dos productos, toda la producción se cargaba contra la común y la
+  agujereada se quedaba en cero para siempre. Un pedido de 100 agujereadas leía
+  cero disponibles con tres mil varillas en el galpón, y presupuestarlo mandaba
+  a "revisar el stock" por un faltante que no existía. El stock no estaba mal
+  cargado: estaba partido en dos pozos donde hay uno solo.
+
+  Así que el acabado baja del producto a la línea, que es donde siempre estuvo
+  en la realidad: lo que decide si va agujereada no es qué hay en el depósito,
+  es qué pidió el cliente. El stock vuelve a ser un número y el precio lo sigue
+  eligiendo el acabado, como en la lista.
+
+  Lo que esto no hace —y no puede hacer— es al revés: una varilla agujereada no
+  se vuelve común. Por eso el modelo aguanta sólo mientras se agujeree contra el
+  pedido. El día que se agujeree una tanda por adelantado y quede guardada, esto
+  hay que volver a partirlo en dos, y la vuelta no es gratis.
+
+  Va como `alter` y no adentro del `create table` de arriba porque las bases que
+  ya venían andando tienen esa tabla hecha, y `create table if not exists` no
+  les agregaría nada. El fundido de los dos productos viejos en uno está al
+  final, en "Datos iniciales".
+*/
+alter table order_items add column if not exists agujereada boolean not null default false;
 
 -- ---------------------------------------------------------------------------
 -- Cobros
@@ -942,9 +977,17 @@ set search_path = public
 as $trigger$
 begin
   if new.estado = 'entregado' and old.estado is distinct from 'entregado' then
+    /*
+      El acabado va en la nota porque un pedido puede tener dos líneas del mismo
+      producto —tantas comunes y tantas agujereadas— y desde que la varilla es
+      una sola las dos salidas quedarían idénticas en el listado de movimientos.
+      Dos filas iguales en el historial de stock se leen como una cargada dos
+      veces, que es justo lo que el historial existe para descartar.
+    */
     insert into stock_movements (product_id, tipo, cantidad, order_id, fecha, nota)
     select i.product_id, 'venta', -i.cantidad, new.id, new.fecha,
-           'Entrega del pedido #' || new.numero
+           'Entrega del pedido #' || new.numero ||
+           case when i.agujereada then ' (agujereadas)' else '' end
     from order_items i
     where i.order_id = new.id;
 
@@ -1555,16 +1598,25 @@ create or replace view stock_actual with (security_invoker = on) as
     p.id as product_id,
     p.codigo,
     p.nombre,
-    p.drilled,
     coalesce(m.stock, 0)::integer as stock,
     coalesce(c.comprometido, 0)::integer as comprometido,
+    coalesce(c.agujereadas, 0)::integer as comprometido_agujereadas,
     (coalesce(m.stock, 0) - coalesce(c.comprometido, 0))::integer as disponible
   from products p
   left join lateral (
     select sum(cantidad) as stock from stock_movements where product_id = p.id
   ) m on true
   left join lateral (
-    select sum(i.cantidad) as comprometido
+    /*
+      Cuántas de las reservadas hay que agujerear antes de que salgan. No cambia
+      el disponible —la varilla es la misma esté agujereada o no— pero sí es
+      trabajo que ya está comprometido y que alguien tiene que hacer. Que
+      aparezca al lado del número es la diferencia entre enterarse ahora y
+      enterarse el día que el camión está esperando.
+    */
+    select
+      sum(i.cantidad) as comprometido,
+      sum(i.cantidad) filter (where i.agujereada) as agujereadas
     from order_items i
     join orders o on o.id = i.order_id
     where i.product_id = p.id
@@ -2007,12 +2059,76 @@ create policy "el simulador deja leads" on leads
 -- Datos iniciales
 -- ---------------------------------------------------------------------------
 
-/* Los dos productos que se venden. Si ya están, no se duplican. */
-insert into products (codigo, nombre, drilled)
-values
-  ('VAR-COMUN', 'Varilla 3x3x120 sin agujerear', false),
-  ('VAR-AGUJ',  'Varilla 3x3x120 agujereada',    true)
+/* La varilla. Una sola: el agujereado va en la línea del pedido. */
+insert into products (codigo, nombre)
+values ('VAR', 'Varilla 3x3x120')
 on conflict (codigo) do nothing;
+
+/*
+  Las bases que se crearon con los dos productos se funden acá.
+
+  El orden es el que importa: primero el acabado baja a las líneas que lo
+  tenían por el producto, después la historia entera —líneas y movimientos de
+  stock— se repunta a la varilla única, y recién ahí se borran los códigos
+  viejos. Al revés no se podría: las dos claves foráneas son `on delete
+  restrict` justamente para que nadie borre un producto que tiene historia
+  colgando.
+
+  No se pierde nada. Los movimientos conservan su fecha, su tipo, su nota y el
+  costo con el que se cargaron; lo único que cambia es a qué producto apuntan.
+
+  El bloque entero se saltea si `products.drilled` ya no está, que es la marca
+  de que esto ya corrió: una base fundida no tiene esa columna, y en una base
+  nueva nunca existió. Se chequea con un `if` y no dejando que las sentencias no
+  encuentren filas, porque plpgsql planifica cada sentencia al ejecutarla y
+  nombrar una columna que no existe explota aunque no haya nada que actualizar.
+*/
+do $productos$
+declare
+  varilla uuid;
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'products'
+      and column_name = 'drilled'
+  ) then
+    return;
+  end if;
+
+  select id into varilla from products where codigo = 'VAR';
+  if varilla is null then
+    return;
+  end if;
+
+  update order_items i
+     set agujereada = p.drilled
+    from products p
+   where p.id = i.product_id
+     and p.codigo in ('VAR-COMUN', 'VAR-AGUJ');
+
+  update order_items i
+     set product_id = varilla
+    from products p
+   where p.id = i.product_id
+     and p.codigo in ('VAR-COMUN', 'VAR-AGUJ');
+
+  update stock_movements m
+     set product_id = varilla
+    from products p
+   where p.id = m.product_id
+     and p.codigo in ('VAR-COMUN', 'VAR-AGUJ');
+
+  delete from products where codigo in ('VAR-COMUN', 'VAR-AGUJ');
+
+  /*
+    Y se va la columna que partía el stock en dos. Dejarla en false sobre la
+    única fila no sería inofensivo: es el campo que hacía que existiera un
+    "producto agujereado", y mientras esté alguien lo va a volver a usar.
+  */
+  alter table products drop column drilled;
+end
+$productos$;
 
 /*
   Las dos listas vigentes desde el 01/09/2026, las mismas que están en

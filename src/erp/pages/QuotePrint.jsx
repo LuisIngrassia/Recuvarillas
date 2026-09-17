@@ -27,6 +27,7 @@ import { getOrder, updateOrder } from '../api/orders'
 import { listSellers } from '../api/sellers'
 import { useAsync } from '../lib/useAsync'
 import { formatDate } from '../lib/format'
+import { nombreDeItem } from '../lib/items'
 import { contactoDe } from '../lib/documentos'
 import {
   MONEDA_LABELS,
@@ -588,7 +589,7 @@ export default function QuotePrint() {
                     ) : (
                       lineas.map(({ item, unitario, subtotal }) => (
                         <tr key={item.id}>
-                          <td className="desc">{item.product.nombre}</td>
+                          <td className="desc">{nombreDeItem(item)}</td>
                           <td className="num">
                             {new Intl.NumberFormat('es-AR').format(item.cantidad)}
                           </td>

@@ -165,6 +165,7 @@ function MovementModal({ products, onClose, onSaved }) {
 function StockCard({ row }) {
   const disponible = row.disponible
   const reservadas = row.comprometido
+  const aAgujerear = row.comprometido_agujereadas ?? 0
 
   const tono =
     disponible < 0 ? 'text-red-600' : disponible === 0 ? 'text-amber-600' : 'text-steel-800'
@@ -193,6 +194,20 @@ function StockCard({ row }) {
           Reservadas{' '}
           <span className="font-semibold tabular-nums">{formatNumber(reservadas)}</span>
         </span>
+        {/*
+          Las agujereadas no son otro stock —se agujerean contra el pedido, de
+          estas mismas varillas— pero sí son trabajo ya comprometido. Por eso
+          van al lado del número y no como una tarjeta aparte: una tarjeta
+          aparte es lo que hacía creer que faltaba mercadería.
+        */}
+        {aAgujerear > 0 && (
+          <span className="text-steel-500">
+            A agujerear{' '}
+            <span className="font-semibold tabular-nums text-steel-700">
+              {formatNumber(aAgujerear)}
+            </span>
+          </span>
+        )}
       </div>
 
       {disponible < 0 && (

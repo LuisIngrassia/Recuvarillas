@@ -8,6 +8,19 @@ import { db, searchTerm, unwrap } from './client'
  * se le hace a esta pantalla casi siempre es "¿quién me debe?". Calcularlo en
  * la base evita traerse todos los pedidos al navegador para sumarlos acá.
  */
+/**
+ * Quién es cliente y quién todavía no.
+ *
+ * `pedidos` cuenta lo que no está en presupuesto ni anulado, así que en cero
+ * quiere decir que nunca compró: se le armó un presupuesto, se le abrió la
+ * ficha porque un pedido necesita dueño, y ahí quedó.
+ *
+ * Es importante que la ficha exista igual —sin ella no hay dónde colgar el
+ * presupuesto ni cómo enganchar al que vuelve a preguntar— y es importante que
+ * no se llame cliente. Cliente es el que compró.
+ */
+export const esProspecto = (customer) => Number(customer.pedidos) === 0
+
 export async function listCustomers({ search, onlyDebtors } = {}) {
   let query = db().from('customer_balances').select('*').order('nombre')
 

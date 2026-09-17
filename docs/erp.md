@@ -9,8 +9,8 @@ El día a día:
 | ---------------- | ---------------------------------------------------------------------- |
 | **Panel**        | Qué hay que entregar hoy, y cómo viene el mes de punta a punta.         |
 | **Leads**        | Todo el que preguntó, por donde sea: a quién llamar y qué contestó.     |
-| **Clientes**     | El padrón con la cuenta corriente de cada uno.                          |
-| **Pedidos**      | Ventas y trabajos de reciclado: del presupuesto a la entrega.           |
+| **Clientes**     | Los que compraron, con la cuenta corriente de cada uno.                 |
+| **Pedidos**      | Dos solapas: los presupuestos mandados, y lo vendido hasta la entrega.  |
 | **Stock**        | Existencias y movimientos: producción, ventas, ajustes y devoluciones.  |
 | **Caja**         | Los cobros del período, con el total por medio de pago.                 |
 | **Costos**       | Lo que sale: producción, pauta, muestras y lo que venga.                |
@@ -150,6 +150,15 @@ El embudo de la primera mitad es nuevo: reemplazó a los cuatro estados de antes
 
 Los cobros se cargan desde el pedido, en cualquier momento del circuito, y bajan
 el saldo de la cuenta corriente del cliente.
+
+**Presupuestar abre una ficha, y eso no vuelve cliente a nadie.** Un pedido
+necesita un dueño —la tabla no admite uno sin él— así que armarle el presupuesto
+a un lead le crea la ficha. Cliente es el que compró: mientras no tenga un pedido
+fuera de presupuesto, la ficha figura como **prospecto** y queda fuera de la
+lista de Clientes, que se abre para ver quién debe y no para leer a quién se le
+cotizó. Se los muestra con "Incluir prospectos", y si alguno coincide con lo que
+se está buscando la pantalla lo avisa en vez de callárselo: el que busca y no
+encuentra concluye que no está y termina cargando la misma persona dos veces.
 
 ### El embudo
 
@@ -300,6 +309,12 @@ sabe. La tercera es la de casi todo lead recién entrado, y sin ella no habría
 cómo distinguir al que dijo que las quería lisas del que no contestó —que es uno
 de los tres datos que hay que sacarle a alguien para poder calificarlo—.
 
+Las tres están en los cuatro lugares donde se toca el dato: el alta a mano, la
+ficha, el diálogo de calificación y el presupuesto. Antes el alta y la ficha
+tenían una casilla, que sólo sabe decir dos cosas: el que había dicho que las
+quería comunes se guardaba como "todavía no se sabe" y quedaba trabado sin
+motivo. La ficha, además, mostraba la casilla y no guardaba lo que se marcaba.
+
 **El código postal arrastra localidad, provincia y kilómetros**, como en el
 simulador de la web. Si el código no está en el padrón se guarda igual y los
 otros tres se escriben a mano: el padrón no lo tiene todo.
@@ -380,6 +395,11 @@ Lo único que se pregunta es lo que hay que decidir de verdad:
 - **Cuántas lleva.** Viene puesta la que cotizó y se puede corregir ahí mismo,
   que es donde se está hablando con la persona. Si se cambia, el lead queda
   diciendo lo que pide ahora: es un solo número y no dos que se contradicen.
+- **Si van agujereadas.** Lo mismo: viene puesto lo que el lead dice y se
+  corrige acá. Si el lead todavía no lo decía, hay que contestarlo antes de
+  seguir, porque es lo que decide el precio, y lo que se elija queda guardado en
+  el lead. Antes esto no se preguntaba y el presupuesto se trababa con un
+  "revisá Stock" por un dato que faltaba en el lead, no en el depósito.
 - **A qué precio.** El que vio en la web puede no ser el de la lista de hoy: los
   precios se mueven y el lead puede ser de hace tres semanas. Cuando difieren se
   muestran los dos y se elige, en vez de resolverlo en silencio para cualquiera
@@ -419,6 +439,27 @@ era todo lo que quedaba. Acá el presupuesto ya está guardado contra su cliente
 con su número, y si el cliente compra se convierte en venta sin volver a cargar
 nada. También admite varias líneas: aquel formulario tenía una sola varilla más
 el agujereado, y un pedido de 600 comunes y 600 agujereadas no entraba.
+
+**Una tabla, dos solapas.** Que el presupuesto sea el pedido es lo que hace que
+vender no obligue a recargar nada, y por eso se mantiene. Pero mirarlos juntos
+es otra cosa: un presupuesto es trabajo comercial que puede no ir a ningún lado,
+un pedido es mercadería que hay que fabricar, despachar y cobrar. En una sola
+lista lo que apremia se pierde entre lo que no, así que Pedidos abre con dos
+solapas y el número de cada una al lado. Una pila de presupuestos que no baja
+nunca dice que se cotiza mucho y se cierra poco, y ahora se ve sin ir a
+buscarla.
+
+En la solapa de presupuestos, la columna del estado —que sería siempre la misma—
+se reemplaza por **hace cuánto se mandó**, que es lo único que dice si sigue
+vivo. Se pone en ámbar a los tres días y en rojo a los diez, que es el mismo
+plazo con el que la base duerme a un lead presupuestado: si las dos pantallas
+usaran números distintos, una diría "dormido" mientras la otra lo muestra en
+juego. El saldo tampoco aparece: un presupuesto no es una deuda, y su saldo es
+el total entero.
+
+El presupuesto sigue sin contar en facturación, en la cuenta corriente, en la
+ganancia del mes ni en el stock comprometido. Eso no cambió: las solapas son
+cómo se mira, no qué se cuenta.
 
 Tres cosas se manejan desde esa pantalla:
 
@@ -586,6 +627,27 @@ El criterio de urgencia es uno solo para las dos pantallas: si una dijera
 "atrasado" donde la otra muestra gris, la que se mire primero decidiría el día.
 
 ### Stock
+
+**Hay un solo stock, y es de varillas.** La agujereada no es otra mercadería: es
+una varilla a la que se le hace un agujero contra el pedido. Por eso el
+agujereado vive en la línea del pedido y no en el producto, y por eso un pedido
+de 100 agujereadas descuenta del mismo pozo que uno de 100 comunes.
+
+Antes eran dos productos con dos stocks. Como la producción se carga toda contra
+la varilla, la agujereada se quedaba en cero para siempre: un pedido de 100
+agujereadas leía cero disponibles con tres mil varillas en el galpón, y
+presupuestarlo mandaba a revisar un faltante que no existía. El stock no estaba
+mal cargado, estaba partido en dos pozos donde hay uno solo.
+
+Al lado de las reservadas aparece **a agujerear**: cuántas de las comprometidas
+hay que pasar por la máquina antes de que salgan. No cambia el disponible —la
+varilla es la misma— pero es trabajo ya comprometido, y conviene verlo antes de
+que el camión esté esperando.
+
+Esto vale mientras se agujeree contra el pedido. Si alguna vez se agujerea una
+tanda por adelantado y queda guardada, el modelo hay que partirlo en dos otra
+vez: una varilla agujereada no vuelve a ser común, y esa es la asimetría que un
+solo número no sabe representar.
 
 El número de existencias no se guarda: se calcula sumando los movimientos. Por
 eso la pantalla muestra las dos cosas juntas, y por eso cuando algo no cuadra la

@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { deleteCustomer, getCustomer } from '../api/customers'
+import { deleteCustomer, esProspecto, getCustomer } from '../api/customers'
 import { ORDER_STATE_LABELS, ORDER_STATE_TONES, createOrder } from '../api/orders'
 import { useAsync } from '../lib/useAsync'
 import { formatDate, formatDateTime, formatNumber, whatsappLink } from '../lib/format'
@@ -91,7 +91,15 @@ export default function CustomerDetail() {
               title={customer.nombre}
               description={
                 <>
-                  {customer.tipo === 'mayorista' ? 'Mayorista' : 'Minorista'}
+                  {/* Que todavía no haya comprado va primero, porque cambia
+                      cómo se lee todo lo de abajo: los ceros de la cuenta
+                      corriente no son una deuda saldada, es que nunca hubo
+                      venta. */}
+                  {customer.balance && esProspecto(customer.balance)
+                    ? 'Prospecto: se le presupuestó, todavía no compró'
+                    : customer.tipo === 'mayorista'
+                      ? 'Mayorista'
+                      : 'Minorista'}
                   {customer.localidad ? ` · ${customer.localidad}` : ''}
                 </>
               }

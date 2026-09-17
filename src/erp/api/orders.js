@@ -12,6 +12,19 @@ import { todayISO } from '../lib/format'
 export const ORDER_FLOW = ['presupuesto', 'confirmado', 'en_produccion', 'entregado']
 export const ORDER_STATES = [...ORDER_FLOW, 'cancelado']
 
+/**
+ * Los estados de algo que ya se vendió.
+ *
+ * El presupuesto es el mismo registro que el pedido —por eso confirmar una
+ * venta no obliga a recargar nada— pero no es lo mismo de mirar: uno es trabajo
+ * comercial que puede no ir a ningún lado, el otro es mercadería que hay que
+ * fabricar, despachar y cobrar. Mezclados en una lista, la que apremia se
+ * pierde entre la que no.
+ *
+ * Así que la tabla es una y la pantalla son dos. Esta constante es el corte.
+ */
+export const ORDER_SOLD_STATES = ORDER_STATES.filter((estado) => estado !== 'presupuesto')
+
 export const ORDER_STATE_LABELS = {
   presupuesto: 'Presupuesto',
   confirmado: 'Confirmado',
@@ -77,6 +90,29 @@ export function entregaInfo(order) {
 }
 
 /**
+ * Hace cuánto que un presupuesto está sin respuesta.
+ *
+ * En un pedido lo que apremia es la fecha de salida; en un presupuesto no hay
+ * salida todavía, y lo único que dice si sigue vivo es cuánto hace que se
+ * mandó. Sin esa columna la lista ordena por número y un presupuesto de hace
+ * dos meses se ve igual que el de ayer.
+ *
+ * El corte de los diez días es el mismo con el que la base duerme a un lead
+ * presupuestado. Que las dos pantallas usen el mismo número es lo que evita que
+ * el embudo diga "dormido" mientras la lista de presupuestos lo muestra como si
+ * estuviera en juego.
+ */
+export function antiguedadDe(order) {
+  const dias = -diasHasta(order.fecha)
+
+  return {
+    dias,
+    texto: dias <= 0 ? 'Hoy' : dias === 1 ? 'Ayer' : `Hace ${dias} días`,
+    tono: dias > 10 ? 'bad' : dias > 3 ? 'warn' : 'neutral',
+  }
+}
+
+/**
  * Días desde hoy hasta esa fecha, negativo si ya pasó.
  *
  * Las dos fechas se arman a medianoche local: comparar un `date` de Postgres
@@ -96,12 +132,19 @@ export function nextState(estado) {
   return ORDER_FLOW[index + 1]
 }
 
-export async function listOrders({ estado, entrega, search, limit = 300 } = {}) {
+/**
+ * @param vista  'presupuestos' trae sólo los que todavía no se vendieron;
+ *               'pedidos', todo lo demás. Sin vista, trae los dos.
+ */
+export async function listOrders({ vista, estado, entrega, search, limit = 300 } = {}) {
   let query = db()
     .from('orders_summary')
     .select('*')
     .order('numero', { ascending: false })
     .limit(limit)
+
+  if (vista === 'presupuestos') query = query.eq('estado', 'presupuesto')
+  if (vista === 'pedidos') query = query.neq('estado', 'presupuesto')
 
   if (estado) query = query.eq('estado', estado)
   if (entrega) query = query.eq('entrega', entrega)
@@ -119,13 +162,45 @@ export async function listOrders({ estado, entrega, search, limit = 300 } = {}) 
   return unwrap(await query)
 }
 
+/**
+ * Cuántos hay de cada lado, para el número de cada solapa.
+ *
+ * No es decoración: una pila de presupuestos que no baja nunca es el dato que
+ * dice que se está cotizando mucho y cerrando poco, y en una lista mezclada eso
+ * no se ve. Que esté en la solapa lo pone a la vista sin que haya que ir a
+ * buscarlo a ninguna métrica.
+ *
+ * Se piden con `head` y `count`: Postgres cuenta del lado del servidor y no
+ * viaja ninguna fila. Traer las dos listas para contarlas sería bajar el padrón
+ * entero cada vez que se abre la pantalla.
+ */
+export async function countOrders() {
+  const contar = async (filtrar) => {
+    const respuesta = await filtrar(
+      db().from('orders_summary').select('id', { count: 'exact', head: true }),
+    )
+    /* `unwrap` devuelve `data`, que en un `head` viene vacío: se lo llama por el
+       otro lado, que es traducir el error de PostgREST a algo que se entienda.
+       El número está en `count`, al lado de los datos que no vinieron. */
+    unwrap(respuesta)
+    return respuesta.count ?? 0
+  }
+
+  const [presupuestos, pedidos] = await Promise.all([
+    contar((query) => query.eq('estado', 'presupuesto')),
+    contar((query) => query.neq('estado', 'presupuesto')),
+  ])
+
+  return { presupuestos, pedidos }
+}
+
 /** El pedido con todo lo que la pantalla de detalle necesita mostrar junto. */
 export async function getOrder(id) {
   const [order, items, services, payments] = await Promise.all([
     db().from('orders_summary').select('*').eq('id', id).single().then(unwrap),
     db()
       .from('order_items')
-      .select('*, product:products(id, codigo, nombre, drilled)')
+      .select('*, product:products(id, codigo, nombre)')
       .eq('order_id', id)
       .then(unwrap),
     /* Las horas del trabajo de reciclado. En una venta vienen vacías. */
