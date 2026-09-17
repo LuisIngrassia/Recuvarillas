@@ -1289,8 +1289,12 @@ alter table profit_payouts drop constraint if exists profit_payouts_share_id_mes
   particular. Un costo que «paga la empresa» lo terminan pagando los socios en
   proporción a su parte, y no es lo que acordaron.
 
-  `paga` es la regla, y son tres:
+  `paga` es la regla, y son cuatro:
 
+  - `cliente`: no lo paga nadie de adentro. Es un pasamanos: se le cobra al
+    cliente y se le paga al proveedor. El flete es el caso: se cotiza lo que
+    dice el fletero y se le factura eso mismo al cliente, así que ni el ingreso
+    ni el costo entran en el reparto de nadie.
   - `proporcional`: sale de arriba, antes de repartir, y lo termina pagando
     cada parte en proporción a su porcentaje. Es la regla que sigue la comisión
     del vendedor, que no es un tipo de gasto pero se descuenta igual.
@@ -1300,6 +1304,11 @@ alter table profit_payouts drop constraint if exists profit_payouts_share_id_mes
     el 50 y el otro el 25.
   - `pozo`: lo paga primero el pozo de reinversión. Lo que el pozo no llega a
     cubrir lo ponen las partes listadas, también en mitades.
+
+  Un pasamanos tiene que dar cero: lo facturado por flete y lo pagado al fletero
+  son el mismo número. Cuando no dan, no es plata de nadie, es un dato mal
+  cargado —un flete que se pagó y no se facturó, o al revés— y el ERP lo muestra
+  como lo que es, un descalce a revisar.
 
   Dos banderas que no son lo mismo:
 
@@ -1318,7 +1327,7 @@ create table if not exists expense_types (
   clave   text not null unique check (clave ~ '^[a-z0-9_]{1,40}$'),
   nombre  text not null check (char_length(nombre) between 1 and 60),
   paga    text not null default 'socios'
-          check (paga in ('proporcional', 'socios', 'pozo')),
+          check (paga in ('cliente', 'proporcional', 'socios', 'pozo')),
   interno boolean not null default false,
   activo  boolean not null default true,
   orden   integer not null default 0
@@ -1341,6 +1350,15 @@ create index if not exists expense_type_payers_share_idx
   on expense_type_payers (share_id);
 
 /*
+  `cliente` llegó después, y `if not exists` en la tabla no cambia el `check` de
+  una que ya existe. Se rehace: `add constraint` a secas fallaría al volver a
+  correr el archivo.
+*/
+alter table expense_types drop constraint if exists expense_types_paga_check;
+alter table expense_types add constraint expense_types_paga_check
+  check (paga in ('cliente', 'proporcional', 'socios', 'pozo'));
+
+/*
   Los tipos que ya existían, con la regla que les toca.
 
   `on conflict do nothing` y no `where not exists` sobre la tabla entera: lo que
@@ -1351,7 +1369,11 @@ create index if not exists expense_type_payers_share_idx
 insert into expense_types (clave, nombre, paga, interno, activo, orden)
 select * from (values
   ('produccion',    'Producción',    'socios', true,  false, 1),
-  ('flete',         'Flete',         'socios', false, true,  2),
+  /*
+    El flete no lo paga ninguno de los socios: se cotiza del tarifario, se le
+    factura al cliente y se le paga al fletero. Entra y sale la misma plata.
+  */
+  ('flete',         'Flete',         'cliente', false, true,  2),
   ('pauta',         'Pauta',         'pozo',   false, true,  3),
   ('suscripciones', 'Suscripciones', 'pozo',   false, true,  4),
   ('muestras',      'Muestras',      'pozo',   false, true,  5),
@@ -1366,6 +1388,16 @@ select * from (values
 ) as v(clave, nombre, paga, interno, activo, orden)
 on conflict (clave) do nothing;
 
+
+/*
+  En la primera versión de esta sección el flete se sembró como un costo que
+  bancaban dos socios en mitades, y es un pasamanos: lo paga el cliente. Se
+  corrige acá, y sólo desde ese estado exacto —si alguien le puso otra regla a
+  propósito, se respeta.
+*/
+update expense_types set paga = 'cliente' where clave = 'flete' and paga = 'socios';
+delete from expense_type_payers
+  where tipo_id in (select id from expense_types where paga = 'cliente');
 
 /*
   Qué claves valen lo dice la tabla de tipos, no un `check`: agregar un tipo
@@ -2357,6 +2389,9 @@ where not exists (select 1 from profit_shares);
   - Los del pozo, cuando el pozo no alcanza, los ponen todos **menos el de
     mayor parte**.
 
+  Los tipos `cliente` y `proporcional` no llevan pagadores: no los banca nadie
+  de adentro, o los banca todo el mundo.
+
   Corre una sola vez, con la tabla vacía. De ahí en más manda lo que se haya
   configurado en Ajustes › Tipos de gasto.
 */
@@ -2386,7 +2421,7 @@ begin
       on not s.es_reinversion
      and s.activo
      and s.id <> case t.paga when 'pozo' then mayor else menor end
-   where t.paga <> 'proporcional'
+   where t.paga in ('socios', 'pozo')
   on conflict do nothing;
 end
 $pagadores$;

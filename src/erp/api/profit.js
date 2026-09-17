@@ -188,10 +188,10 @@ function gastosDelMes(fila, tipos) {
  *    salen de arriba.
  * 2. **Los porcentajes.** Cada parte cobra el suyo sobre esa base. La parte de
  *    reinversión no la cobra nadie: va al pozo.
- * 3. **El flete.** Lo facturado menos lo que costó, en mitades entre quienes
- *    bancan el tipo `flete`. Va neto porque es la misma plata entrando y
- *    saliendo: si se cobró más de lo que costó, la diferencia es de ellos; si
- *    se cobró de menos, la pérdida también.
+ * 3. **Los pasamanos.** Los gastos de tipo `cliente` no se le cargan a nadie:
+ *    el cliente los paga. El flete es el caso —se cotiza del tarifario, se le
+ *    factura eso mismo y se le paga al fletero— así que ni el ingreso ni el
+ *    costo entran en el reparto. Lo único que se mira es que den cero.
  * 4. **Los costos directos.** Cada gasto de un tipo `socios` se descuenta en
  *    mitades a sus pagadores.
  * 5. **El pozo.** Los gastos de tipo `pozo` los paga la reinversión. Lo que el
@@ -237,32 +237,27 @@ export function splitProfit(fila, shares, tipos = [], pozoEntrante = 0) {
      descontarla. No se reparte por defecto, se muestra. */
   const huerfanos = []
 
-  // --- 3. El flete, neto ----------------------------------------------------
-  const fleteFacturado = num(fila.flete_facturado)
-  const fleteCosto = gastos
-    .filter((gasto) => gasto.clave === 'flete')
-    .reduce((sum, gasto) => sum + gasto.monto, 0)
-  const fleteNeto = fleteFacturado - fleteCosto
-  const pagadoresFlete = tipos.find((tipo) => tipo.clave === 'flete')?.pagadores ?? []
+  // --- 3. Los pasamanos -----------------------------------------------------
+  /*
+    Lo que paga el cliente no lo paga nadie de adentro. El flete se cotiza del
+    tarifario del fletero, se le factura ese mismo número al cliente y se le
+    paga al fletero: entra y sale la misma plata, así que ni el ingreso ni el
+    costo tienen por qué tocar la parte de nadie.
 
-  if (Math.abs(fleteNeto) >= CENTAVO) {
-    const repartido = enMitades(fleteNeto, pagadoresFlete)
-    if (repartido.length === 0) {
-      huerfanos.push({ clave: 'flete', nombre: 'Flete', monto: -fleteNeto })
-    }
-    /* El signo se invierte al anotarlo: un cargo es lo que se le resta, y un
-       flete que dejó ganancia se le suma. */
-    for (const { share_id, monto } of repartido) {
-      anotar(share_id, 'Flete (facturado − costo)', -monto, { flete: true })
-    }
-  }
+    Y por eso mismo **tiene que dar cero**. Si lo facturado y lo pagado no
+    coinciden, no hay plata de alguien en el medio: hay un dato mal cargado —un
+    flete que se pagó y no se facturó, o al revés—. Se muestra como descalce en
+    vez de buscarle dueño, que sería inventar un ingreso donde hay un error.
+  */
+  const facturadoAlCliente = num(fila.flete_facturado)
+  const costoDelCliente = gastos
+    .filter((gasto) => gasto.paga === 'cliente')
+    .reduce((sum, gasto) => sum + gasto.monto, 0)
+  const descalce = facturadoAlCliente - costoDelCliente
 
   // --- 4. Los costos directos ----------------------------------------------
   for (const gasto of gastos) {
     if (gasto.paga !== 'socios') continue
-    /* El flete ya se resolvió neto contra su ingreso: cobrarlo de nuevo acá
-       sería cobrarlo dos veces. */
-    if (gasto.clave === 'flete') continue
 
     const repartido = enMitades(gasto.monto, gasto.pagadores)
     if (repartido.length === 0) {
@@ -344,12 +339,13 @@ export function splitProfit(fila, shares, tipos = [], pozoEntrante = 0) {
     partes,
     socios: partes.filter((parte) => !parte.es_reinversion),
 
-    flete: {
-      facturado: fleteFacturado,
-      costo: fleteCosto,
-      neto: fleteNeto,
-      pagadores: pagadoresFlete,
-      sinPagador: Math.abs(fleteNeto) >= CENTAVO && pagadoresFlete.length === 0,
+    /* Lo que entra y sale por cuenta del cliente. `descalce` en cero es lo
+       normal; distinto de cero es algo mal cargado, no plata a repartir. */
+    pasamanos: {
+      facturado: facturadoAlCliente,
+      costo: costoDelCliente,
+      descalce,
+      cuadra: Math.abs(descalce) < CENTAVO,
     },
 
     pozo: {

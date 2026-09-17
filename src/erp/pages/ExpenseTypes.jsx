@@ -19,6 +19,7 @@ import {
   createExpenseType,
   listExpenseTypes,
   setExpenseTypePayers,
+  sinPagadores,
   updateExpenseType,
 } from '../api/expenses'
 import { listShares } from '../api/profit'
@@ -92,11 +93,11 @@ function TypeModal({ tipo, shares, tipos, onClose, onSaved }) {
       return
     }
 
-    /* Un tipo que no sea proporcional y no tenga a nadie asignado es un gasto
-       que va a salir de la caja sin descontársele a nadie. Se puede guardar
-       igual —a veces todavía no se decidió quién lo banca— pero avisando. */
+    /* Un tipo que banquen socios y no tenga a nadie asignado es un gasto que va
+       a salir de la caja sin descontársele a nadie. Se puede guardar igual —a
+       veces todavía no se decidió quién lo banca— pero avisando. */
     if (
-      paga !== 'proporcional' &&
+      !sinPagadores(paga) &&
       pagadores.size === 0 &&
       !confirm(
         'Este tipo no tiene ningún socio asignado. Los gastos que se carguen con él van a aparecer como gasto sin dueño en Rentabilidad. ¿Guardar igual?',
@@ -113,10 +114,7 @@ function TypeModal({ tipo, shares, tipos, onClose, onSaved }) {
         ? await updateExpenseType(tipo.id, { nombre: limpio, paga })
         : await createExpenseType({ clave, nombre: limpio, paga })
 
-      await setExpenseTypePayers(
-        guardado.id,
-        paga === 'proporcional' ? [] : [...pagadores],
-      )
+      await setExpenseTypePayers(guardado.id, sinPagadores(paga) ? [] : [...pagadores])
       onSaved()
     } catch (err) {
       setError(err.message)
@@ -150,7 +148,7 @@ function TypeModal({ tipo, shares, tipos, onClose, onSaved }) {
           </Select>
         </Field>
 
-        {paga !== 'proporcional' && (
+        {!sinPagadores(paga) && (
           <Field
             label={paga === 'pozo' ? 'Y si el pozo no alcanza, lo ponen' : 'Lo bancan'}
             hint="En mitades iguales entre los marcados, sin mirar sus porcentajes del reparto."
@@ -256,7 +254,7 @@ export default function ExpenseTypes() {
                 >
                   {tipos.map((tipo) => {
                     const huerfano =
-                      tipo.paga !== 'proporcional' &&
+                      !sinPagadores(tipo.paga) &&
                       !tipo.interno &&
                       tipo.pagadores.length === 0
 
@@ -279,7 +277,12 @@ export default function ExpenseTypes() {
                           <Badge tone={PAGA_TONES[tipo.paga]}>{PAGA_LABELS[tipo.paga]}</Badge>
                         </Td>
                         <Td className="text-sm text-steel-600">
-                          {tipo.paga === 'proporcional' ? (
+                          {tipo.paga === 'cliente' ? (
+                            <span className="text-steel-400">
+                              Nadie de adentro: se le cobra y se le paga al
+                              proveedor
+                            </span>
+                          ) : tipo.paga === 'proporcional' ? (
                             <span className="text-steel-400">
                               Todas las partes, en proporción
                             </span>
@@ -349,10 +352,11 @@ export default function ExpenseTypes() {
                 </dl>
                 <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
                   La comisión del vendedor no es un tipo de gasto pero sigue la
-                  primera regla: se descuenta antes de repartir. El flete es el
-                  único que además tiene ingreso propio, así que va neto —lo
-                  facturado menos lo que costó— a quienes lo bancan. Todo esto se
-                  ve mes a mes en{' '}
+                  regla proporcional: se descuenta antes de repartir. El flete es
+                  el pasamanos por excelencia —se cotiza del tarifario, se le
+                  factura eso al cliente y se le paga al fletero— así que tiene
+                  que dar cero; si no da, Rentabilidad lo marca como un dato mal
+                  cargado. Todo esto se ve mes a mes en{' '}
                   <Link
                     to="/erp/rentabilidad"
                     className="font-semibold underline underline-offset-2"

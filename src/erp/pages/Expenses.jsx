@@ -315,7 +315,24 @@ export default function Expenses() {
             <>
               {/* La división que importa no es por rubro sino por bolsillo. */}
               <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Stat label="Total del mes" value={<Money value={totales.total} />} tone="warn" />
+                <Stat
+                  label="Total del mes"
+                  value={<Money value={totales.total} />}
+                  tone="warn"
+                  hint={
+                    totales.proporcional > 0
+                      ? `${formatPesos(totales.proporcional)} salen de arriba, en proporción`
+                      : undefined
+                  }
+                />
+                {/* Primero el pasamanos: es plata que pasa por la caja y no es
+                    de nadie de adentro, así que confundirla con un costo
+                    propio es el error más caro de leer este cuadro. */}
+                <Stat
+                  label="Los paga el cliente"
+                  value={<Money value={totales.cliente} />}
+                  hint="Pasamanos: se cobran y se pagan"
+                />
                 <Stat
                   label="Los bancan socios"
                   value={<Money value={totales.socios} />}
@@ -326,11 +343,6 @@ export default function Expenses() {
                   value={<Money value={totales.pozo} />}
                   hint="Y lo que no cubra, sus socios"
                   tone="warn"
-                />
-                <Stat
-                  label="Salen de arriba"
-                  value={<Money value={totales.proporcional} />}
-                  hint="Los pagan todas las partes, en proporción"
                 />
               </div>
 

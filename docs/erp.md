@@ -792,6 +792,7 @@ reglas posibles:
 
 | Regla | Quién lo termina pagando |
 | --- | --- |
+| **El cliente** | Un pasamanos: se le cobra al cliente y se le paga al proveedor. No lo banca nadie de adentro y no entra en el reparto. |
 | **Sale de arriba, en proporción** | Se descuenta antes de repartir, así que lo paga cada parte en proporción a su porcentaje. |
 | **Socios puntuales, en mitades** | Lo bancan sólo los socios marcados, **en mitades iguales** entre ellos, sin mirar sus porcentajes. |
 | **El pozo de reinversión** | Lo paga el pozo. Lo que el pozo no llegue a cubrir lo ponen, también en mitades, los socios marcados. |
@@ -801,13 +802,15 @@ De fábrica queda así:
 | Tipo | Regla | Lo bancan |
 | --- | --- | --- |
 | Producción | Socios, mitades | Esteban y Juan |
-| Flete | Socios, mitades | Esteban y Juan |
+| Flete | El cliente | nadie de adentro |
 | Pauta | El pozo | y si no alcanza, Luis y Juan |
 | Suscripciones | El pozo | y si no alcanza, Luis y Juan |
 | Muestras | El pozo | y si no alcanza, Luis y Juan |
 
 Los tipos se agregan desde esa pantalla: se le pone nombre, se elige la regla y
-se marca quién lo banca. La lista ya no está escrita en el código.
+se marca quién lo banca. La lista ya no está escrita en el código. Las dos
+primeras reglas no llevan lista de socios: en una no lo banca nadie de adentro y
+en la otra lo bancan todos.
 
 **Un tipo no se borra, se retira.** Deja de ofrecerse al cargar un gasto pero
 los que ya estaban se siguen contando y pagando igual — borrarlo dejaría plata
@@ -846,17 +849,24 @@ quien tenía el 20, sin que nadie lo hubiera acordado así.
  ─────────────────────────────
  = base del reparto   →   cada parte cobra su porcentaje sobre esto
 
-   flete facturado − flete pagado   →   neto, a quienes bancan el flete
  − producción y demás costos        →   en mitades, a quienes los bancan
  − pauta y suscripciones            →   al pozo; lo que no cubra, a sus socios
+
+   flete facturado − pagado al fletero   →   afuera: lo paga el cliente
 ```
 
-El **flete facturado no entra en la base** a propósito: es un pasamanos, se
-cobra y se paga. Va neto —lo cobrado menos lo que costó— a los mismos que bancan
-su costo. Si entrara en la base, quien cobra un porcentaje sobre el valor del
-producto cobraría además una parte de un transporte cuyo costo banca otro.
+**El flete no lo paga ninguno de ustedes.** Se cotiza del tarifario, se le
+factura ese mismo número al cliente y se le paga al fletero: entra y sale la
+misma plata. Por eso ni lo facturado ni lo pagado tocan la parte de nadie, y por
+eso el flete facturado queda fuera de la base.
 
-La **comisión del vendedor** es la única que se descuenta antes de repartir, así
+Y por eso mismo **tiene que dar cero**. Si lo facturado y lo pagado no coinciden,
+no hay plata de alguien en el medio: falta cargar el gasto del fletero, o hay un
+flete pagado que ningún pedido facturó. Rentabilidad lo muestra como *descalce*
+y dice para qué lado está, en vez de buscarle dueño — que sería inventar un
+ingreso donde hay un error de carga.
+
+La **comisión del vendedor** es lo único que se descuenta antes de repartir, así
 que la absorben todos en proporción: con 5% de comisión, quien tiene el 50%
 resigna 2,5 puntos y quien tiene el 20% resigna 1.
 

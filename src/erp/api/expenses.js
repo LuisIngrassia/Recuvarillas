@@ -8,19 +8,22 @@ import { db, unwrap } from './client'
   La lista de tipos vivía acá, escrita a mano, y en un `check` de la base que
   había que editar en paralelo. Ahora vive en la tabla `expense_types`: se
   agrega un tipo desde Ajustes, se dice quién lo banca, y tanto la carga como el
-  reparto lo toman de ahí. Lo único que queda en el código son las tres reglas
+  reparto lo toman de ahí. Lo único que queda en el código son las cuatro reglas
   posibles, que sí son fijas porque cada una es una aritmética distinta.
 */
 
-export const PAGA = ['proporcional', 'socios', 'pozo']
+export const PAGA = ['cliente', 'proporcional', 'socios', 'pozo']
 
 export const PAGA_LABELS = {
+  cliente: 'El cliente',
   proporcional: 'Todas las partes, en proporción',
   socios: 'Socios puntuales, en mitades',
   pozo: 'El pozo de reinversión',
 }
 
 export const PAGA_HINTS = {
+  cliente:
+    'Un pasamanos: se le cobra al cliente y se le paga al proveedor. No lo banca ningún socio, así que no entra en el reparto. Tiene que dar cero contra lo facturado.',
   proporcional:
     'Se descuenta de arriba, antes de repartir, así que lo termina pagando cada parte en proporción a su porcentaje.',
   socios:
@@ -29,10 +32,14 @@ export const PAGA_HINTS = {
 }
 
 export const PAGA_TONES = {
+  cliente: 'good',
   proporcional: 'neutral',
   socios: 'info',
   pozo: 'warn',
 }
+
+/** Las reglas que no llevan una lista de pagadores adentro de la sociedad. */
+export const sinPagadores = (paga) => paga === 'cliente' || paga === 'proporcional'
 
 /**
  * Los tipos de gasto con sus pagadores.
@@ -138,6 +145,7 @@ export function totalsByType(expenses, tipos) {
 
   const totals = {}
   let total = 0
+  let cliente = 0
   let proporcional = 0
   let socios = 0
   let pozo = 0
@@ -155,18 +163,28 @@ export function totalsByType(expenses, tipos) {
     }
 
     total += monto
-    if (tipo?.paga === 'proporcional') proporcional += monto
+    if (tipo?.paga === 'cliente') cliente += monto
+    else if (tipo?.paga === 'proporcional') proporcional += monto
     else if (tipo?.paga === 'pozo') pozo += monto
     else socios += monto
 
     /* Un gasto de un tipo sin pagadores salió de la caja y no tiene de quién
        descontarse. Se cuenta aparte para que se vea, no para repartirlo. */
-    if (tipo && tipo.paga !== 'proporcional' && tipo.pagadores.length === 0) {
+    if (tipo && !sinPagadores(tipo.paga) && tipo.pagadores.length === 0) {
       sinPagador += monto
     }
   }
 
-  return { ...totals, total, proporcional, socios, pozo, internos, sinPagador }
+  return {
+    ...totals,
+    total,
+    cliente,
+    proporcional,
+    socios,
+    pozo,
+    internos,
+    sinPagador,
+  }
 }
 
 /**
@@ -179,6 +197,11 @@ export function totalsByType(expenses, tipos) {
 export function quienPaga(tipo, shares) {
   if (!tipo) return { texto: 'Tipo desconocido', alerta: true }
   if (tipo.interno) return { texto: 'Sale del stock, no de acá', alerta: false }
+  /* El pasamanos primero: es la única regla en que la respuesta no es nadie de
+     adentro, y es la que más se consulta al mirar un flete. */
+  if (tipo.paga === 'cliente') {
+    return { texto: 'El cliente — pasamanos', alerta: false }
+  }
   if (tipo.paga === 'proporcional') {
     return { texto: 'Todas las partes, en proporción', alerta: false }
   }

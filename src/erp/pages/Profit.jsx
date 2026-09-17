@@ -492,6 +492,7 @@ export default function Profit() {
           const cadena = runReserve(meses, shares, tipos)
           const reparto = cadena.get(mes) ?? splitProfit(MES_VACIO, shares, tipos, 0)
           const pozo = reparto.pozo
+          const pasamanos = reparto.pasamanos
           const peso = pesoDelPozo(cadena)
 
           const nombreDe = (id) => shares.find((s) => s.id === id)?.nombre ?? '—'
@@ -587,6 +588,29 @@ export default function Profit() {
                 </div>
               )}
 
+              {!pasamanos.cuadra && (
+                <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-800">
+                  <strong>
+                    El flete no cierra:{' '}
+                    {pasamanos.descalce > 0
+                      ? `se facturaron ${formatPesos(pasamanos.descalce)} de más`
+                      : `se pagaron ${formatPesos(-pasamanos.descalce)} de más`}
+                    .
+                  </strong>{' '}
+                  Se facturaron {formatPesos(pasamanos.facturado)} y se pagaron{' '}
+                  {formatPesos(pasamanos.costo)}. Tiene que dar cero: el flete se
+                  cotiza del tarifario y se le factura al cliente ese mismo
+                  número, así que una diferencia no es plata de nadie, es{' '}
+                  {pasamanos.descalce > 0
+                    ? 'un flete que se facturó y todavía no se cargó como gasto'
+                    : 'un flete que se pagó y no se facturó en ningún pedido'}
+                  .{' '}
+                  <Link to="/erp/costos" className="font-semibold underline underline-offset-2">
+                    Revisar los costos del mes
+                  </Link>
+                </div>
+              )}
+
               {reparto.sinDueno > 0.01 && (
                 <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-800">
                   <strong>
@@ -670,18 +694,18 @@ export default function Profit() {
                       strong
                     />
 
-                    {/* El flete va neto y aparte: es la misma plata entrando y
-                        saliendo, y va entera a quienes lo bancan. */}
-                    <Linea label="Flete facturado" value={reparto.flete.facturado} />
-                    <Linea label="Flete pagado" value={reparto.flete.costo} signo="−" />
+                    {/* El pasamanos, fuera del reparto. No es un paso de la
+                        cascada sino un control: tiene que dar cero. */}
+                    <Linea label="Flete facturado" value={pasamanos.facturado} />
+                    <Linea label="Pagado al fletero" value={pasamanos.costo} signo="−" />
                     <Linea
-                      label="Resultado del flete"
+                      label="Lo paga el cliente"
                       hint={
-                        reparto.flete.sinPagador
-                          ? 'Sin socios asignados al tipo flete'
-                          : `Va entero a ${listaDe(reparto.flete.pagadores)}`
+                        pasamanos.cuadra
+                          ? 'Entra y sale lo mismo: no toca la parte de nadie'
+                          : 'Debería dar cero — hay algo mal cargado'
                       }
-                      value={reparto.flete.neto}
+                      value={pasamanos.descalce}
                       strong
                     />
 
@@ -736,9 +760,11 @@ export default function Profit() {
                   </div>
                   <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
                     Cuenta como venta todo pedido confirmado en adelante, por su
-                    fecha; los presupuestos y los anulados no entran. Esta es la
-                    cuenta de la empresa: cuánto quedó. De quién sale cada peso es
-                    la cuenta de al lado, y no da lo mismo.
+                    fecha; los presupuestos y los anulados no entran. El flete no
+                    entra en la base porque no lo paga ninguno de ustedes: se
+                    cotiza, se factura y se le paga al fletero. Esta es la cuenta
+                    de la empresa: cuánto quedó. De quién sale cada peso es la
+                    cuenta de al lado, y no da lo mismo.
                   </p>
                 </Card>
 
