@@ -2,8 +2,9 @@
  * El resultado del mes y cómo se reparte.
  *
  * La cuenta de cuánto entró y cuánto salió la hace la vista
- * `finanzas_mensuales`; acá está el reparto, que es aritmética simple sobre ese
- * número y se prueba de un vistazo.
+ * `finanzas_mensuales`; acá está el reparto, que es donde se decide de quién
+ * sale cada peso. Es la única parte del sistema que mueve plata entre personas,
+ * así que vive en un solo archivo y se lee de corrido.
  */
 import { db, unwrap } from './client'
 
@@ -71,7 +72,7 @@ export async function createPayout({ share_id, mes, tipo, monto, fecha, nota }) 
       .insert({
         share_id,
         mes: `${mes}-01`,
-        tipo,
+        tipo: tipo ?? 'reparto',
         monto: Math.round(Number(monto) * 100) / 100,
         fecha: fecha ?? undefined,
         nota: nota || null,
@@ -86,60 +87,115 @@ export async function deletePayout(id) {
   unwrap(await db().from('profit_payouts').delete().eq('id', id))
 }
 
-/**
- * Hasta dónde puede subir la reinversión cuando su parte no alcanza.
- *
- * La escalera es fija y corta a propósito: son tres posiciones acordadas entre
- * los socios, no un número que se ajusta cada mes hasta que dé. Que tenga tope
- * es lo que obliga a mirar el gasto cuando ni el 10% alcanza, en vez de que la
- * reinversión se coma el reparto sin que nadie lo decida.
- */
-export const ESCALERA_REINVERSION = [7.5, 10]
+/* -------------------------------------------------------------------------
+   El reparto
+
+   La regla, en una frase: cada uno cobra su porcentaje sobre el valor del
+   producto vendido, y después cada costo se le descuenta **a quien lo banca**,
+   no a todos.
+
+   Eso es lo que cambió. Antes los costos salían de arriba, de la ganancia, y
+   por lo tanto los pagaban las tres partes en proporción a su porcentaje: un
+   costo de producción de $100.000 le salía $50.000 a quien tenía el 50 y
+   $20.000 a quien tenía el 20, sin que nadie lo hubiera acordado así. Ahora un
+   costo lo pagan los socios que figuran como pagadores de su tipo de gasto, en
+   mitades iguales entre ellos.
+
+   La única excepción es la comisión del vendedor, que se sigue descontando
+   antes de repartir —ya viene restada en `base_reparto`— y por eso la termina
+   pagando cada parte en proporción a lo suyo. Un tipo de gasto marcado como
+   `proporcional` sigue esa misma regla.
+   ------------------------------------------------------------------------- */
+
+const num = (valor) => Number(valor) || 0
+
+/** Un peso arriba o abajo por los decimales no es una diferencia. */
+const CENTAVO = 0.01
 
 /**
- * Liquida al socio minoritario el pozo de reinversión que sobró.
+ * Reparte un monto en mitades iguales entre quienes lo bancan.
  *
- * Va entero a uno solo, y no es una gentileza: **ese 5% es suyo**. El reparto
- * de fondo entre los tres es 50 / 25 / 25, y el socio del 25 más chico resignó
- * cinco puntos para financiar la reinversión —por eso su fila dice 20—. Si esa
- * plata no se llegó a usar, vuelve a quien la puso.
+ * Mitades y no en proporción a los porcentajes: es lo que se acordó. Si dos
+ * socios bancan la producción, le cuesta lo mismo a cada uno aunque uno tenga
+ * el 50% del reparto y el otro el 25%. Repartirlo en proporción sería otra
+ * regla, y una que le cobra más al que más arriesga.
  *
- * Minoritario es el de menor porcentaje, así que la regla se sostiene sola si
- * mañana cambian los números. En un empate se reparte en partes iguales entre
- * los empatados: desempatar por el orden de la lista sería decidir plata ajena
- * según cómo quedó ordenada una tabla.
+ * Sin pagadores devuelve la lista vacía y el monto queda sin asignar. No se
+ * reparte entre todos por defecto: ese reparto silencioso es exactamente el que
+ * se quiso dejar atrás, y un gasto sin dueño tiene que verse.
  */
-export function liquidacionAlMinoritario(monto, socios) {
-  if (socios.length === 0) return []
-
-  const menor = Math.min(...socios.map((socio) => Number(socio.porcentaje)))
-  const elegidos = socios.filter(
-    (socio) => Math.abs(Number(socio.porcentaje) - menor) < 0.001,
-  )
-
-  return elegidos.map((socio) => ({
-    ...socio,
-    fraccion: 100 / elegidos.length,
-    monto: Number(monto) / elegidos.length,
-  }))
+function enMitades(monto, pagadores) {
+  if (pagadores.length === 0) return []
+  const parte = num(monto) / pagadores.length
+  return pagadores.map((id) => ({ share_id: id, monto: parte }))
 }
 
 /**
- * Reparte la ganancia y resuelve cuánto se lleva la reinversión.
+ * Los gastos del mes, cada uno con su regla y sus pagadores.
  *
- * La reinversión no es una parte que se guarda: es la que paga la pauta, las
- * muestras, las suscripciones y los gastos sueltos de crecer. Por eso su
- * porcentaje no es fijo. Arranca en el configurado —5%— y si con eso no cubre
- * esos gastos sube a 7,5%, y si tampoco, a 10%. Los puntos que sube salen de
- * los socios, a cada uno en proporción a lo suyo: subir 2,5 puntos con un
- * reparto 50/25/20 le saca 1,32 a quien tiene la mitad y 0,53 a quien tiene el
- * veinte.
+ * Junta tres orígenes que la pantalla ve como uno solo: los gastos cargados a
+ * mano (`gastos_por_tipo`), el costo de producción —que no es un gasto cargado
+ * sino lo que costó fabricar, y sale del stock— y el flete, que tiene ingreso
+ * propio y se resuelve neto.
+ */
+function gastosDelMes(fila, tipos) {
+  const porTipo = fila.gastos_por_tipo ?? {}
+  const porClave = new Map(tipos.map((tipo) => [tipo.clave, tipo]))
+
+  const lista = []
+
+  for (const [clave, monto] of Object.entries(porTipo)) {
+    const tipo = porClave.get(clave)
+    /* Un gasto de un tipo que ya no existe no puede pasar —lo impide la clave
+       foránea— pero si pasara, mejor mostrarlo sin dueño que descartarlo. */
+    lista.push({
+      clave,
+      nombre: tipo?.nombre ?? clave,
+      paga: tipo?.paga ?? 'socios',
+      pagadores: tipo?.pagadores ?? [],
+      monto: num(monto),
+    })
+  }
+
+  /*
+    La producción no se carga como gasto: es lo que costaba hacer cada varilla
+    el día que se fabricó, y sale del movimiento de stock. Pero se paga igual
+    que cualquier otro costo, así que entra acá con la regla de su tipo.
+  */
+  const produccion = porClave.get('produccion')
+  if (num(fila.costo_produccion) > 0) {
+    lista.push({
+      clave: 'produccion',
+      nombre: produccion?.nombre ?? 'Producción',
+      paga: produccion?.paga ?? 'socios',
+      pagadores: produccion?.pagadores ?? [],
+      monto: num(fila.costo_produccion),
+      delStock: true,
+    })
+  }
+
+  return lista
+}
+
+/**
+ * Reparte el mes: quién cobra cuánto, quién banca qué y cómo queda el pozo.
  *
- * Sube al primer escalón que alcanza, no al máximo: si con 7,5% cubre, no hay
- * razón para llegar a 10 y sacarles más a los socios.
+ * El orden de la cascada importa y es éste:
  *
- * Con pérdida no escala. Un porcentaje de un número negativo no cubre nada, y
- * subirlo sólo repartiría la pérdida distinto sin que entre un peso.
+ * 1. **La base.** `base_reparto` es mercadería + servicios − comisiones. El
+ *    flete facturado no entra: es un pasamanos que se resuelve aparte. A eso se
+ *    le restan los gastos marcados como `proporcional`, que son los únicos que
+ *    salen de arriba.
+ * 2. **Los porcentajes.** Cada parte cobra el suyo sobre esa base. La parte de
+ *    reinversión no la cobra nadie: va al pozo.
+ * 3. **El flete.** Lo facturado menos lo que costó, en mitades entre quienes
+ *    bancan el tipo `flete`. Va neto porque es la misma plata entrando y
+ *    saliendo: si se cobró más de lo que costó, la diferencia es de ellos; si
+ *    se cobró de menos, la pérdida también.
+ * 4. **Los costos directos.** Cada gasto de un tipo `socios` se descuenta en
+ *    mitades a sus pagadores.
+ * 5. **El pozo.** Los gastos de tipo `pozo` los paga la reinversión. Lo que el
+ *    pozo no llega a cubrir lo ponen, en mitades, los pagadores de cada tipo.
  *
  * Los porcentajes se aplican tal como están cargados, sin normalizarlos a 100.
  * Si suman 97, se reparte el 97% y sobra plata sin asignar; si suman 103, se
@@ -147,141 +203,228 @@ export function liquidacionAlMinoritario(monto, socios) {
  * como lo que son: un reparto que cierra siempre no deja ver que la lista está
  * mal.
  *
- * El pozo de reinversión no se cierra cada mes: lo que sobra queda de reserva
- * para el siguiente. Por eso la escalera mira `reservaEntrante + fondo` y no
- * sólo el fondo: subirle el porcentaje a los socios teniendo pozo sin usar
- * sería cobrarles dos veces por lo mismo.
- *
- * Y la reserva tiene un mes de gracia, no más. El gasto consume primero la
- * plata más vieja; lo que venía del mes anterior y aun así no se usó ya no es
- * una reserva sino plata quieta, y vuelve al socio minoritario, que es quien
- * resignó esos cinco puntos para financiarla. Así el pozo no puede engordar
- * indefinidamente sin que nadie decida nada.
- *
- * Ojo con un caso: cuando la escalera subió la tasa, los puntos de más los
- * pusieron los tres. Si después sobra, ese excedente igual se va entero al
- * minoritario. Es la única parte donde la regla da más de lo que su propia
- * lógica justifica; se deja así porque separar el origen de cada peso del pozo
- * sería llevar dos contabilidades para un caso que casi no ocurre —se escala
- * justamente cuando falta plata, no cuando sobra—.
- *
- * @param gananciaBase lo facturado menos costos operativos y comisiones
- * @param gastosReinversion pauta, muestras, suscripciones y otros del período
- * @param shares las partes del reparto
- * @param reservaEntrante lo que sobró del pozo del mes anterior
+ * @param fila         una fila de `finanzas_mensuales`
+ * @param shares       las partes del reparto
+ * @param tipos        los tipos de gasto, cada uno con sus `pagadores`
+ * @param pozoEntrante lo acumulado en el pozo hasta el mes anterior
  */
-export function splitProfit(gananciaBase, gastosReinversion, shares, reservaEntrante = 0) {
+export function splitProfit(fila, shares, tipos = [], pozoEntrante = 0) {
   const activas = shares.filter((share) => share.activo)
-  const total = activas.reduce((sum, share) => sum + Number(share.porcentaje), 0)
-
-  const ganancia = Number(gananciaBase) || 0
-  const gastos = Number(gastosReinversion) || 0
-  const reserva = Math.max(Number(reservaEntrante) || 0, 0)
-
+  const total = activas.reduce((sum, share) => sum + num(share.porcentaje), 0)
   const reinversion = activas.find((share) => share.es_reinversion)
-  const socios = activas.filter((share) => !share.es_reinversion)
-  const baseReinversion = reinversion ? Number(reinversion.porcentaje) : 0
-  const baseSocios = socios.reduce((sum, share) => sum + Number(share.porcentaje), 0)
 
-  /* Sin una parte de reinversión cargada no hay escalera que subir: se reparte
-     como antes y los gastos quedan a la vista como no cubiertos. */
-  const escalones = reinversion
-    ? [baseReinversion, ...ESCALERA_REINVERSION.filter((e) => e > baseReinversion)]
-    : [0]
+  const gastos = gastosDelMes(fila, tipos)
+  const proporcionales = gastos
+    .filter((gasto) => gasto.paga === 'proporcional')
+    .reduce((sum, gasto) => sum + gasto.monto, 0)
 
-  const tasa =
-    ganancia > 0 && gastos > reserva
-      ? (escalones.find((e) => reserva + (ganancia * e) / 100 >= gastos) ?? escalones.at(-1))
-      : baseReinversion
+  /* Lo que queda para repartir por porcentaje. Puede ser negativo: un mes malo
+     es un mes malo, y estirarlo a cero escondería la pérdida. */
+  const base = num(fila.base_reparto) - proporcionales
 
-  const extra = tasa - baseReinversion
+  /* Lo que se le descuenta (o se le suma) a cada parte más allá de su
+     porcentaje, con el detalle de por qué. Sin el detalle, un socio ve un
+     número más chico y no tiene cómo saber de dónde salió. */
+  const cargos = new Map(activas.map((share) => [share.id, []]))
+  const anotar = (shareId, concepto, monto, extra = {}) => {
+    const lista = cargos.get(shareId)
+    /* Un cargo a una parte que no está activa no tiene dónde ir. Se cuenta como
+       huérfano más abajo en vez de desaparecer. */
+    if (lista) lista.push({ concepto, monto, ...extra })
+  }
 
-  const partes = activas.map((share) => {
-    const propio = Number(share.porcentaje)
-    const aplicado = share.es_reinversion
-      ? propio + extra
-      : propio - (baseSocios > 0 ? (extra * propio) / baseSocios : 0)
+  /* Gastos sin pagador configurado: la plata salió y no hay de quién
+     descontarla. No se reparte por defecto, se muestra. */
+  const huerfanos = []
 
-    return { ...share, aplicado, monto: (ganancia * aplicado) / 100 }
-  })
+  // --- 3. El flete, neto ----------------------------------------------------
+  const fleteFacturado = num(fila.flete_facturado)
+  const fleteCosto = gastos
+    .filter((gasto) => gasto.clave === 'flete')
+    .reduce((sum, gasto) => sum + gasto.monto, 0)
+  const fleteNeto = fleteFacturado - fleteCosto
+  const pagadoresFlete = tipos.find((tipo) => tipo.clave === 'flete')?.pagadores ?? []
 
-  /* En un mes con pérdida el fondo no crece, pero tampoco se come lo que ya
-     había: un aporte negativo a una reserva no significa nada. */
-  const fondo = Math.max((ganancia * tasa) / 100, 0)
+  if (Math.abs(fleteNeto) >= CENTAVO) {
+    const repartido = enMitades(fleteNeto, pagadoresFlete)
+    if (repartido.length === 0) {
+      huerfanos.push({ clave: 'flete', nombre: 'Flete', monto: -fleteNeto })
+    }
+    /* El signo se invierte al anotarlo: un cargo es lo que se le resta, y un
+       flete que dejó ganancia se le suma. */
+    for (const { share_id, monto } of repartido) {
+      anotar(share_id, 'Flete (facturado − costo)', -monto, { flete: true })
+    }
+  }
+
+  // --- 4. Los costos directos ----------------------------------------------
+  for (const gasto of gastos) {
+    if (gasto.paga !== 'socios') continue
+    /* El flete ya se resolvió neto contra su ingreso: cobrarlo de nuevo acá
+       sería cobrarlo dos veces. */
+    if (gasto.clave === 'flete') continue
+
+    const repartido = enMitades(gasto.monto, gasto.pagadores)
+    if (repartido.length === 0) {
+      huerfanos.push({ clave: gasto.clave, nombre: gasto.nombre, monto: gasto.monto })
+      continue
+    }
+    for (const { share_id, monto } of repartido) {
+      anotar(share_id, gasto.nombre, monto, { clave: gasto.clave })
+    }
+  }
+
+  // --- 5. El pozo -----------------------------------------------------------
+  const tasa = reinversion ? num(reinversion.porcentaje) : 0
+  /* Con pérdida el pozo no crece, pero tampoco se come lo que ya había: un
+     aporte negativo a una reserva no significa nada. */
+  const aporte = Math.max((base * tasa) / 100, 0)
+  const entrante = Math.max(num(pozoEntrante), 0)
+  const disponible = entrante + aporte
+
+  const delPozo = gastos.filter((gasto) => gasto.paga === 'pozo')
+  const gastoPozo = delPozo.reduce((sum, gasto) => sum + gasto.monto, 0)
 
   /*
-    El gasto consume primero la plata más vieja. Es lo que hace que se liquide
-    sólo lo que de verdad quedó quieto dos meses: si se gastara primero el
-    fondo nuevo, la reserva vieja se iría venciendo aunque el pozo se estuviera
-    usando todos los meses.
+    El pozo cubre todos los tipos a la vez y en la misma proporción, no uno
+    entero y después el otro. Si alcanzara para el 60%, cada tipo queda cubierto
+    al 60% y cada uno arrastra su propio faltante a sus propios pagadores.
+    Cubrirlos en orden daría un resultado distinto según cómo esté ordenada una
+    tabla, que es decidir plata ajena por casualidad.
   */
-  const deReserva = Math.min(gastos, reserva)
-  const restante = gastos - deReserva
-  const deFondo = Math.min(restante, fondo)
+  const cobertura = gastoPozo > 0 ? Math.min(1, disponible / gastoPozo) : 1
+  const cubierto = gastoPozo * cobertura
+  const faltante = gastoPozo - cubierto
 
-  /* Lo que venía del mes anterior y ni así se usó: ya no es reserva. */
-  const vencido = reserva - deReserva
-  /* Lo del fondo de este mes que no se gastó: pasa al mes que viene. */
-  const reservaSaliente = fondo - deFondo
-  /* Lo que ni con la reserva ni con el último escalón se llega a cubrir. */
-  const faltante = restante - deFondo
+  for (const gasto of delPozo) {
+    const suFaltante = gasto.monto * (1 - cobertura)
+    if (suFaltante < CENTAVO) continue
+
+    const repartido = enMitades(suFaltante, gasto.pagadores)
+    if (repartido.length === 0) {
+      huerfanos.push({ clave: gasto.clave, nombre: gasto.nombre, monto: suFaltante })
+      continue
+    }
+    for (const { share_id, monto } of repartido) {
+      anotar(share_id, `${gasto.nombre} (lo que el pozo no cubrió)`, monto, {
+        clave: gasto.clave,
+        delPozo: true,
+      })
+    }
+  }
+
+  const saliente = disponible - cubierto
+
+  // --- Y el reparto -------------------------------------------------------
+  const partes = activas.map((share) => {
+    const propio = num(share.porcentaje)
+    const bruto = (base * propio) / 100
+    const suyos = cargos.get(share.id) ?? []
+    const descontado = suyos.reduce((sum, cargo) => sum + cargo.monto, 0)
+
+    return {
+      ...share,
+      porcentaje: propio,
+      bruto,
+      cargos: suyos,
+      descontado,
+      /* La reinversión no cobra: su bruto es el aporte al pozo, y los gastos
+         del pozo ya se descontaron del pozo, no de ella. */
+      monto: share.es_reinversion ? bruto : bruto - descontado,
+    }
+  })
 
   return {
+    base,
+    proporcionales,
     total,
-    /* Un rato de tolerancia por los decimales: 25,694 + 20,556 + … no da 100 exacto. */
-    cuadra: Math.abs(total - 100) < 0.01,
-    sinAsignar: (ganancia * (100 - total)) / 100,
+    /* Un rato de tolerancia por los decimales: 25,694 + 20,556 + … no da 100. */
+    cuadra: Math.abs(total - 100) < CENTAVO,
+    sinAsignar: (base * (100 - total)) / 100,
     partes,
+    socios: partes.filter((parte) => !parte.es_reinversion),
 
-    reinversion: {
-      base: baseReinversion,
-      tasa,
-      escalo: extra > 0,
-      reservaEntrante: reserva,
-      fondo,
-      disponible: reserva + fondo,
-      gastos,
-      deReserva,
-      deFondo,
-      vencido,
-      reservaSaliente,
-      faltante,
+    flete: {
+      facturado: fleteFacturado,
+      costo: fleteCosto,
+      neto: fleteNeto,
+      pagadores: pagadoresFlete,
+      sinPagador: Math.abs(fleteNeto) >= CENTAVO && pagadoresFlete.length === 0,
     },
 
-    /* El pozo vencido vuelve entero al socio minoritario, que es de quien
-       salió ese 5%. Ver `liquidacionAlMinoritario`. */
-    liquidacion: liquidacionAlMinoritario(vencido, socios),
+    pozo: {
+      tasa,
+      entrante,
+      aporte,
+      disponible,
+      gastos: gastoPozo,
+      cubierto,
+      faltante,
+      saliente,
+    },
+
+    /* Lo que salió de la caja y no tiene a quién cargarse. */
+    huerfanos,
+    sinDueno: huerfanos.reduce((sum, item) => sum + item.monto, 0),
   }
 }
 
 /**
- * Encadena los meses para arrastrar la reserva de uno al siguiente.
+ * Encadena los meses para arrastrar el pozo de uno al siguiente.
  *
  * Hay que recorrerlos del más viejo al más nuevo porque el pozo de un mes
- * depende de lo que sobró del anterior: no se puede calcular septiembre sin
+ * depende de lo que quedó del anterior: no se puede calcular septiembre sin
  * haber calculado agosto. Se hace de una pasada y se guarda el resultado de
  * cada mes, en vez de recalcular la cadena entera cada vez que la pantalla
  * cambia de mes.
  *
+ * **El pozo ya no vence.** Antes, lo que sobrevivía un mes sin usarse volvía al
+ * socio minoritario: se lo trataba como plata parada que había que devolver.
+ * Pero el pozo no es plata guardada esperando el mes que viene, es plata que ya
+ * está invertida —en la marca, en las muestras, en lo que hace que el mes que
+ * viene exista— y por eso se acumula. Lo que hay que mirar no es cuándo
+ * devolverlo sino cuándo ya alcanza para invertir más fuerte, y eso lo decide
+ * alguien, no una regla de vencimiento.
+ *
  * Un mes sin ventas ni gastos no tiene fila en `finanzas_mensuales` y por lo
- * tanto no aparece en la cadena. La reserva salta ese hueco: sigue vigente y se
+ * tanto no aparece en la cadena. El pozo salta ese hueco: sigue vigente y se
  * arrastra al primer mes que sí tenga movimiento.
  */
-export function runReserve(meses, shares) {
+export function runReserve(meses, shares, tipos = []) {
   const ordenados = [...meses].sort((a, b) => String(a.mes).localeCompare(String(b.mes)))
   const porMes = new Map()
-  let reserva = 0
+  let pozo = 0
 
   for (const fila of ordenados) {
-    const reparto = splitProfit(
-      fila.ganancia_base,
-      fila.costos_reinversion,
-      shares,
-      reserva,
-    )
+    const reparto = splitProfit(fila, shares, tipos, pozo)
     porMes.set(String(fila.mes).slice(0, 7), reparto)
-    reserva = reparto.reinversion.reservaSaliente
+    pozo = reparto.pozo.saliente
   }
 
   return porMes
+}
+
+/**
+ * Cuánto pesa el pozo acumulado, medido en meses de gasto.
+ *
+ * Es la señal de que hay que invertir más. Un pozo de dos millones no dice
+ * nada por sí solo: dice algo cuando se sabe que se están gastando doscientos
+ * mil por mes y entonces son diez meses de pauta sin usar. Ahí el pozo dejó de
+ * ser una reserva y pasó a ser plata dormida.
+ *
+ * Se mide contra el promedio de los últimos meses con gasto y no contra el
+ * último: un mes sin pauta daría infinito y un mes puntual fuerte lo taparía.
+ */
+export function pesoDelPozo(cadena, meses = 6) {
+  const gastos = [...cadena.values()]
+    .slice(-meses)
+    .map((reparto) => reparto.pozo.gastos)
+    .filter((monto) => monto > 0)
+
+  if (gastos.length === 0) return null
+
+  const promedio = gastos.reduce((sum, monto) => sum + monto, 0) / gastos.length
+  const ultimo = [...cadena.values()].at(-1)
+
+  return { promedio, meses: ultimo.pozo.saliente / promedio }
 }

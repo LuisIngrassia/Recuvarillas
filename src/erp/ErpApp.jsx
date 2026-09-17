@@ -32,6 +32,7 @@ const QuotePrint = lazy(() => import('./pages/QuotePrint'))
 const Stock = lazy(() => import('./pages/Stock'))
 const Cash = lazy(() => import('./pages/Cash'))
 const Expenses = lazy(() => import('./pages/Expenses'))
+const ExpenseTypes = lazy(() => import('./pages/ExpenseTypes'))
 const Profit = lazy(() => import('./pages/Profit'))
 const Prices = lazy(() => import('./pages/Prices'))
 const Carriers = lazy(() => import('./pages/Carriers'))
@@ -72,9 +73,10 @@ const SECTIONS = [
 
 const SETTINGS = [
   { to: '/erp/precios', label: 'Precios' },
-  { to: '/erp/costo-varilla', label: 'Costo de la varilla' },
+  // { to: '/erp/costo-varilla', label: 'Costo de la varilla' },
   { to: '/erp/fletes', label: 'Fletes' },
   { to: '/erp/vendedores', label: 'Vendedores' },
+  { to: '/erp/tipos-de-gasto', label: 'Tipos de gasto' },
 ]
 
 /** Qué hacer cuando el proyecto todavía no tiene las claves de Supabase. */
@@ -221,6 +223,7 @@ function Gate() {
           <Route path="stock" element={<Stock />} />
           <Route path="caja" element={<Cash />} />
           <Route path="costos" element={<Expenses />} />
+          <Route path="tipos-de-gasto" element={<ExpenseTypes />} />
           <Route path="rentabilidad" element={<Profit />} />
           <Route path="precios" element={<Prices />} />
           <Route path="costo-varilla" element={<ProductionCost />} />

@@ -1168,13 +1168,12 @@ $$;
   Todo lo que sale de la empresa.
 
   El tipo no es sólo una etiqueta para ordenar: define **quién paga el gasto**.
-  Hay dos grupos y la diferencia es de plata, no de prolijidad:
+  Elegir mal el tipo no desordena un informe, le mueve plata a alguien.
 
-  - Los **operativos** —producción, flete — salen de la
-    ganancia antes de repartir. Los paga la empresa.
-  - Los **de reinversión** —pauta, muestras, suscripciones, otros— los paga la
-    parte de reinversión del reparto. Para eso existe ese 5%: no es plata que se
-    guarda, es plata con destino.
+  Quién paga cada tipo se configura en `expense_types`, acá abajo. En esta tabla
+  `tipo` es sólo la clave: qué claves son válidas lo impone una clave foránea y
+  no un `check` escrito a mano, que habría que venir a editar cada vez que
+  aparece un gasto nuevo.
 
   `order_id` es opcional: un gasto puede ser de un pedido puntual —un flete que
   se pagó, una producción especial— o del mes en general, como la pauta.
@@ -1182,9 +1181,7 @@ $$;
 create table if not exists expenses (
   id          uuid primary key default gen_random_uuid(),
   fecha       date not null default current_date,
-  tipo        text not null
-              check (tipo in ('produccion', 'pauta', 'muestras', 'suscripciones',
-                              'flete', 'otro')),
+  tipo        text not null,
   descripcion text not null check (char_length(descripcion) between 1 and 200),
   monto       numeric(14, 2) not null check (monto > 0),
   proveedor   text,
@@ -1198,14 +1195,10 @@ create index if not exists expenses_tipo_idx on expenses (tipo);
 create index if not exists expenses_order_idx on expenses (order_id);
 
 /*
-  `suscripciones` llegó después, y `if not exists` en la tabla no cambia el
-  `check` de una que ya existe. Se rehace: `add constraint` a secas fallaría al
-  volver a correr el archivo.
+  De quién sale cada peso de esta tabla lo decide `expense_types`, que está más
+  abajo: necesita que las partes del reparto ya existan para poder apuntarlas.
 */
-alter table expenses drop constraint if exists expenses_tipo_check;
-alter table expenses add constraint expenses_tipo_check
-  check (tipo in ('produccion', 'pauta', 'muestras', 'suscripciones',
-                  'flete', 'otro'));
+
 
 -- ---------------------------------------------------------------------------
 -- Reparto de ganancias
@@ -1276,6 +1269,115 @@ create index if not exists profit_payouts_share_idx on profit_payouts (share_id,
   la anterior prohibía algo que hay que poder hacer.
 */
 alter table profit_payouts drop constraint if exists profit_payouts_share_id_mes_tipo_key;
+
+-- ---------------------------------------------------------------------------
+-- Quién paga cada gasto
+-- ---------------------------------------------------------------------------
+
+/*
+  Va acá abajo y no junto a `expenses`, donde se leería más natural, porque
+  apunta a las partes del reparto: un gasto se le carga a alguien, y ese alguien
+  tiene que existir primero.
+*/
+
+/*
+  La regla de reparto de un gasto, editable desde el ERP.
+
+  Antes era una lista fija en el código y en un `check`: los operativos los
+  pagaba «la empresa» y los de reinversión «el pozo». Eso escondía lo que en
+  realidad pasa, que es que cada costo sale del bolsillo de alguien en
+  particular. Un costo que «paga la empresa» lo terminan pagando los socios en
+  proporción a su parte, y no es lo que acordaron.
+
+  `paga` es la regla, y son tres:
+
+  - `proporcional`: sale de arriba, antes de repartir, y lo termina pagando
+    cada parte en proporción a su porcentaje. Es la regla que sigue la comisión
+    del vendedor, que no es un tipo de gasto pero se descuenta igual.
+  - `socios`: lo pagan las partes listadas en `expense_type_payers`, en
+    **mitades iguales** entre ellas. No en proporción a sus porcentajes: si dos
+    socios bancan la producción, le cuesta la mitad a cada uno aunque uno tenga
+    el 50 y el otro el 25.
+  - `pozo`: lo paga primero el pozo de reinversión. Lo que el pozo no llega a
+    cubrir lo ponen las partes listadas, también en mitades.
+
+  Dos banderas que no son lo mismo:
+
+  - `interno` es un tipo cuyo monto **no se carga a mano**: lo calcula el
+    sistema. La producción sale del stock, de lo que costaba hacer cada varilla
+    el día que se produjo. Lo que haya quedado cargado a mano con un tipo
+    interno no se suma a ningún total —contarlo sería cobrarse la producción
+    dos veces— pero quién lo paga sí se configura acá.
+  - `activo` es si se ofrece al cargar un gasto nuevo. Un tipo que se retira se
+    desactiva, nunca se borra: los gastos ya cargados apuntan a su tipo por
+    `clave`, y borrarlo dejaría plata sin dueño en un mes ya liquidado. Los
+    gastos de un tipo inactivo se siguen contando y pagando igual.
+*/
+create table if not exists expense_types (
+  id      uuid primary key default gen_random_uuid(),
+  clave   text not null unique check (clave ~ '^[a-z0-9_]{1,40}$'),
+  nombre  text not null check (char_length(nombre) between 1 and 60),
+  paga    text not null default 'socios'
+          check (paga in ('proporcional', 'socios', 'pozo')),
+  interno boolean not null default false,
+  activo  boolean not null default true,
+  orden   integer not null default 0
+);
+
+/*
+  Quiénes bancan un tipo de gasto.
+
+  Sin filas acá, un tipo `socios` o `pozo` no tiene de dónde salir. El ERP lo
+  muestra como lo que es —un gasto sin pagador— en vez de repartirlo por
+  defecto entre todos, que es exactamente el reparto que se quiso dejar atrás.
+*/
+create table if not exists expense_type_payers (
+  tipo_id  uuid not null references expense_types (id) on delete cascade,
+  share_id uuid not null references profit_shares (id) on delete cascade,
+  primary key (tipo_id, share_id)
+);
+
+create index if not exists expense_type_payers_share_idx
+  on expense_type_payers (share_id);
+
+/*
+  Los tipos que ya existían, con la regla que les toca.
+
+  `on conflict do nothing` y no `where not exists` sobre la tabla entera: lo que
+  importa es que cada clave esté, no que la tabla esté vacía. Así el archivo se
+  puede volver a correr después de haber agregado un tipo desde el ERP sin
+  pisarlo ni duplicarlo.
+*/
+insert into expense_types (clave, nombre, paga, interno, activo, orden)
+select * from (values
+  ('produccion',    'Producción',    'socios', true,  false, 1),
+  ('flete',         'Flete',         'socios', false, true,  2),
+  ('pauta',         'Pauta',         'pozo',   false, true,  3),
+  ('suscripciones', 'Suscripciones', 'pozo',   false, true,  4),
+  ('muestras',      'Muestras',      'pozo',   false, true,  5),
+  /*
+    'otro' se retira. Un cajón de sastre es justamente el tipo que no contesta
+    la pregunta que ahora hay que contestar: de la parte de quién sale. Queda
+    inactivo —no se ofrece al cargar— pero sus gastos se siguen contando y los
+    siguen pagando los socios que tenga asignados, porque esa plata salió
+    igual. La pantalla de Costos los señala para reclasificarlos.
+  */
+  ('otro',          'Otro',          'socios', false, false, 99)
+) as v(clave, nombre, paga, interno, activo, orden)
+on conflict (clave) do nothing;
+
+
+/*
+  Qué claves valen lo dice la tabla de tipos, no un `check`: agregar un tipo
+  desde el ERP no puede requerir una migración.
+
+  `on update cascade` para que renombrar la clave de un tipo arrastre los gastos
+  ya cargados en vez de romper.
+*/
+alter table expenses drop constraint if exists expenses_tipo_check;
+alter table expenses drop constraint if exists expenses_tipo_fkey;
+alter table expenses add constraint expenses_tipo_fkey
+  foreign key (tipo) references expense_types (clave) on update cascade;
 
 -- ---------------------------------------------------------------------------
 -- Columnas que se agregaron a `orders` después
@@ -1737,7 +1839,14 @@ create or replace view customer_balances with (security_invoker = on) as
 
   El flete entra de los dos lados —facturado como ingreso, pagado como gasto de
   tipo 'flete'— en vez de quedar afuera. Así, si se cobró más de lo que costó,
-  esa diferencia aparece donde tiene que aparecer en lugar de perderse.
+  esa diferencia aparece donde tiene que aparecer en lugar de perderse. Los dos
+  lados van juntos a los mismos bolsillos, pero eso lo resuelve el ERP.
+
+  Lo que esta vista **no** hace es decidir quién paga qué. Antes lo hacía, y era
+  el lugar equivocado: la regla depende de `expense_types`, que se edita desde
+  el ERP, y de los porcentajes de cada parte. Acá quedan los ingresos y el
+  detalle de gastos por tipo; el reparto vive en `src/erp/api/profit.js`, en un
+  solo lugar y a la vista.
 
   Una cosa que conviene tener presente: la comisión se imputa al mes del pedido
   pero se devenga cuando el cliente paga, así que un mes ya cerrado puede
@@ -1788,34 +1897,41 @@ create or replace view finanzas_mensuales with (security_invoker = on) as
     group by 1
   ),
   /*
-    Los gastos se separan en dos porque los paga gente distinta.
+    Los gastos del mes, agrupados por tipo y nada más.
 
-    Los operativos salen de la ganancia antes de repartir: los paga la empresa.
-    Los de reinversión los paga la parte de reinversión del reparto, que para
-    eso existe. Si esa parte no alcanza, sube —y esa escalera la resuelve el
-    ERP, no esta vista, porque depende de los porcentajes de cada socio.
+    La lista de tipos ya no está escrita acá: se agrega uno desde el ERP y esta
+    vista lo cuenta sin que haya que tocarla. Por eso el detalle sale como un
+    objeto y no como una columna por tipo.
+
+    Los tipos internos quedan fuera del total: su monto lo calcula el sistema
+    —la producción sale del stock, de lo que costaba hacer cada varilla el día
+    que se produjo— y lo que haya quedado cargado a mano se muestra aparte,
+    para verlo y limpiarlo, sin sumarlo a ningún lado. Contarlo sería cobrarse
+    la producción dos veces.
   */
   costos as (
     select
-      date_trunc('month', fecha)::date as mes,
-      /*
-        El total excluye los gastos de tipo 'produccion': ese costo ahora sale
-        del stock. Los que hayan quedado cargados se muestran aparte para que se
-        vean y se puedan limpiar, pero no se suman a ningún lado —contarlos
-        sería cobrarse la producción dos veces.
-      */
-      sum(monto) filter (where tipo <> 'produccion')   as total,
-      sum(monto) filter (where tipo = 'produccion')    as produccion_manual,
-      sum(monto) filter (where tipo = 'flete')         as flete,
-      sum(monto) filter (where tipo = 'pauta')         as pauta,
-      sum(monto) filter (where tipo = 'muestras')      as muestras,
-      sum(monto) filter (where tipo = 'suscripciones') as suscripciones,
-      sum(monto) filter (where tipo = 'otro')          as otros,
-      sum(monto) filter (where tipo = 'flete') as operativos,
-      sum(monto) filter (where tipo in ('pauta', 'muestras', 'suscripciones', 'otro'))
-        as reinversion
-    from expenses
-    group by 1
+      g.mes,
+      coalesce(
+        jsonb_object_agg(g.tipo, g.total) filter (where not t.interno),
+        '{}'::jsonb
+      ) as por_tipo,
+      sum(g.total) filter (where not t.interno)      as total,
+      sum(g.total) filter (where t.interno)          as internos_cargados,
+      sum(g.total) filter (where g.tipo = 'flete')   as flete,
+      sum(g.total) filter (where g.tipo = 'pauta')   as pauta
+    from (
+      select date_trunc('month', fecha)::date as mes, tipo, sum(monto) as total
+      from expenses
+      group by 1, 2
+    ) g
+    /*
+      `join` y no `left join`: la clave foránea de `expenses.tipo` garantiza que
+      todo gasto tenga su tipo, así que una fila que no cruzara sería un dato
+      imposible, no un caso a contemplar.
+    */
+    join expense_types t on t.clave = g.tipo
+    group by g.mes
   )
   select
     m.mes,
@@ -1829,30 +1945,38 @@ create or replace view finanzas_mensuales with (security_invoker = on) as
     coalesce(v.cobrado, 0)     as cobrado,
     coalesce(v.comisiones, 0)  as comisiones,
 
+    /*
+      Sobre esto se calculan los porcentajes del reparto.
+
+      El flete facturado queda afuera a propósito: es un pasamanos, se cobra y
+      se paga. Va, junto con su costo, a quienes bancan el tipo de gasto
+      `flete`. Si entrara acá, quien cobra un porcentaje sobre el valor del
+      producto cobraría además una parte de un transporte cuyo costo banca otro.
+
+      La comisión del vendedor sí se resta, y es la única que se descuenta antes
+      de repartir: la termina pagando cada parte en proporción a lo suyo.
+    */
+    coalesce(v.mercaderia, 0) + coalesce(v.servicios, 0)
+      - coalesce(v.comisiones, 0) as base_reparto,
+
     coalesce(pr.varillas, 0)         as varillas_producidas,
     coalesce(pr.costo, 0)            as costo_produccion,
-    /* Lo que quedó cargado a mano como gasto de producción y ya no se cuenta. */
-    coalesce(c.produccion_manual, 0) as costo_produccion_cargado,
+    /* Lo que quedó cargado a mano con un tipo interno y ya no se cuenta. */
+    coalesce(c.internos_cargados, 0) as costo_produccion_cargado,
     coalesce(c.flete, 0)             as costo_flete,
-    coalesce(c.pauta, 0)          as costo_pauta,
-    coalesce(c.muestras, 0)       as costo_muestras,
-    coalesce(c.suscripciones, 0)  as costo_suscripciones,
-    coalesce(c.otros, 0)          as costo_otros,
-
-    coalesce(c.operativos, 0) + coalesce(pr.costo, 0) as costos_operativos,
-    coalesce(c.reinversion, 0) as costos_reinversion,
-    coalesce(c.total, 0) + coalesce(pr.costo, 0) as costos,
+    coalesce(c.pauta, 0)             as costo_pauta,
 
     /*
-      La que se reparte: lo facturado menos lo que paga la empresa. Los gastos
-      de reinversión no se restan acá porque no los paga la empresa, los paga
-      una de las partes del reparto.
+      El detalle por tipo: `{"pauta": 120000, "flete": 8000, …}`. De acá sale
+      todo el reparto de costos, cruzándolo con `expense_types` para saber quién
+      pone cada peso. Un tipo sin gastos en el mes no aparece.
     */
-    coalesce(v.mercaderia, 0) + coalesce(v.servicios, 0) + coalesce(v.flete, 0)
-      - coalesce(v.comisiones, 0)
-      - coalesce(c.operativos, 0) - coalesce(pr.costo, 0) as ganancia_base,
+    coalesce(c.por_tipo, '{}'::jsonb) as gastos_por_tipo,
 
-    /* El resultado de verdad del mes, con todo descontado. */
+    coalesce(c.total, 0) + coalesce(pr.costo, 0) as costos,
+
+    /* El resultado de verdad del mes, con todo descontado. Quién pone cada peso
+       es la otra cuenta; ésta es la de la empresa. */
     coalesce(v.mercaderia, 0) + coalesce(v.servicios, 0) + coalesce(v.flete, 0)
       - coalesce(v.comisiones, 0)
       - coalesce(c.total, 0) - coalesce(pr.costo, 0) as ganancia_neta
@@ -1930,6 +2054,8 @@ alter table carriers        enable row level security;
 alter table carrier_zones   enable row level security;
 alter table carrier_rates   enable row level security;
 alter table expenses        enable row level security;
+alter table expense_types   enable row level security;
+alter table expense_type_payers enable row level security;
 alter table profit_shares   enable row level security;
 alter table profit_payouts  enable row level security;
 alter table service_rates   enable row level security;
@@ -1999,7 +2125,8 @@ begin
     'price_tiers', 'customers', 'leads', 'products',
     'orders', 'order_items', 'payments', 'stock_movements',
     'sellers', 'carriers', 'carrier_zones', 'carrier_rates',
-    'expenses', 'profit_shares', 'profit_payouts',
+    'expenses', 'expense_types', 'expense_type_payers',
+    'profit_shares', 'profit_payouts',
     'service_rates', 'order_services',
     'production_costs', 'production_setup'
   ] loop
@@ -2193,15 +2320,73 @@ select * from (values
 where not exists (select 1 from service_rates);
 
 /*
-  El reparto base de la planilla: 50 / 25 / 20 y un 5 de reinversión. Los
-  nombres y los porcentajes se editan después desde el ERP; esto es sólo para
-  que la pantalla no arranque en blanco.
+  El reparto base de la planilla: 50 / 25 / 20 y un 5 de reinversión, todo sobre
+  el valor del producto vendido.
+
+  El 5 de reinversión sale de arriba, así que lo ponen los tres en proporción a
+  su parte. Los nombres y los porcentajes se editan después desde el ERP; esto
+  es sólo para que la pantalla no arranque en blanco.
+
+  El orden importa más de lo que parece: el reparto inicial de quién paga qué
+  —más arriba, en `expense_type_payers`— se arma mirando cuál es la parte mayor
+  y cuál la menor de esta misma tabla.
 */
 insert into profit_shares (nombre, porcentaje, es_reinversion, orden)
 select * from (values
-  ('Socio',       50.0, false, 1),
-  ('Pipo',        25.0, false, 2),
-  ('Lui',         20.0, false, 3),
+  ('Esteban',     50.0, false, 1),
+  ('Juan',        25.0, false, 2),
+  ('Luis',        20.0, false, 3),
   ('Reinversión',  5.0, true,  4)
 ) as v(nombre, porcentaje, es_reinversion, orden)
 where not exists (select 1 from profit_shares);
+
+/*
+  El punto de partida de quién paga qué.
+
+  Va entre las semillas y no junto a `expense_types`, que sería su lugar, porque
+  necesita que las partes del reparto ya estén cargadas: en una base nueva se
+  siembran acá abajo, unas líneas más arriba que esto.
+
+  Se elige por porcentaje y no por nombre porque una base ya andando tiene en
+  `profit_shares` los nombres reales de cada uno, que no tienen por qué ser los
+  de este archivo:
+
+  - Los costos operativos los bancan todos los socios **menos el de menor
+    parte**. Quien cobra un porcentaje sobre el valor del producto lo cobra
+    entero: la producción no se le descuenta.
+  - Los del pozo, cuando el pozo no alcanza, los ponen todos **menos el de
+    mayor parte**.
+
+  Corre una sola vez, con la tabla vacía. De ahí en más manda lo que se haya
+  configurado en Ajustes › Tipos de gasto.
+*/
+do $pagadores$
+declare
+  menor uuid;
+  mayor uuid;
+begin
+  if exists (select 1 from expense_type_payers) then return; end if;
+
+  select id into menor from profit_shares
+    where not es_reinversion and activo
+    order by porcentaje asc, orden asc limit 1;
+
+  select id into mayor from profit_shares
+    where not es_reinversion and activo
+    order by porcentaje desc, orden asc limit 1;
+
+  /* Sin partes cargadas no hay nada que asignar, y menor = mayor es una sola
+     parte: darle todo a esa sería inventar un acuerdo que no existe. */
+  if menor is null or menor = mayor then return; end if;
+
+  insert into expense_type_payers (tipo_id, share_id)
+  select t.id, s.id
+    from expense_types t
+    join profit_shares s
+      on not s.es_reinversion
+     and s.activo
+     and s.id <> case t.paga when 'pozo' then mayor else menor end
+   where t.paga <> 'proporcional'
+  on conflict do nothing;
+end
+$pagadores$;

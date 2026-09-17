@@ -5,6 +5,10 @@
  * que salió por costos y comisiones. Ninguno de los dos números se carga acá
  * —salen de Pedidos y de Costos— justamente para que el resultado no se pueda
  * "arreglar" escribiéndolo a mano.
+ *
+ * Lo que muestra no es una ganancia repartida en porcentajes: es la cuenta de
+ * cada uno. Cada socio cobra su porcentaje sobre el valor del producto y
+ * después se le descuentan los costos que él banca, no los de todos.
  */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -16,10 +20,12 @@ import {
   listMonths,
   listPayouts,
   listShares,
+  pesoDelPozo,
   runReserve,
   splitProfit,
   updateShare,
 } from '../api/profit'
+import { listExpenseTypes } from '../api/expenses'
 import { LEAD_SOURCE_LABELS, listLeadsByOrigin } from '../api/leads'
 import { useAsync } from '../lib/useAsync'
 import {
@@ -54,22 +60,19 @@ import {
 const MES_VACIO = {
   pedidos: 0,
   mercaderia: 0,
+  servicios: 0,
   flete_facturado: 0,
   facturado: 0,
   cobrado: 0,
   comisiones: 0,
+  base_reparto: 0,
   varillas_producidas: 0,
   costo_produccion: 0,
   costo_produccion_cargado: 0,
   costo_flete: 0,
   costo_pauta: 0,
-  costo_muestras: 0,
-  costo_suscripciones: 0,
-  costo_otros: 0,
-  costos_operativos: 0,
-  costos_reinversion: 0,
+  gastos_por_tipo: {},
   costos: 0,
-  ganancia_base: 0,
   ganancia_neta: 0,
 }
 
@@ -111,14 +114,13 @@ const sumarPagos = (pagos) => pagos.reduce((sum, pago) => sum + Number(pago.mont
 function Liquidacion({ leToca, pagos, onLiquidar, onAbrir }) {
   const pagado = sumarPagos(pagos)
   const falta = Number(leToca) - pagado
+  const saldado = Math.abs(falta) < 0.01
 
   /* Nada que liquidar no es lo mismo que pendiente: un mes sin ganancia no le
      debe nada a nadie y ofrecer el botón sería invitar a registrar un cero. */
   if (Math.abs(Number(leToca)) < 0.01 && pagos.length === 0) {
     return <span className="text-xs text-steel-300">—</span>
   }
-
-  const saldado = Math.abs(falta) < 0.01
 
   return (
     <div className="flex flex-col items-end gap-1">
@@ -167,7 +169,7 @@ function Liquidacion({ leToca, pagos, onLiquidar, onAbrir }) {
  * ya no se puede impedir el segundo pago —pagar en cuotas es legítimo— así que
  * lo que corresponde es que se vea con qué queda.
  */
-function PayoutModal({ parte, tipo, leToca, pagos, onClose, onRegistrar, onBorrar }) {
+function PayoutModal({ parte, leToca, pagos, onClose, onRegistrar, onBorrar }) {
   const pagado = sumarPagos(pagos)
   const falta = Number(leToca) - pagado
 
@@ -204,10 +206,7 @@ function PayoutModal({ parte, tipo, leToca, pagos, onClose, onRegistrar, onBorra
   }
 
   return (
-    <Modal
-      title={`Liquidar a ${parte.nombre}${tipo === 'pozo' ? ' · pozo vencido' : ''}`}
-      onClose={onClose}
-    >
+    <Modal title={`Liquidar a ${parte.nombre}`} onClose={onClose}>
       <div className="space-y-4">
         <dl className="grid grid-cols-3 gap-2 rounded-md bg-steel-50 px-3 py-2 text-xs">
           <div>
@@ -357,7 +356,10 @@ function ShareModal({ share, onClose, onSaved }) {
         <Field label="Nombre">
           <Input value={nombre} onChange={(event) => setNombre(event.target.value)} autoFocus />
         </Field>
-        <Field label="Porcentaje" hint="Entre todas las partes tienen que sumar 100.">
+        <Field
+          label="Porcentaje"
+          hint="Del valor del producto vendido. Entre todas las partes tienen que sumar 100."
+        >
           <Input
             type="number"
             min="0"
@@ -390,13 +392,14 @@ export default function Profit() {
   const [liquidando, setLiquidando] = useState(null)
   const [error, setError] = useState('')
 
-  const query = useAsync(
-    async () => {
-      const [meses, shares] = await Promise.all([listMonths(), listShares()])
-      return { meses, shares }
-    },
-    [],
-  )
+  const query = useAsync(async () => {
+    const [meses, shares, tipos] = await Promise.all([
+      listMonths(),
+      listShares(),
+      listExpenseTypes(),
+    ])
+    return { meses, shares, tipos }
+  }, [])
 
   /* Aparte y no dentro de la carga de arriba porque depende del mes elegido:
      mezclarlas obligaría a volver a pedir el reparto entero cada vez que se
@@ -417,10 +420,10 @@ export default function Profit() {
    * lo que se está pagando. Si mañana se corrige un gasto viejo y la cuenta del
    * mes se mueve, lo pagado sigue diciendo lo que se pagó.
    */
-  const liquidarTodo = async (share, tipo, monto) => {
+  const liquidarTodo = async (share, monto) => {
     setError('')
     try {
-      await createPayout({ share_id: share.id, mes, tipo, monto })
+      await createPayout({ share_id: share.id, mes, tipo: 'reparto', monto })
       pagos.reload()
     } catch (err) {
       setError(err.message)
@@ -429,8 +432,8 @@ export default function Profit() {
 
   /* El alta desde el diálogo, con monto libre. El error lo muestra el propio
      diálogo, así que acá se deja propagar. */
-  const registrarPago = (share, tipo) => async (valores) => {
-    await createPayout({ share_id: share.id, mes, tipo, ...valores })
+  const registrarPago = (share) => async (valores) => {
+    await createPayout({ share_id: share.id, mes, tipo: 'reparto', ...valores })
     pagos.reload()
   }
 
@@ -460,7 +463,7 @@ export default function Profit() {
     <>
       <PageHeader
         title="Rentabilidad"
-        description={`El resultado de ${formatMonth(mes)} y cómo se reparte.`}
+        description={`El resultado de ${formatMonth(mes)} y la cuenta de cada uno.`}
         actions={
           <input
             type="month"
@@ -478,60 +481,52 @@ export default function Profit() {
       )}
 
       <Async query={query}>
-        {({ meses, shares }) => {
+        {({ meses, shares, tipos }) => {
           const fila = meses.find((row) => String(row.mes).slice(0, 7) === mes)
           const datos = fila ?? MES_VACIO
           const ganancia = Number(datos.ganancia_neta)
-          const aRepartir = Number(datos.ganancia_base)
 
-          /* El pozo de reinversión se arrastra de un mes al otro, así que el
-             reparto de este mes depende de los anteriores: hay que recorrer la
-             cadena entera y después buscar el mes que se está mirando. */
-          const cadena = runReserve(meses, shares)
-          const reparto = cadena.get(mes) ?? splitProfit(0, 0, shares, 0)
-          const pozo = reparto.reinversion
+          /* El pozo se arrastra de un mes al otro, así que el reparto de este
+             mes depende de los anteriores: hay que recorrer la cadena entera y
+             después buscar el mes que se está mirando. */
+          const cadena = runReserve(meses, shares, tipos)
+          const reparto = cadena.get(mes) ?? splitProfit(MES_VACIO, shares, tipos, 0)
+          const pozo = reparto.pozo
+          const peso = pesoDelPozo(cadena)
+
+          const nombreDe = (id) => shares.find((s) => s.id === id)?.nombre ?? '—'
+          const listaDe = (ids) => ids.map(nombreDe).join(' y ')
 
           const todosLosPagos = pagos.data ?? []
           const listaPagos = todosLosPagos.filter(
             (p) => String(p.mes).slice(0, 7) === mes,
           )
-          const pagosDe = (shareId, tipo) =>
-            listaPagos.filter((p) => p.share_id === shareId && p.tipo === tipo)
+          const pagosDe = (shareId) =>
+            listaPagos.filter((p) => p.share_id === shareId && p.tipo === 'reparto')
 
           /*
             La cuenta de cada socio a lo largo de todos los meses: cuánto le
             tocó en total, cuánto cobró y qué saldo queda. Se arma recorriendo
             la cadena completa —que ya está calculada— y cruzándola con los
             pagos. Es la pregunta que no se podía contestar mirando un mes por
-            vez: "¿cuánto le debo a Pipo?".
+            vez: "¿cuánto le debo a Juan?".
           */
           const cuentas = new Map()
-          const cuentaDe = (share) => {
-            if (!cuentas.has(share.id)) {
-              cuentas.set(share.id, {
-                id: share.id,
-                nombre: share.nombre,
-                leToca: 0,
-                pagado: 0,
-                meses: [],
-              })
-            }
-            return cuentas.get(share.id)
-          }
-
           for (const [mesKey, rep] of cadena) {
-            for (const parte of rep.partes) {
-              /* La reinversión no tiene cuenta: su parte no se le paga a nadie. */
-              if (parte.es_reinversion || Math.abs(parte.monto) < 0.01) continue
-              const cuenta = cuentaDe(parte)
+            for (const parte of rep.socios) {
+              if (Math.abs(parte.monto) < 0.01) continue
+              if (!cuentas.has(parte.id)) {
+                cuentas.set(parte.id, {
+                  id: parte.id,
+                  nombre: parte.nombre,
+                  leToca: 0,
+                  pagado: 0,
+                  meses: [],
+                })
+              }
+              const cuenta = cuentas.get(parte.id)
               cuenta.leToca += parte.monto
-              cuenta.meses.push({ mes: mesKey, tipo: 'reparto', monto: parte.monto })
-            }
-            for (const socio of rep.liquidacion) {
-              if (Math.abs(socio.monto) < 0.01) continue
-              const cuenta = cuentaDe(socio)
-              cuenta.leToca += socio.monto
-              cuenta.meses.push({ mes: mesKey, tipo: 'pozo', monto: socio.monto })
+              cuenta.meses.push({ mes: mesKey, monto: parte.monto })
             }
           }
 
@@ -544,11 +539,37 @@ export default function Profit() {
 
           const listaCuentas = [...cuentas.values()].sort((a, b) => b.leToca - a.leToca)
 
+          /* Liquidaciones hechas bajo la regla vieja del pozo que vencía. Ya no
+             se generan más, pero la plata salió y está contada en «cobró»: sin
+             decirlo, un saldo pagado de más parece un error de cuenta. */
+          const delPozoViejo = todosLosPagos.filter((p) => p.tipo === 'pozo')
+          const montoPozoViejo = sumarPagos(delPozoViejo)
+
           /* El margen sobre lo facturado: el número que dice si el mes fue
              bueno más allá de cuánto se vendió. Sin ventas no hay margen que
              calcular, y dividir por cero daría un infinito en pantalla. */
           const facturado = Number(datos.facturado)
           const margen = facturado > 0 ? (ganancia / facturado) * 100 : null
+
+          /* Los gastos que bancan socios puntuales, ya agrupados para mostrar.
+             El flete va aparte porque se resuelve neto contra su ingreso. */
+          const directos = tipos
+            .filter((tipo) => tipo.paga === 'socios' && tipo.clave !== 'flete')
+            .map((tipo) => ({
+              ...tipo,
+              monto:
+                Number(datos.gastos_por_tipo?.[tipo.clave] ?? 0) +
+                (tipo.clave === 'produccion' ? Number(datos.costo_produccion) : 0),
+            }))
+            .filter((tipo) => tipo.monto > 0)
+
+          const delPozo = tipos
+            .filter((tipo) => tipo.paga === 'pozo')
+            .map((tipo) => ({
+              ...tipo,
+              monto: Number(datos.gastos_por_tipo?.[tipo.clave] ?? 0),
+            }))
+            .filter((tipo) => tipo.monto > 0)
 
           return (
             <>
@@ -562,6 +583,25 @@ export default function Profit() {
                   ningún total.{' '}
                   <Link to="/erp/costos" className="font-semibold underline underline-offset-2">
                     Revisarlos
+                  </Link>
+                </div>
+              )}
+
+              {reparto.sinDueno > 0.01 && (
+                <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-800">
+                  <strong>
+                    Hay {formatPesos(reparto.sinDueno)} de gastos sin dueño este
+                    mes.
+                  </strong>{' '}
+                  Son{' '}
+                  {reparto.huerfanos.map((item) => item.nombre).join(', ')}: su tipo
+                  no tiene ningún socio asignado, así que la plata salió de la caja
+                  y no se le descontó a nadie. Los montos de abajo no la incluyen.{' '}
+                  <Link
+                    to="/erp/tipos-de-gasto"
+                    className="font-semibold underline underline-offset-2"
+                  >
+                    Asignar quién los paga
                   </Link>
                 </div>
               )}
@@ -587,8 +627,12 @@ export default function Profit() {
                   value={<Money value={datos.facturado} />}
                   hint={`${datos.pedidos} pedido${datos.pedidos === 1 ? '' : 's'}`}
                 />
+                <Stat
+                  label="Base del reparto"
+                  value={<Money value={reparto.base} />}
+                  hint="Mercadería y servicios, menos comisiones"
+                />
                 <Stat label="Costos" value={<Money value={datos.costos} />} tone="warn" />
-                <Stat label="Comisiones" value={<Money value={datos.comisiones} />} tone="warn" />
                 <Stat
                   label="Ganancia neta"
                   value={<Money value={ganancia} />}
@@ -596,7 +640,7 @@ export default function Profit() {
                   hint={
                     margen === null
                       ? 'Sin ventas en el mes'
-                      : `${margen.toFixed(1)}% de lo facturado · a repartir ${formatPesos(aRepartir)}`
+                      : `${margen.toFixed(1)}% de lo facturado`
                   }
                 />
               </div>
@@ -605,37 +649,83 @@ export default function Profit() {
                 <Card title="Cómo se llegó a ese número">
                   <div className="py-1">
                     <Linea label="Mercadería" value={datos.mercaderia} />
-                    <Linea label="Flete facturado" value={datos.flete_facturado} />
-                    <Linea label="Facturado" value={datos.facturado} strong />
-
-                    <Linea label="Comisiones" value={datos.comisiones} signo="−" />
+                    <Linea label="Servicios" value={datos.servicios} />
                     <Linea
-                      label="Producción"
-                      hint={
-                        datos.varillas_producidas > 0
-                          ? `${formatNumber(datos.varillas_producidas)} varillas fabricadas`
-                          : 'Sale del costo de cada varilla al cargarla en Stock'
-                      }
-                      value={datos.costo_produccion}
+                      label="Comisiones"
+                      value={datos.comisiones}
                       signo="−"
+                      hint="La única que se descuenta antes de repartir"
                     />
-                    <Linea label="Flete bonificado" value={datos.costo_flete} signo="−" />
-
+                    {reparto.proporcionales > 0 && (
+                      <Linea
+                        label="Gastos que salen de arriba"
+                        value={reparto.proporcionales}
+                        signo="−"
+                      />
+                    )}
                     <Linea
-                      label="Ganancia a repartir"
-                      hint="Sobre esto se calculan los porcentajes"
-                      value={aRepartir}
+                      label="Base del reparto"
+                      hint="Sobre esto corren los porcentajes de cada uno"
+                      value={reparto.base}
                       strong
                     />
 
-                    {/* Los gastos de reinversión van después de la línea del
-                        reparto porque no los paga la empresa: los paga la parte
-                        de reinversión. Restarlos arriba haría que los socios
-                        los pagaran dos veces. */}
-                    <Linea label="Pauta" value={datos.costo_pauta} signo="−" />
-                    <Linea label="Muestras" value={datos.costo_muestras} signo="−" />
-                    <Linea label="Suscripciones" value={datos.costo_suscripciones} signo="−" />
-                    <Linea label="Otros" value={datos.costo_otros} signo="−" />
+                    {/* El flete va neto y aparte: es la misma plata entrando y
+                        saliendo, y va entera a quienes lo bancan. */}
+                    <Linea label="Flete facturado" value={reparto.flete.facturado} />
+                    <Linea label="Flete pagado" value={reparto.flete.costo} signo="−" />
+                    <Linea
+                      label="Resultado del flete"
+                      hint={
+                        reparto.flete.sinPagador
+                          ? 'Sin socios asignados al tipo flete'
+                          : `Va entero a ${listaDe(reparto.flete.pagadores)}`
+                      }
+                      value={reparto.flete.neto}
+                      strong
+                    />
+
+                    {directos.length > 0 && (
+                      <>
+                        <p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-steel-400">
+                          Lo bancan socios puntuales
+                        </p>
+                        {directos.map((tipo) => (
+                          <Linea
+                            key={tipo.clave}
+                            label={tipo.nombre}
+                            hint={
+                              tipo.pagadores.length > 0
+                                ? `${listaDe(tipo.pagadores)}, mitades`
+                                : 'Sin socios asignados'
+                            }
+                            value={tipo.monto}
+                            signo="−"
+                          />
+                        ))}
+                      </>
+                    )}
+
+                    {delPozo.length > 0 && (
+                      <>
+                        <p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-steel-400">
+                          Los paga el pozo
+                        </p>
+                        {delPozo.map((tipo) => (
+                          <Linea
+                            key={tipo.clave}
+                            label={tipo.nombre}
+                            hint={
+                              tipo.pagadores.length > 0
+                                ? `Si no alcanza, ${listaDe(tipo.pagadores)}`
+                                : 'Sin socios asignados'
+                            }
+                            value={tipo.monto}
+                            signo="−"
+                          />
+                        ))}
+                      </>
+                    )}
 
                     <Linea
                       label="Ganancia neta"
@@ -646,14 +736,14 @@ export default function Profit() {
                   </div>
                   <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
                     Cuenta como venta todo pedido confirmado en adelante, por su
-                    fecha. Los presupuestos y los anulados no entran. Los cuatro
-                    gastos de abajo los paga la parte de reinversión, no la
-                    empresa: por eso quedan fuera de lo que se reparte.
+                    fecha; los presupuestos y los anulados no entran. Esta es la
+                    cuenta de la empresa: cuánto quedó. De quién sale cada peso es
+                    la cuenta de al lado, y no da lo mismo.
                   </p>
                 </Card>
 
                 <Card
-                  title="Reparto"
+                  title="La cuenta de cada uno"
                   actions={
                     <Button
                       variant="ghost"
@@ -673,26 +763,16 @@ export default function Profit() {
                     </div>
                   )}
 
-                  {pozo.escalo && (
+                  {pozo.faltante > 0.01 && (
                     <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-700">
                       <strong>
-                        La reinversión subió del {pozo.base}% al {pozo.tasa}%.
+                        Al pozo le faltaron {formatPesos(pozo.faltante)}.
                       </strong>{' '}
-                      Entre la reserva del mes anterior y su {pozo.base}% juntaba{' '}
-                      {formatPesos(pozo.reservaEntrante + (aRepartir * pozo.base) / 100)}, y los
-                      gastos fueron {formatPesos(pozo.gastos)}. Los puntos que subió
-                      salen de los socios, a cada uno en proporción a su parte.
-                    </div>
-                  )}
-
-                  {pozo.faltante > 0 && (
-                    <div className="border-b border-red-200 bg-red-50 px-4 py-3 text-xs leading-relaxed text-red-700">
-                      <strong>
-                        Ni con el {pozo.tasa}% y la reserva alcanza: faltan{' '}
-                        {formatPesos(pozo.faltante)}.
-                      </strong>{' '}
-                      Los montos de abajo reparten la ganancia igual, así que ese
-                      hueco todavía no tiene de dónde salir.
+                      Entre lo acumulado y el {pozo.tasa}% de este mes juntaba{' '}
+                      {formatPesos(pozo.disponible)}, y los gastos fueron{' '}
+                      {formatPesos(pozo.gastos)}. Esa diferencia la ponen, en
+                      mitades, los socios asignados a cada tipo de gasto, y ya está
+                      descontada abajo.
                     </div>
                   )}
 
@@ -700,105 +780,102 @@ export default function Profit() {
                     head={
                       <>
                         <Th>Parte</Th>
-                        <Th align="right">%</Th>
+                        <Th align="right">Su %</Th>
                         <Th align="right">Le toca</Th>
                         <Th align="right">Liquidación</Th>
                         <Th align="right"> </Th>
                       </>
                     }
                   >
-                    {reparto.partes.map((parte) => {
-                      const movido = Math.abs(parte.aplicado - Number(parte.porcentaje)) > 0.001
-
-                      return (
-                        <tr key={parte.id} className="hover:bg-steel-50">
-                          <Td className="font-medium text-steel-700">
-                            {parte.nombre}
-                            {parte.es_reinversion && (
-                              <span className="ml-2">
-                                <Badge tone="info">pozo con destino</Badge>
+                    {reparto.partes.map((parte) => (
+                      <tr key={parte.id} className="align-top hover:bg-steel-50">
+                        <Td className="font-medium text-steel-700">
+                          {parte.nombre}
+                          {parte.es_reinversion && (
+                            <span className="ml-2">
+                              <Badge tone="info">pozo</Badge>
+                            </span>
+                          )}
+                        </Td>
+                        <Td align="right" className="tabular-nums text-steel-500">
+                          {parte.porcentaje}%
+                        </Td>
+                        <Td align="right">
+                          <Money
+                            value={parte.monto}
+                            className={`font-semibold ${
+                              parte.monto < 0 ? 'text-red-600' : 'text-steel-800'
+                            }`}
+                          />
+                          {/* De dónde salió ese número. Sin esto, un socio ve
+                              un monto más chico que su porcentaje y no tiene
+                              cómo saber qué se le descontó. */}
+                          {parte.cargos.length > 0 && (
+                            <span className="mt-1 block space-y-0.5 text-xs font-normal text-steel-400">
+                              <span className="block">
+                                {formatPesos(parte.bruto)} de su {parte.porcentaje}%
                               </span>
-                            )}
-                          </Td>
-                          <Td align="right" className="tabular-nums text-steel-500">
-                            {parte.aplicado.toFixed(2).replace(/\.?0+$/, '')}%
-                            {/* Cuando la escalera movió el porcentaje se muestra
-                                de dónde salió, para que el número no aparezca
-                                cambiado sin explicación. */}
-                            {movido && (
-                              <span className="block text-xs text-steel-300">
-                                base {Number(parte.porcentaje)}%
-                              </span>
-                            )}
-                          </Td>
-                          <Td align="right">
-                            <Money value={parte.monto} className="font-semibold text-steel-800" />
-                            {parte.es_reinversion && pozo.reservaEntrante > 0 && (
-                              <span className="block text-xs text-steel-400">
-                                + {formatPesos(pozo.reservaEntrante)} de reserva
-                              </span>
-                            )}
-                          </Td>
-                          <Td align="right">
-                            {/* La reinversión no se le paga a nadie: su parte
-                                es el pozo, y lo que se liquida de ahí sale más
-                                abajo cuando vence. */}
-                            {parte.es_reinversion ? (
-                              <span className="text-xs text-steel-300">va al pozo</span>
-                            ) : (
-                              <Liquidacion
-                                leToca={parte.monto}
-                                pagos={pagosDe(parte.id, 'reparto')}
-                                onLiquidar={() =>
-                                  liquidarTodo(
-                                    parte,
-                                    'reparto',
-                                    parte.monto - sumarPagos(pagosDe(parte.id, 'reparto')),
-                                  )
-                                }
-                                onAbrir={() =>
-                                  setLiquidando({
-                                    parte,
-                                    tipo: 'reparto',
-                                    leToca: parte.monto,
-                                  })
-                                }
-                              />
-                            )}
-                          </Td>
-                          <Td align="right">
-                            <div className="flex justify-end gap-1.5">
-                              <Button
-                                variant="ghost"
-                                className="px-2 py-1 text-xs"
-                                onClick={() => setEditing(parte)}
-                              >
-                                Editar
-                              </Button>
-                              <Button
-                                variant="danger"
-                                className="px-2 py-1 text-xs"
-                                onClick={() => remove(parte)}
-                              >
-                                Borrar
-                              </Button>
-                            </div>
-                          </Td>
-                        </tr>
-                      )
-                    })}
+                              {parte.cargos.map((cargo, i) => (
+                                <span key={i} className="block">
+                                  {cargo.monto >= 0 ? '−' : '+'}{' '}
+                                  {formatPesos(Math.abs(cargo.monto))} {cargo.concepto}
+                                </span>
+                              ))}
+                            </span>
+                          )}
+                        </Td>
+                        <Td align="right">
+                          {/* La reinversión no se le paga a nadie: su parte es
+                              el pozo, y el pozo ya está invertido. */}
+                          {parte.es_reinversion ? (
+                            <span className="text-xs text-steel-300">va al pozo</span>
+                          ) : (
+                            <Liquidacion
+                              leToca={parte.monto}
+                              pagos={pagosDe(parte.id)}
+                              onLiquidar={() =>
+                                liquidarTodo(
+                                  parte,
+                                  parte.monto - sumarPagos(pagosDe(parte.id)),
+                                )
+                              }
+                              onAbrir={() =>
+                                setLiquidando({ parte, leToca: parte.monto })
+                              }
+                            />
+                          )}
+                        </Td>
+                        <Td align="right">
+                          <div className="flex justify-end gap-1.5">
+                            <Button
+                              variant="ghost"
+                              className="px-2 py-1 text-xs"
+                              onClick={() => setEditing(parte)}
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              variant="danger"
+                              className="px-2 py-1 text-xs"
+                              onClick={() => remove(parte)}
+                            >
+                              Borrar
+                            </Button>
+                          </div>
+                        </Td>
+                      </tr>
+                    ))}
                   </Table>
 
                   {/* La pregunta que se hace a fin de mes no es cuánto le toca a
                       cada uno sino si ya se le pagó. Sin esta línea hay que ir
                       fila por fila para contestarla. */}
                   {(() => {
-                    const aPagar =
-                      reparto.partes
-                        .filter((parte) => !parte.es_reinversion)
-                        .reduce((sum, parte) => sum + parte.monto, 0) +
-                      reparto.liquidacion.reduce((sum, socio) => sum + socio.monto, 0)
-                    const pagado = listaPagos.reduce((sum, pago) => sum + Number(pago.monto), 0)
+                    const aPagar = reparto.socios.reduce(
+                      (sum, parte) => sum + parte.monto,
+                      0,
+                    )
+                    const pagado = sumarPagos(listaPagos)
                     const saldado = Math.abs(aPagar - pagado) < 0.01 && aPagar !== 0
 
                     return (
@@ -820,96 +897,62 @@ export default function Profit() {
                     )
                   })()}
 
-                  {/* El pozo de reinversión mes a mes: qué entró de reserva, qué
-                      se juntó, qué se gastó y qué queda. Es la plata que más
-                      fácil se vuelve invisible, porque no es de nadie hasta que
-                      vence. */}
+                  {/* El pozo. No es plata guardada esperando el mes que viene:
+                      es plata que ya está invertida y se acumula. */}
                   <div className="border-t border-steel-200 bg-steel-50 px-4 py-3">
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-steel-500">
                       El pozo de reinversión
                     </p>
                     <dl className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
                       <div className="flex justify-between gap-3">
-                        <dt className="text-steel-500">Reserva del mes anterior</dt>
+                        <dt className="text-steel-500">Venía acumulado</dt>
                         <dd className="tabular-nums text-steel-700">
-                          {formatPesos(pozo.reservaEntrante)}
+                          {formatPesos(pozo.entrante)}
                         </dd>
                       </div>
                       <div className="flex justify-between gap-3">
-                        <dt className="text-steel-500">Aporte de este mes ({pozo.tasa}%)</dt>
-                        <dd className="tabular-nums text-steel-700">{formatPesos(pozo.fondo)}</dd>
+                        <dt className="text-steel-500">Aporte del mes ({pozo.tasa}%)</dt>
+                        <dd className="tabular-nums text-steel-700">
+                          {formatPesos(pozo.aporte)}
+                        </dd>
                       </div>
                       <div className="flex justify-between gap-3">
-                        <dt className="text-steel-500">Gastado</dt>
-                        <dd className="tabular-nums text-steel-700">−{formatPesos(pozo.gastos)}</dd>
+                        <dt className="text-steel-500">Invertido este mes</dt>
+                        <dd className="tabular-nums text-steel-700">
+                          −{formatPesos(pozo.cubierto)}
+                        </dd>
                       </div>
                       <div className="flex justify-between gap-3 font-semibold">
-                        <dt className="text-steel-600">Queda para el mes que viene</dt>
+                        <dt className="text-steel-600">Queda en el pozo</dt>
                         <dd className="tabular-nums text-steel-800">
-                          {formatPesos(pozo.reservaSaliente)}
+                          {formatPesos(pozo.saliente)}
                         </dd>
                       </div>
                     </dl>
                   </div>
 
-                  {pozo.vencido > 0 && (
-                    <div className="border-t border-secondary-200 bg-secondary-50 px-4 py-3">
-                      <p className="text-xs leading-relaxed text-secondary-800">
-                        <strong>
-                          Se liquidan {formatPesos(pozo.vencido)} del pozo.
-                        </strong>{' '}
-                        Esa plata venía de la reserva del mes anterior y tampoco se
-                        usó este mes, así que dejó de ser reserva. Vuelve entera{' '}
-                        <strong>al socio minoritario</strong>, que es quien resignó
-                        esos cinco puntos para financiar la reinversión.
-                      </p>
-                      <ul className="mt-2 space-y-1.5">
-                        {reparto.liquidacion.map((socio) => (
-                          <li
-                            key={socio.id}
-                            className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs"
-                          >
-                            <span className="text-secondary-800">
-                              {socio.nombre}{' '}
-                              <span className="text-secondary-600">
-                                ({socio.fraccion.toFixed(2)}%)
-                              </span>
-                            </span>
-                            <span className="flex items-baseline gap-3">
-                              <Money
-                                value={socio.monto}
-                                className="font-semibold text-secondary-900"
-                              />
-                              <Liquidacion
-                                leToca={socio.monto}
-                                pagos={pagosDe(socio.id, 'pozo')}
-                                onLiquidar={() =>
-                                  liquidarTodo(
-                                    socio,
-                                    'pozo',
-                                    socio.monto - sumarPagos(pagosDe(socio.id, 'pozo')),
-                                  )
-                                }
-                                onAbrir={() =>
-                                  setLiquidando({ parte: socio, tipo: 'pozo', leToca: socio.monto })
-                                }
-                              />
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                  {/* La señal de que hay que invertir más. Un pozo grande no
+                      dice nada por sí solo; dice algo medido contra lo que se
+                      está gastando por mes. */}
+                  {peso && peso.meses >= 2 && (
+                    <div className="border-t border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+                      <strong>
+                        El pozo equivale a {peso.meses.toFixed(1)} meses de
+                        reinversión al ritmo actual
+                      </strong>{' '}
+                      ({formatPesos(peso.promedio)} por mes). Esa plata ya es de la
+                      empresa y está para usarse: si sigue creciendo, lo que
+                      corresponde es invertir más fuerte —más pauta, más
+                      muestras— y no dejarla quieta.
                     </div>
                   )}
 
                   <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
-                    La reinversión no es una parte que se guarda: paga la pauta,
-                    las muestras y las suscripciones. Lo que sobra queda de
-                    reserva para el mes siguiente y ahí se gasta primero. Si
-                    sobrevive ese mes sin usarse, vuelve al socio minoritario: el
-                    reparto de fondo es 50 / 25 / 25 y él resignó cinco puntos
-                    para financiar el pozo, así que lo que no se usó es suyo. De
-                    paso, el pozo no engorda para siempre sin que nadie decida
-                    nada.
+                    Cada uno cobra su porcentaje sobre el valor del producto
+                    vendido, y de ahí se le descuentan sólo los costos que él
+                    banca. El pozo no se le paga a nadie y no vence: es plata que
+                    ya se está invirtiendo, y se acumula hasta que se decida
+                    invertir más.
                   </p>
                 </Card>
               </div>
@@ -999,7 +1042,7 @@ export default function Profit() {
                 no se puede responder mes por mes: cuánto le tocó en total,
                 cuánto cobró y qué falta.
               */}
-              <Card title="Cuenta de cada socio" className="mt-6">
+              <Card title="Cuenta corriente de cada socio" className="mt-6">
                 {listaCuentas.length === 0 ? (
                   <Empty>Todavía no hay ningún reparto para liquidar.</Empty>
                 ) : (
@@ -1024,7 +1067,7 @@ export default function Profit() {
                               {cuenta.nombre}
                               <span className="block text-xs font-normal text-steel-400">
                                 {cuenta.meses.length}{' '}
-                                {cuenta.meses.length === 1 ? 'liquidación' : 'liquidaciones'}
+                                {cuenta.meses.length === 1 ? 'mes' : 'meses'}
                               </span>
                             </Td>
                             <Td align="right">
@@ -1061,7 +1104,6 @@ export default function Profit() {
                           <>
                             <Th>Mes</Th>
                             <Th>Socio</Th>
-                            <Th>Concepto</Th>
                             <Th align="right">Le tocó</Th>
                             <Th align="right">Cobró</Th>
                           </>
@@ -1079,14 +1121,14 @@ export default function Profit() {
                               .filter(
                                 (p) =>
                                   p.share_id === fila.cuenta.id &&
-                                  p.tipo === fila.tipo &&
+                                  p.tipo === 'reparto' &&
                                   String(p.mes).slice(0, 7) === fila.mes,
                               )
                               .reduce((sum, p) => sum + Number(p.monto), 0)
 
                             return (
                               <tr
-                                key={`${fila.cuenta.id}-${fila.mes}-${fila.tipo}`}
+                                key={`${fila.cuenta.id}-${fila.mes}`}
                                 onClick={() => setMes(fila.mes)}
                                 className={`cursor-pointer hover:bg-steel-50 ${
                                   fila.mes === mes ? 'bg-secondary-50' : ''
@@ -1096,11 +1138,6 @@ export default function Profit() {
                                   {formatMonth(fila.mes)}
                                 </Td>
                                 <Td className="text-steel-700">{fila.cuenta.nombre}</Td>
-                                <Td>
-                                  <Badge tone={fila.tipo === 'pozo' ? 'info' : 'neutral'}>
-                                    {fila.tipo === 'pozo' ? 'Pozo vencido' : 'Reparto'}
-                                  </Badge>
-                                </Td>
                                 <Td align="right">
                                   <Money value={fila.monto} className="text-steel-600" />
                                 </Td>
@@ -1120,6 +1157,16 @@ export default function Profit() {
                       </Table>
                     </details>
                   </>
+                )}
+
+                {montoPozoViejo > 0 && (
+                  <div className="border-t border-steel-200 bg-steel-50 px-4 py-3 text-xs leading-relaxed text-steel-500">
+                    En «cobró» hay {formatPesos(montoPozoViejo)} de liquidaciones
+                    del pozo hechas bajo la regla vieja, cuando lo que no se usaba
+                    en dos meses vencía y volvía al socio minoritario. Esa regla ya
+                    no existe —el pozo se acumula como inversión— pero esos pagos
+                    se hicieron y por eso siguen contados.
+                  </div>
                 )}
 
                 <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
@@ -1143,8 +1190,8 @@ export default function Profit() {
                         <Th align="right">Pedidos</Th>
                         <Th align="right">Facturado</Th>
                         <Th align="right">Costos</Th>
-                        <Th align="right">Comisiones</Th>
                         <Th align="right">Ganancia</Th>
+                        <Th align="right">Pozo</Th>
                       </>
                     }
                   >
@@ -1171,9 +1218,6 @@ export default function Profit() {
                             <Money value={row.costos} className="text-steel-500" />
                           </Td>
                           <Td align="right">
-                            <Money value={row.comisiones} className="text-steel-500" />
-                          </Td>
-                          <Td align="right">
                             <Money
                               value={row.ganancia_neta}
                               className={`font-semibold ${
@@ -1181,6 +1225,14 @@ export default function Profit() {
                                   ? 'text-steel-800'
                                   : 'text-red-600'
                               }`}
+                            />
+                          </Td>
+                          {/* Cómo venía creciendo el pozo mes a mes: es lo que
+                              deja ver que se está acumulando sin usarse. */}
+                          <Td align="right">
+                            <Money
+                              value={cadena.get(suyo)?.pozo.saliente ?? 0}
+                              className="text-steel-500"
                             />
                           </Td>
                         </tr>
@@ -1208,18 +1260,17 @@ export default function Profit() {
       {liquidando && (
         <PayoutModal
           parte={liquidando.parte}
-          tipo={liquidando.tipo}
           leToca={liquidando.leToca}
           /* Se leen de la lista viva y no de lo que había al abrir: si se borra
              un pago desde el mismo diálogo, el saldo tiene que moverse ahí. */
           pagos={(pagos.data ?? []).filter(
             (p) =>
               p.share_id === liquidando.parte.id &&
-              p.tipo === liquidando.tipo &&
+              p.tipo === 'reparto' &&
               String(p.mes).slice(0, 7) === mes,
           )}
           onClose={() => setLiquidando(null)}
-          onRegistrar={registrarPago(liquidando.parte, liquidando.tipo)}
+          onRegistrar={registrarPago(liquidando.parte)}
           onBorrar={deshacerPago}
         />
       )}

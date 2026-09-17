@@ -13,8 +13,8 @@ El día a día:
 | **Pedidos**      | Dos solapas: los presupuestos mandados, y lo vendido hasta la entrega.  |
 | **Stock**        | Existencias y movimientos: producción, ventas, ajustes y devoluciones.  |
 | **Caja**         | Los cobros del período, con el total por medio de pago.                 |
-| **Costos**       | Lo que sale: producción, pauta, muestras y lo que venga.                |
-| **Rentabilidad** | El resultado del mes y cómo se reparte entre los socios.                |
+| **Costos**       | Lo que sale, y de la parte de quién sale cada cosa.                     |
+| **Rentabilidad** | El resultado del mes y la cuenta de cada socio.                         |
 | **Documentos**   | La lista de precios, el folleto y la ficha técnica, con el contacto de cada vendedor. |
 
 Y lo que se toca de vez en cuando, bajo **Ajustes**:
@@ -25,6 +25,7 @@ Y lo que se toca de vez en cuando, bajo **Ajustes**:
 | **Costo de la varilla** | Qué se gasta en producir una, y de dónde sale ese número.        |
 | **Fletes**      | Los transportes, hasta dónde llega cada uno y a cuánto.                  |
 | **Vendedores**  | Quién trae la venta, su comisión y lo que hay que liquidarle en el mes.  |
+| **Tipos de gasto** | Qué gastos existen y qué socio banca cada uno.                        |
 
 ---
 
@@ -783,21 +784,45 @@ señaladas en Stock y cuentan cero.
 ### Costos
 
 Todo lo que sale de la empresa se carga en **Costos**. El tipo no es una
-etiqueta para ordenar: **define quién paga el gasto**, y son dos grupos:
+etiqueta para ordenar: **define de la parte de quién sale ese gasto**. Cada fila
+de la lista lo dice, en su propia columna.
 
-| Los paga la empresa | Los paga la reinversión |
-| ------------------- | ----------------------- |
-| Producción          | Pauta                   |
-| Flete               | Muestras                |
-|                     | Suscripciones           |
-|                     | Otros                   |
+Quién paga cada tipo se configura en **Ajustes › Tipos de gasto**, y hay tres
+reglas posibles:
 
-Los de la izquierda se restan de la ganancia antes de repartir. Los de la
-derecha los paga la parte de reinversión del reparto, que para eso existe: ese
-5% no es plata que se guarda, es plata con destino.
+| Regla | Quién lo termina pagando |
+| --- | --- |
+| **Sale de arriba, en proporción** | Se descuenta antes de repartir, así que lo paga cada parte en proporción a su porcentaje. |
+| **Socios puntuales, en mitades** | Lo bancan sólo los socios marcados, **en mitades iguales** entre ellos, sin mirar sus porcentajes. |
+| **El pozo de reinversión** | Lo paga el pozo. Lo que el pozo no llegue a cubrir lo ponen, también en mitades, los socios marcados. |
 
-Por eso el selector está agrupado así y no como una lista plana: poner un gasto
-en el grupo equivocado no desordena un informe, le mueve plata a alguien.
+De fábrica queda así:
+
+| Tipo | Regla | Lo bancan |
+| --- | --- | --- |
+| Producción | Socios, mitades | Esteban y Juan |
+| Flete | Socios, mitades | Esteban y Juan |
+| Pauta | El pozo | y si no alcanza, Luis y Juan |
+| Suscripciones | El pozo | y si no alcanza, Luis y Juan |
+| Muestras | El pozo | y si no alcanza, Luis y Juan |
+
+Los tipos se agregan desde esa pantalla: se le pone nombre, se elige la regla y
+se marca quién lo banca. La lista ya no está escrita en el código.
+
+**Un tipo no se borra, se retira.** Deja de ofrecerse al cargar un gasto pero
+los que ya estaban se siguen contando y pagando igual — borrarlo dejaría plata
+sin dueño en un mes ya liquidado.
+
+**Un tipo sin socios asignados no se reparte solo.** Los gastos que se carguen
+con él aparecen en rojo, tanto en Costos como en Rentabilidad, como *gasto sin
+dueño*. Repartirlos entre todos por defecto es exactamente lo que se quiso dejar
+atrás.
+
+> **Se retiró el tipo "Otro".** Un cajón de sastre es justamente el que no
+> contesta de la parte de quién sale. Los gastos que hayan quedado con ese tipo
+> se siguen contando y los banca quien tenga asignado, pero conviene
+> reclasificarlos mientras alguien se acuerde de qué eran. La pantalla los
+> señala.
 
 Un gasto puede imputarse a un pedido por su número —un flete que se pagó, una
 producción especial— o quedar suelto en el mes, como la pauta. No hay un segundo
@@ -805,92 +830,96 @@ lugar donde anotar gastos.
 
 ### El reparto
 
-**Rentabilidad** junta las dos mitades y muestra el mes completo:
+La regla, en una frase: **cada uno cobra su porcentaje sobre el valor del
+producto vendido, y después se le descuentan sólo los costos que él banca.**
+
+Eso es lo que cambió, y no es un detalle. Antes los costos salían de arriba, de
+la ganancia, y por lo tanto los pagaban los tres en proporción a su parte: un
+costo de producción de $100.000 le salía $50.000 a quien tenía el 50 y $20.000 a
+quien tenía el 20, sin que nadie lo hubiera acordado así.
+
+**Rentabilidad** muestra la cascada completa:
 
 ```
-   Mercadería + flete facturado
- − comisiones
- − producción, flete bonificado
+   Mercadería + servicios
+ − comisiones                       (la única que sale de arriba)
  ─────────────────────────────
- = ganancia a repartir   →   se reparte por porcentaje
- − pauta, muestras, suscripciones, otros   (los paga la reinversión)
- ─────────────────────────────
- = ganancia neta del mes
+ = base del reparto   →   cada parte cobra su porcentaje sobre esto
+
+   flete facturado − flete pagado   →   neto, a quienes bancan el flete
+ − producción y demás costos        →   en mitades, a quienes los bancan
+ − pauta y suscripciones            →   al pozo; lo que no cubra, a sus socios
 ```
+
+El **flete facturado no entra en la base** a propósito: es un pasamanos, se
+cobra y se paga. Va neto —lo cobrado menos lo que costó— a los mismos que bancan
+su costo. Si entrara en la base, quien cobra un porcentaje sobre el valor del
+producto cobraría además una parte de un transporte cuyo costo banca otro.
+
+La **comisión del vendedor** es la única que se descuenta antes de repartir, así
+que la absorben todos en proporción: con 5% de comisión, quien tiene el 50%
+resigna 2,5 puntos y quien tiene el 20% resigna 1.
 
 Cuenta como venta todo pedido confirmado en adelante, por su fecha; los
 presupuestos y los anulados no entran, igual que en la cuenta corriente.
 
 Los porcentajes se editan en la misma pantalla y arrancan en 50 / 25 / 20 y un 5
-de reinversión.
+de reinversión, que sale de arriba y por lo tanto lo ponen los tres.
 
-**La reinversión no es una parte que se guarda: es la que paga la pauta, las
-muestras, las suscripciones y los gastos sueltos de crecer.** Por eso su
-porcentaje no es fijo:
+**La tabla muestra de dónde salió cada número.** Debajo del monto de cada socio
+se lista su bruto y cada descuento con su concepto: sin eso, un socio ve una
+cifra más chica que su porcentaje y no tiene cómo saber qué se le cobró.
 
-1. Arranca en su **5%**. Si con eso cubre esos gastos, listo.
-2. Si no alcanza, sube a **7,5%**.
-3. Si tampoco, a **10%**.
+Un mes de ejemplo, con $1.000.000 de mercadería, $300.000 de producción y
+$100.000 de pauta:
 
-Sube al primer escalón que alcanza, no al máximo. Los puntos que sube salen de
-los socios, a cada uno **en proporción a lo suyo**. Con un reparto 50/25/20,
-subir 2,5 puntos le saca 1,32 a quien tiene la mitad y 0,53 a quien tiene el
-veinte:
+| | Su % | Bruto | Se le descuenta | Le toca |
+| --- | --- | --- | --- | --- |
+| Esteban | 50% | $500.000 | $150.000 de producción | **$350.000** |
+| Juan | 25% | $250.000 | $150.000 de producción + $25.000 de pauta | **$75.000** |
+| Luis | 20% | $200.000 | $25.000 de pauta | **$175.000** |
+| Reinversión | 5% | $50.000 | — | al pozo |
 
-| Gastos de reinversión sobre $1.000.000 | Tasa | Gustavo | Pipo | Lui | Reinversión |
-| --- | --- | --- | --- | --- | --- |
-| $40.000 | 5% | 50% | 25% | 20% | 5% |
-| $60.000 | 7,5% | 48,68% | 24,34% | 19,47% | 7,5% |
-| $90.000 | 10% | 47,37% | 23,68% | 18,95% | 10% |
+El 5% juntó $50.000 y la pauta fue $100.000, así que faltaron $50.000: los
+ponen Luis y Juan, en mitades, $25.000 cada uno. La producción no le toca a
+Luis. Las tres cifras suman $600.000, que es exactamente la ganancia neta del
+mes — **si no cerrara, habría plata apareciendo o desapareciendo en el reparto.**
 
-### El pozo no se cierra cada mes
+**Si un mes da pérdida**, los montos salen negativos y se ven en rojo. Es real:
+ese mes alguien puso plata en vez de cobrar.
 
-Lo que la reinversión junta y no gasta **queda de reserva para el mes
-siguiente**. Eso cambia dos cosas:
+Si los porcentajes no suman 100, el ERP lo avisa y muestra cuánta plata queda
+sin asignar, en vez de estirar los números para que cierre. Un reparto que
+cierra siempre no deja ver que la lista está mal cargada.
 
-- **La escalera mira la reserva.** Si con lo que sobró del mes pasado más su 5%
-  ya cubre los gastos, no sube: sería cobrarles dos veces a los socios teniendo
-  pozo sin usar.
-- **El gasto consume primero la plata más vieja.** Así se liquida sólo lo que de
-  verdad quedó quieto, y no se va venciendo el pozo de un mes que sí se está
-  usando.
+### El pozo es plata ya invertida
 
-**La reserva tiene un mes de gracia, no más.** Lo que venía del mes anterior y
-tampoco se usó este mes dejó de ser reserva: **vuelve entero al socio
-minoritario**.
+Lo que la reinversión junta y no gasta **se acumula, y no vence**.
 
-Y no es una gentileza: ese 5% es suyo. El reparto de fondo entre los tres es
-**50 / 25 / 25**, y el socio del 25 más chico resignó cinco puntos para
-financiar la reinversión —por eso su fila dice 20—. Si esa plata no se llegó a
-usar, vuelve a quien la puso.
+El pozo no es plata guardada esperando el mes que viene: es plata que ya está
+invertida —en la marca, en las muestras, en lo que hace que el mes que viene
+exista—. Por eso se acumula en vez de repartirse.
 
-Minoritario es el de menor porcentaje, así que la regla se sostiene sola si
-mañana cambian los números. Si hubiera empate en el mínimo, se reparte en partes
-iguales entre los empatados.
+Cuando el pozo crece, Rentabilidad lo mide contra lo que se está gastando por
+mes y lo dice: *«el pozo equivale a 4,2 meses de reinversión al ritmo actual»*.
+Un pozo de dos millones no dice nada por sí solo; dice algo cuando se sabe que
+son diez meses de pauta sin usar. **Eso es la señal de invertir más fuerte**, y
+la decisión es de los socios, no de una regla automática.
 
-Un ejemplo de tres meses con $1.000.000 de ganancia:
+La columna *Pozo* en la tabla de los últimos meses muestra cómo viene creciendo.
 
-```
-julio       fondo 50.000 · gasta 20.000 · quedan 30.000 de reserva
-agosto      reserva 30.000 + fondo 50.000 · gasta 40.000 (los 30.000 viejos
-            primero) · quedan 40.000
-septiembre  reserva 40.000 + fondo 50.000 · gasta 10.000
-            → vencen 30.000 de la reserva vieja: van enteros a Lui
-            → quedan 50.000 de reserva
-```
+Cuando el pozo no alcanza para los gastos del mes, la diferencia la ponen los
+socios asignados a cada tipo, en mitades, y queda descontada en la tabla con su
+concepto. El pozo cubre todos los tipos **en la misma proporción**, no uno
+entero y después el otro: cubrirlos en orden daría un resultado distinto según
+cómo esté ordenada una tabla.
 
-**Los dos flujos del pozo no son simétricos, y es a propósito:**
-
-| | Quién pone / quién cobra |
-| --- | --- |
-| **Falta** plata (la escalera sube a 7,5% o 10%) | Los puntos de más los ponen **los tres**, en proporción a su parte |
-| **Sobra** plata (la reserva vence) | Vuelve entera **al minoritario** |
-
-> Hay un caso donde esa asimetría da de más: si la escalera subió la tasa —con
-> plata de los tres— y después ese pozo sobra, el excedente igual se va entero
-> al minoritario. Se deja así porque separar el origen de cada peso del pozo
-> sería llevar dos contabilidades para algo que casi no pasa: se escala
-> justamente cuando falta plata, no cuando sobra.
+> **Se eliminó la regla del pozo que vencía.** Antes la reserva tenía un mes de
+> gracia: lo que sobrevivía sin usarse volvía entero al socio minoritario, y la
+> reinversión escalaba a 7,5% o 10% cuando no alcanzaba. Las dos cosas ya no
+> existen. Las liquidaciones de pozo que se hayan hecho bajo esa regla siguen
+> contadas en «cobró», y la cuenta de cada socio lo aclara para que un saldo
+> pagado de más no parezca un error.
 
 ### Registrar lo que se pagó
 
@@ -899,8 +928,7 @@ uno pero no quedaba constancia de qué se pagó. Eso alcanza el primer mes y dej
 de alcanzar al tercero, cuando alguien pregunta si ya cobró lo de septiembre y
 la única respuesta es la memoria de otro.
 
-Ahora cada socio tiene su liquidación, tanto de su parte del mes como de lo que
-le toca del pozo vencido, y **se puede pagar de una vez o en partes**:
+Cada socio tiene su liquidación y **se puede pagar de una vez o en partes**:
 
 - **Liquidar** paga todo lo que falta de un clic. Es el caso normal.
 - **parte** abre el detalle, con un campo para poner el monto a mano. Es cuando
@@ -920,7 +948,6 @@ Dos detalles:
   cuenta del mes se mueve, lo pagado sigue diciendo lo que se pagó. La
   diferencia queda a la vista, que es para lo que sirve tener el registro.
 - **La reinversión no se liquida**: su parte no se le paga a nadie, va al pozo.
-  Lo que sí se liquida es el pozo cuando vence.
 
 > La base tenía una restricción que impedía dos pagos del mismo socio en el
 > mismo mes, justamente para que dos clics no generaran un doble pago. Se sacó
@@ -928,38 +955,23 @@ Dos detalles:
 > Contra el doble pago protege ahora la pantalla, que muestra el saldo antes de
 > registrar nada: es más débil, pero no impide lo legítimo.
 
-### La cuenta de cada socio
+### La cuenta corriente de cada socio
 
-Todo lo anterior mira un mes. La tarjeta **Cuenta de cada socio**, al final de
-Rentabilidad, mira el historial completo y contesta la pregunta que no se puede
-responder mes por mes: *cuánto le tocó en total, cuánto cobró y qué falta*.
+Todo lo anterior mira un mes. La tarjeta **Cuenta corriente de cada socio**, al
+final de Rentabilidad, mira el historial completo y contesta la pregunta que no
+se puede responder mes por mes: *cuánto le tocó en total, cuánto cobró y qué
+falta*.
 
 El **saldo** dice **al día** cuando está saldado, en ámbar cuando se le debe y
 en rojo cuando se le pagó de más. Desplegando *Ver mes por mes* se ve el detalle
-de cada liquidación —reparto o pozo vencido— con lo que correspondía y lo que se
-cobró; hacer clic en una fila lleva la pantalla a ese mes.
+de cada mes con lo que correspondía y lo que se cobró; hacer clic en una fila
+lleva la pantalla a ese mes.
 
 Una diferencia que conviene entender: **«le tocó» se recalcula siempre con los
 datos de hoy y «cobró» es lo que quedó registrado al pagar.** Si aparece un
 saldo donde no debería, casi siempre es que se corrigió un gasto de un mes ya
 liquidado y la cuenta de ese mes se movió después de pagar. Eso es información,
 no un error: la diferencia se ve en vez de perderse.
-
-**Si un mes dio pérdida no escala**: un porcentaje de un número negativo no
-cubre nada, y subirlo sólo repartiría la pérdida distinto.
-
-**Si ni con el 10% alcanza**, la pantalla lo dice en rojo con cuánto falta. Los
-montos se reparten igual, así que ese hueco todavía no tiene de dónde salir: hay
-que recortar el gasto, ponerlo del bolsillo o descontarlo del reparto a mano. El
-ERP no lo resuelve solo a propósito, porque es una decisión de los socios.
-
-La comisión del vendedor se descuenta antes de repartir, así que la absorben
-todos en proporción a su parte: con 5% de comisión, quien tiene el 50% resigna
-2,5 puntos, quien tiene el 25% resigna 1,25 y la reinversión resigna 0,25.
-
-Si los porcentajes no suman 100, el ERP lo avisa y muestra cuánta plata queda
-sin asignar, en vez de estirar los números para que cierre. Un reparto que
-cierra siempre no deja ver que la lista está mal cargada.
 
 Un detalle a tener presente: la comisión se imputa al mes del pedido pero se
 devenga cuando el cliente paga, así que un mes ya cerrado puede moverse un poco
