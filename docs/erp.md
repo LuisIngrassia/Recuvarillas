@@ -770,15 +770,39 @@ cuántas localidades distintas, y cuántos se perdieron por el flete. Tocando un
 provincia se la usa como destino, que sirve para planear un viaje que todavía no
 existe.
 
-> «Córdoba» y «Cordoba» cuentan como una sola provincia. Se agrupan sin tildes y
-> se muestra la grafía que más se usó — si no, media cartera queda en una
-> provincia y media en otra, y ninguna de las dos mitades sirve.
+> «Córdoba» y «Cordoba» cuentan como una sola provincia. Se agrupan sin tildes,
+> por las fichas viejas que quedaron escritas de cualquier forma — si no, media
+> cartera queda en una provincia y media en otra, y ninguna de las dos mitades
+> sirve.
+
+#### La provincia se elige, no se escribe
+
+En la ficha de un cliente y en el alta de un lead, **la provincia es un
+desplegable** con las 24 jurisdicciones. Escrita a mano, la misma provincia
+entraba como «Córdoba», «Cordoba» y «Cba», y después no había forma de juntarlas
+en una lista ni de filtrar por ellas.
+
+El **código postal completa la localidad y la provincia solas** en los dos
+formularios, contra el mismo padrón que usa el simulador de la web. De poco
+serviría elegir bien la provincia de una lista si la localidad de al lado se
+escribe a mano y queda «rosario » con un espacio al final.
+
+El padrón escribe las provincias sin tildes, así que lo que autocompleta pasa
+por la lista antes de guardarse: un lead que entró por la web y un cliente
+cargado a mano dicen **el mismo texto**, no dos que haya que normalizar para
+comparar. Lo que no se reconoce —un dato viejo raro, un envío al exterior— se
+deja como está y se ofrece igual en el desplegable: es algo para mirar, no algo
+que el sistema tenga que decidir por su cuenta.
+
+Correr `schema.sql` empareja de una vez las provincias que ya estaban cargadas,
+con la misma regla y las mismas abreviaturas. Se puede volver a correr sin
+efecto.
 
 #### Filtrar por provincia
 
 **Clientes** y **Leads** tienen su propio filtro por provincia, con la cantidad
 al lado de cada una, y las dos listas muestran dónde está cada uno. Las opciones
-salen de lo que hay cargado y no de las 24 jurisdicciones: un desplegable con
+del filtro salen de lo que hay cargado y no de las 24: un desplegable con
 veinticuatro opciones de las que sirven tres hay que leerlo entero cada vez.
 
 En Leads el filtro lo resuelve la base y no el navegador, y es a propósito: esa

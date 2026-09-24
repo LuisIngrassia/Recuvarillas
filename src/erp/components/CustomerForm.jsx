@@ -7,6 +7,9 @@
  */
 import { useState } from 'react'
 import { createCustomer, updateCustomer } from '../api/customers'
+import { PROVINCES, canonicalProvince, esProvinciaConocida } from '../../lib/provinces'
+import { findPostalCode, loadPostalCodes } from '../../lib/postalCodes'
+import { useAsync } from '../lib/useAsync'
 import { Button, ErrorNote, Field, Input, Modal, Select, Textarea } from './ui'
 
 const EMPTY = {
@@ -27,8 +30,45 @@ export default function CustomerForm({ customer, onClose, onSaved }) {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
+  /* El padrón de códigos postales, el mismo que usa el simulador de la web. Se
+     baja aparte y recién cuando este diálogo se abre. */
+  const padron = useAsync(loadPostalCodes, [])
+
   const set = (key) => (event) =>
     setForm((prev) => ({ ...prev, [key]: event.target.value }))
+
+  /*
+    El código postal arrastra la localidad y la provincia, igual que en el alta
+    de un lead. Es la otra mitad de tener la provincia en un desplegable: de
+    poco sirve elegirla bien de una lista si la localidad de al lado se escribe
+    a mano y queda "rosario " con un espacio al final.
+
+    Si el código no está en el padrón sólo se guarda el código y los otros dos
+    campos se dejan como estaban: el padrón no tiene todo, y pisar con vacío lo
+    que alguien ya había escrito sería peor que no ayudar.
+  */
+  const setCodigoPostal = (event) => {
+    const codigo_postal = event.target.value
+    const lugar = padron.data ? findPostalCode(padron.data, codigo_postal) : null
+
+    setForm((prev) =>
+      lugar
+        ? {
+            ...prev,
+            codigo_postal,
+            localidad: lugar.name,
+            provincia: canonicalProvince(lugar.province),
+          }
+        : { ...prev, codigo_postal },
+    )
+  }
+
+  /* Un dato viejo que no coincide con ningún nombre de la lista se ofrece
+     igual, como está. Cambiárselo solo al abrir el diálogo sería corregir por
+     nuestra cuenta la provincia de un cliente que nadie vino a tocar. */
+  const opciones = esProvinciaConocida(form.provincia) || !form.provincia
+    ? PROVINCES
+    : [form.provincia, ...PROVINCES]
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -49,6 +89,9 @@ export default function CustomerForm({ customer, onClose, onSaved }) {
       )
       values.nombre = form.nombre.trim()
       values.tipo = form.tipo
+      /* Por si viene de un dato viejo: lo que salga de la lista ya es canónico,
+         pero esto deja parejo lo que estaba cargado de antes. */
+      values.provincia = canonicalProvince(form.provincia) || null
 
       const saved = customer
         ? await updateCustomer(customer.id, values)
@@ -90,14 +133,32 @@ export default function CustomerForm({ customer, onClose, onSaved }) {
           <Field label="Dirección">
             <Input value={form.direccion} onChange={set('direccion')} />
           </Field>
+          <Field
+            label="Código postal"
+            hint="Completa la localidad y la provincia solas, si está en el padrón."
+          >
+            <Input
+              value={form.codigo_postal}
+              onChange={setCodigoPostal}
+              inputMode="numeric"
+              placeholder="2000"
+            />
+          </Field>
           <Field label="Localidad">
             <Input value={form.localidad} onChange={set('localidad')} />
           </Field>
+          {/* Desplegable y no texto libre: escrita a mano, la misma provincia
+              entra como "Córdoba", "Cordoba" y "Cba", y después no hay forma de
+              juntarlas en una lista ni de filtrar por ellas. */}
           <Field label="Provincia">
-            <Input value={form.provincia} onChange={set('provincia')} />
-          </Field>
-          <Field label="Código postal">
-            <Input value={form.codigo_postal} onChange={set('codigo_postal')} />
+            <Select value={form.provincia} onChange={set('provincia')}>
+              <option value="">Sin especificar</option>
+              {opciones.map((nombre) => (
+                <option key={nombre} value={nombre}>
+                  {nombre}
+                </option>
+              ))}
+            </Select>
           </Field>
         </div>
 

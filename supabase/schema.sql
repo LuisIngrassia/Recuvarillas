@@ -1196,6 +1196,78 @@ create index if not exists customers_provincia_idx on customers (provincia_clave
 create index if not exists customers_cp_idx        on customers (codigo_postal);
 
 /*
+  Las provincias que ya estaban cargadas, escritas de una sola forma.
+
+  `provincia_clave` alcanza para filtrar y agrupar sin que importe cómo se
+  escribió, pero no arregla lo que se lee: la ficha de un cliente seguía
+  diciendo "Cordoba" y la de al lado "Córdoba". Desde que los formularios
+  ofrecen un desplegable eso no vuelve a pasar, y esto empareja lo de antes.
+
+  Toca **sólo** lo que reconoce. Una provincia que no está en la lista —un dato
+  viejo raro, un envío al exterior— se deja como está: es algo para mirar, no
+  algo que este archivo tenga que decidir por su cuenta.
+
+  Se puede volver a correr sin efecto: la segunda vez ya no hay nada distinto
+  que escribir.
+*/
+do $provincias$
+declare
+  nombres constant text[][] := array[
+    ['buenos aires',                    'Buenos Aires'],
+    ['catamarca',                       'Catamarca'],
+    ['chaco',                           'Chaco'],
+    ['chubut',                          'Chubut'],
+    ['cordoba',                         'Córdoba'],
+    ['corrientes',                      'Corrientes'],
+    ['entre rios',                      'Entre Ríos'],
+    ['formosa',                         'Formosa'],
+    ['jujuy',                           'Jujuy'],
+    ['la pampa',                        'La Pampa'],
+    ['la rioja',                        'La Rioja'],
+    ['mendoza',                         'Mendoza'],
+    ['misiones',                        'Misiones'],
+    ['neuquen',                         'Neuquén'],
+    ['rio negro',                       'Río Negro'],
+    ['salta',                           'Salta'],
+    ['san juan',                        'San Juan'],
+    ['san luis',                        'San Luis'],
+    ['santa cruz',                      'Santa Cruz'],
+    ['santa fe',                        'Santa Fe'],
+    ['santiago del estero',             'Santiago del Estero'],
+    ['tierra del fuego',                'Tierra del Fuego'],
+    ['tucuman',                         'Tucumán'],
+    ['ciudad autonoma de buenos aires', 'Ciudad Autónoma de Buenos Aires'],
+    /* Las abreviaturas que la gente usa en serio. La misma lista que reconoce
+       `src/lib/provinces.js`, y por el mismo motivo: si no entran acá, quedan
+       afuera del desplegable para siempre. */
+    ['caba',                            'Ciudad Autónoma de Buenos Aires'],
+    ['capital',                         'Ciudad Autónoma de Buenos Aires'],
+    ['capital federal',                 'Ciudad Autónoma de Buenos Aires'],
+    ['ciudad de buenos aires',          'Ciudad Autónoma de Buenos Aires'],
+    ['bs as',                           'Buenos Aires'],
+    ['bs. as.',                         'Buenos Aires'],
+    ['provincia de buenos aires',       'Buenos Aires']
+  ];
+  clave   text;
+  canonico text;
+begin
+  for i in 1 .. array_length(nombres, 1) loop
+    clave    := nombres[i][1];
+    canonico := nombres[i][2];
+
+    update customers set provincia = canonico
+      where sin_acentos(provincia) = clave and provincia is distinct from canonico;
+
+    update leads set provincia = canonico
+      where sin_acentos(provincia) = clave and provincia is distinct from canonico;
+
+    update orders set provincia = canonico
+      where sin_acentos(provincia) = clave and provincia is distinct from canonico;
+  end loop;
+end
+$provincias$;
+
+/*
   El código postal escrito a mano viene de cualquier forma: "1900", "B1900",
   "B1900ABC", a veces con espacios. Lo que ubica la zona son los cuatro dígitos
   del medio, así que se sacan de donde estén en vez de exigir un formato que

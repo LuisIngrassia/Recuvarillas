@@ -44,6 +44,7 @@ import { varillaDe } from '../lib/items'
 import { usePriceTiers } from '../../lib/priceTiers'
 import { tierFor } from '../../lib/quote'
 import { findPostalCode, loadPostalCodes } from '../../lib/postalCodes'
+import { PROVINCES, canonicalProvince, esProvinciaConocida } from '../../lib/provinces'
 import { ROAD_FACTOR } from '../../data/pricing'
 import {
   Async,
@@ -190,7 +191,10 @@ function LeadModal({ lead, onClose, onSaved }) {
             ...prev,
             codigo_postal,
             localidad: lugar.name,
-            provincia: lugar.province,
+            /* El padrón las escribe sin tildes. Se pasa al nombre de la lista
+               para que un lead y un cliente digan el mismo texto, no dos que
+               haya que normalizar para comparar. */
+            provincia: canonicalProvince(lugar.province),
             kilometros: Math.round(lugar.km * ROAD_FACTOR),
           }
         : { ...prev, codigo_postal },
@@ -239,7 +243,7 @@ function LeadModal({ lead, onClose, onSaved }) {
         entrega: form.entrega,
         codigo_postal: form.codigo_postal.trim() || null,
         localidad: form.localidad.trim() || null,
-        provincia: form.provincia.trim() || null,
+        provincia: canonicalProvince(form.provincia) || null,
         kilometros: form.kilometros ?? null,
         notas: form.notas.trim() || null,
         ...cotizacion,
@@ -363,8 +367,20 @@ function LeadModal({ lead, onClose, onSaved }) {
           <Field label="Localidad">
             <Input value={form.localidad} onChange={set('localidad')} />
           </Field>
+          {/* Desplegable y no texto libre, igual que en la ficha del cliente:
+              escrita a mano, la misma provincia entra de tres formas. */}
           <Field label="Provincia">
-            <Input value={form.provincia} onChange={set('provincia')} />
+            <Select value={form.provincia} onChange={set('provincia')}>
+              <option value="">Sin especificar</option>
+              {(esProvinciaConocida(form.provincia) || !form.provincia
+                ? PROVINCES
+                : [form.provincia, ...PROVINCES]
+              ).map((nombre) => (
+                <option key={nombre} value={nombre}>
+                  {nombre}
+                </option>
+              ))}
+            </Select>
           </Field>
         </div>
 

@@ -3,6 +3,7 @@ import { company } from '../data/siteContent'
 import { ORIGIN, QUOTE_VALID_DAYS, ROAD_FACTOR } from '../data/pricing'
 import { buildQuote, formatNumber, formatPesos } from '../lib/quote'
 import { findPostalCode, loadPostalCodes } from '../lib/postalCodes'
+import { canonicalProvince } from '../lib/provinces'
 import { usePriceTiers } from '../lib/priceTiers'
 import { recordLead } from '../lib/leads'
 
@@ -165,7 +166,9 @@ function QuoteSimulator() {
       entrega: shipping ? 'envio' : 'retiro',
       codigoPostal: shipping ? place.code : '',
       localidad: shipping ? place.name : '',
-      provincia: shipping ? place.province : '',
+      /* Con el nombre de la lista y no como lo escribe el padrón: un lead que
+         entró por la web tiene que decir lo mismo que uno cargado a mano. */
+      provincia: shipping ? canonicalProvince(place.province) : '',
       kilometros: shipping ? Math.round(place.km * ROAD_FACTOR) : null,
       precioUnitario: result.unitPrice,
       mercaderia: result.total,
