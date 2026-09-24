@@ -7,6 +7,8 @@
  */
 import { useState } from 'react'
 import { createCustomer, updateCustomer } from '../api/customers'
+import { listLocalidades } from '../api/shipping'
+import LocalidadField from './LocalidadField'
 import { PROVINCES, canonicalProvince, esProvinciaConocida } from '../../lib/provinces'
 import { findPostalCode, loadPostalCodes } from '../../lib/postalCodes'
 import { useAsync } from '../lib/useAsync'
@@ -33,6 +35,10 @@ export default function CustomerForm({ customer, onClose, onSaved }) {
   /* El padrón de códigos postales, el mismo que usa el simulador de la web. Se
      baja aparte y recién cuando este diálogo se abre. */
   const padron = useAsync(loadPostalCodes, [])
+
+  /* Las localidades donde ya hay alguien. Son las que propone el campo de
+     abajo, y de paso dicen cuánta gente hay en cada una. */
+  const localidades = useAsync(listLocalidades, [])
 
   const set = (key) => (event) =>
     setForm((prev) => ({ ...prev, [key]: event.target.value }))
@@ -144,9 +150,12 @@ export default function CustomerForm({ customer, onClose, onSaved }) {
               placeholder="2000"
             />
           </Field>
-          <Field label="Localidad">
-            <Input value={form.localidad} onChange={set('localidad')} />
-          </Field>
+          <LocalidadField
+            value={form.localidad}
+            onChange={set('localidad')}
+            provincia={form.provincia}
+            localidades={localidades.data ?? []}
+          />
           {/* Desplegable y no texto libre: escrita a mano, la misma provincia
               entra como "Córdoba", "Cordoba" y "Cba", y después no hay forma de
               juntarlas en una lista ni de filtrar por ellas. */}

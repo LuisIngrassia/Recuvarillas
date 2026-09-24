@@ -36,7 +36,8 @@ import {
 import { listCustomerOptions } from '../api/customers'
 import { StatusBadge } from '../components/LeadPipeline'
 import { listProducts } from '../api/stock'
-import { provinciasDe } from '../api/shipping'
+import { listLocalidades, provinciasDe } from '../api/shipping'
+import LocalidadField from '../components/LocalidadField'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
 import { formatDate, formatDateTime, formatNumber, formatPesos, whatsappLink } from '../lib/format'
@@ -145,6 +146,10 @@ function LeadModal({ lead, onClose, onSaved }) {
      alguien abre una ficha. Sirve para que corregir el código postal complete
      la localidad y los kilómetros en lugar de dejarlos viejos. */
   const padron = useAsync(loadPostalCodes, [])
+
+  /* Las localidades donde ya hay alguien, para proponerlas escritas siempre
+     igual y decir de paso cuánta gente hay en cada una. */
+  const localidades = useAsync(listLocalidades, [])
 
   const [form, setForm] = useState({
     nombre: lead.nombre,
@@ -364,9 +369,12 @@ function LeadModal({ lead, onClose, onSaved }) {
           >
             <Input value={form.codigo_postal} onChange={setCodigoPostal} />
           </Field>
-          <Field label="Localidad">
-            <Input value={form.localidad} onChange={set('localidad')} />
-          </Field>
+          <LocalidadField
+            value={form.localidad}
+            onChange={set('localidad')}
+            provincia={form.provincia}
+            localidades={localidades.data ?? []}
+          />
           {/* Desplegable y no texto libre, igual que en la ficha del cliente:
               escrita a mano, la misma provincia entra de tres formas. */}
           <Field label="Provincia">
@@ -431,6 +439,12 @@ function NewLeadModal({ onClose, onSaved }) {
   const [form, setForm] = useState(NUEVO)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  /* Acá no se pide ni provincia ni código postal —a alguien que recién pregunta
+     un precio no se le piden tres datos de domicilio— así que la lista sale sin
+     filtrar. Igual sirve: dice si ya hay gente en el lugar que se está
+     escribiendo. */
+  const localidades = useAsync(listLocalidades, [])
 
   const set = (key) => (event) =>
     setForm((prev) => ({
@@ -517,9 +531,11 @@ function NewLeadModal({ onClose, onSaved }) {
               onChange={set('cantidad')}
             />
           </Field>
-          <Field label="Localidad">
-            <Input value={form.localidad} onChange={set('localidad')} />
-          </Field>
+          <LocalidadField
+            value={form.localidad}
+            onChange={set('localidad')}
+            localidades={localidades.data ?? []}
+          />
         </div>
 
         <Field

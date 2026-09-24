@@ -42,6 +42,18 @@ export async function listDestinos({ limit = 5000 } = {}) {
 }
 
 /**
+ * Las localidades donde ya hay alguien, con cuánta gente hay en cada una.
+ *
+ * Llena el desplegable de «Localidad» al cargar un cliente o un lead. No es la
+ * lista de lugares posibles —esa es el padrón, y tiene miles— sino la de los
+ * lugares donde ya vendemos, que es la pregunta que se hace al cargar a
+ * alguien: ¿tengo más clientes por ahí?
+ */
+export async function listLocalidades() {
+  return unwrap(await db().from('localidades').select('*').order('localidad'))
+}
+
+/**
  * Las zonas de los transportes, para saber qué destinos cuestan lo mismo.
  *
  * Con sus ciudades: una zona cubre un destino si ese código postal está en su
@@ -126,9 +138,14 @@ export function cpNumero(codigo) {
   return encontrado ? Number(encontrado[0]) : null
 }
 
-/** Para comparar provincias escritas distinto: "Córdoba" y "Cordoba" son una. */
-export function claveProvincia(nombre) {
-  return String(nombre ?? '')
+/**
+ * La misma clave que calcula la base en `sin_acentos`.
+ *
+ * Sirve para provincias y para localidades por igual: "Córdoba" y "Cordoba" son
+ * una, y "Rosario" y "rosario " también.
+ */
+export function clave(texto) {
+  return String(texto ?? '')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .trim()
@@ -173,7 +190,7 @@ export function zonasQueCubren(cp, zonas) {
  */
 export function cercaDe(destino, destinos, zonas, excluir = []) {
   const cp = cpNumero(destino?.codigo_postal)
-  const provincia = claveProvincia(destino?.provincia)
+  const provincia = clave(destino?.provincia)
   const fuera = new Set(excluir)
 
   /* Los ids de las zonas que cubren el destino. Comparar conjuntos de zonas es
@@ -186,7 +203,7 @@ export function cercaDe(destino, destinos, zonas, excluir = []) {
     if (fuera.has(punto.id)) continue
 
     const suCp = punto.cp ?? cpNumero(punto.codigo_postal)
-    const suProvincia = punto.provincia_clave ?? claveProvincia(punto.provincia)
+    const suProvincia = punto.provincia_clave ?? clave(punto.provincia)
 
     let nivel = null
     if (cp !== null && suCp === cp) nivel = 'localidad'
@@ -250,12 +267,12 @@ export function porProvincia(destinos) {
   const mapa = new Map()
 
   for (const punto of destinos) {
-    const clave = punto.provincia_clave ?? claveProvincia(punto.provincia)
-    if (!clave) continue
+    const suya = punto.provincia_clave ?? clave(punto.provincia)
+    if (!suya) continue
 
-    if (!mapa.has(clave)) {
-      mapa.set(clave, {
-        clave,
+    if (!mapa.has(suya)) {
+      mapa.set(suya, {
+        clave: suya,
         grafias: new Map(),
         clientes: 0,
         leads: 0,
@@ -264,7 +281,7 @@ export function porProvincia(destinos) {
       })
     }
 
-    const fila = mapa.get(clave)
+    const fila = mapa.get(suya)
     const escrito = String(punto.provincia).trim()
     fila.grafias.set(escrito, (fila.grafias.get(escrito) ?? 0) + 1)
 
@@ -298,11 +315,11 @@ export function provinciasDe(filas) {
   const mapa = new Map()
 
   for (const fila of filas) {
-    const clave = fila.provincia_clave ?? claveProvincia(fila.provincia)
-    if (!clave) continue
+    const suya = fila.provincia_clave ?? clave(fila.provincia)
+    if (!suya) continue
     const escrito = String(fila.provincia).trim()
-    if (!mapa.has(clave)) mapa.set(clave, { clave, nombre: escrito, cuenta: 0 })
-    mapa.get(clave).cuenta += 1
+    if (!mapa.has(suya)) mapa.set(suya, { clave: suya, nombre: escrito, cuenta: 0 })
+    mapa.get(suya).cuenta += 1
   }
 
   return [...mapa.values()].sort((a, b) => a.nombre.localeCompare(b.nombre))

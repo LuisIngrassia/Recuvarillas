@@ -1892,6 +1892,7 @@ create index if not exists orders_tipo_idx on orders (tipo);
   El orden importa: las de abajo se apoyan en las de arriba.
 */
 drop view if exists leads_por_origen;
+drop view if exists localidades;
 drop view if exists destinos;
 drop view if exists finanzas_mensuales;
 drop view if exists customer_balances;
@@ -2117,6 +2118,39 @@ create or replace view destinos with (security_invoker = on) as
     l.created_at
   from leads l
   where l.customer_id is null;
+
+/*
+  Las localidades donde ya hay alguien, con cuánta gente hay en cada una.
+
+  Es lo que llena el desplegable de «Localidad» en la ficha de un cliente y en
+  el alta de un lead. No es una lista de lugares posibles —esa es el padrón de
+  códigos postales, y tiene miles— sino de los lugares donde **ya vendemos**,
+  que es la pregunta que se hace al cargar a alguien: «¿tengo más clientes por
+  ahí?». De ahí sale un viaje compartido.
+
+  Se agrupa por el nombre sin tildes **y la provincia**: hay una San Martín en
+  varias provincias y no son la misma ciudad. Juntarlas daría un número que no
+  significa nada.
+
+  `mode()` elige la grafía más usada de cada una, igual que hace la pantalla con
+  las provincias: si tres fichas dicen "Rosario" y una "rosario", la que se
+  ofrece es la primera. Lo que se guardó mal no se corrige solo, pero deja de
+  proponerse.
+*/
+create or replace view localidades with (security_invoker = on) as
+  select
+    sin_acentos(d.localidad)                        as clave,
+    /* Ya viene calculada de `destinos`: es la columna generada de la tabla. */
+    d.provincia_clave,
+    mode() within group (order by d.localidad)      as localidad,
+    mode() within group (order by d.provincia)      as provincia,
+    mode() within group (order by d.codigo_postal)  as codigo_postal,
+    (count(*) filter (where d.clase = 'cliente'))::integer as clientes,
+    (count(*) filter (where d.clase = 'lead'))::integer    as leads,
+    count(*)::integer                               as total
+  from destinos d
+  where d.localidad is not null and btrim(d.localidad) <> ''
+  group by sin_acentos(d.localidad), d.provincia_clave;
 
 /*
   El resultado de cada mes: lo que entró, lo que salió y lo que quedó.

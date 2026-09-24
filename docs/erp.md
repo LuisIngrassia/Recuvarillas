@@ -783,9 +783,21 @@ entraba como «Córdoba», «Cordoba» y «Cba», y después no había forma de 
 en una lista ni de filtrar por ellas.
 
 El **código postal completa la localidad y la provincia solas** en los dos
-formularios, contra el mismo padrón que usa el simulador de la web. De poco
-serviría elegir bien la provincia de una lista si la localidad de al lado se
-escribe a mano y queda «rosario » con un espacio al final.
+formularios, contra el mismo padrón que usa el simulador de la web.
+
+Y la **localidad se elige de las que ya tenés cargadas** o se escribe nueva. No
+es un desplegable cerrado —el padrón argentino tiene miles de localidades y
+siempre aparece una que no está— sino la lista de los lugares donde ya vendés.
+Escribiendo se filtra, y lo que no esté se carga igual: la próxima vez aparece
+sola.
+
+Debajo del campo dice **cuánta gente hay ya en ese lugar**: *«En Rosario ya hay
+3 clientes y 1 lead.»* Esa es la razón de tener la lista — ahí es donde aparece
+un viaje para compartir. Si la localidad es nueva, lo dice también.
+
+Con una provincia ya elegida, la lista se recorta a las de esa provincia. Hay
+una San Martín en varias y mezcladas no se sabe cuál se está eligiendo; cada una
+lleva su propia cuenta.
 
 El padrón escribe las provincias sin tildes, así que lo que autocompleta pasa
 por la lista antes de guardarse: un lead que entró por la web y un cliente

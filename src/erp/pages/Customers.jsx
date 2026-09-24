@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { esProspecto, listCustomers } from '../api/customers'
-import { claveProvincia, provinciasDe } from '../api/shipping'
+import { clave, provinciasDe } from '../api/shipping'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
 import { formatNumber, whatsappLink } from '../lib/format'
@@ -66,7 +66,7 @@ export default function Customers() {
      fuera de la lista" hable de los de esta provincia y no de todo el padrón. */
   const enZona = provincia
     ? todos.filter(
-        (item) => (item.provincia_clave ?? claveProvincia(item.provincia)) === provincia,
+        (item) => (item.provincia_clave ?? clave(item.provincia)) === provincia,
       )
     : todos
 
