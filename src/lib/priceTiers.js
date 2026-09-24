@@ -34,8 +34,14 @@ async function fetchTiers() {
   if (!isSupabaseConfigured) return PRICE_TIERS
 
   try {
+    /*
+       `price_tiers_web` y no `price_tiers`: desde que hay varios productos, la
+       tabla tiene los escalones de todos y mezclarlos cotizaría cualquier cosa.
+       La vista devuelve los del producto marcado para la web, con las mismas
+       columnas de siempre.
+    */
     const rows = await restSelect(
-      'price_tiers?select=id,min_qty,max_qty,plain_price,drilled_price,kind&order=min_qty.asc',
+      'price_tiers_web?select=id,min_qty,max_qty,plain_price,drilled_price,kind&order=min_qty.asc',
     )
     return rows.length ? rows.map(tierFromRow) : PRICE_TIERS
   } catch {

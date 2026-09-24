@@ -35,13 +35,13 @@ import {
 } from '../api/leads'
 import { listCustomerOptions } from '../api/customers'
 import { StatusBadge } from '../components/LeadPipeline'
-import { listProducts } from '../api/stock'
+import { listProducts, productoWeb } from '../api/products'
 import { listLocalidades, provinciasDe } from '../api/shipping'
 import LocalidadField from '../components/LocalidadField'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
 import { formatDate, formatDateTime, formatNumber, formatPesos, whatsappLink } from '../lib/format'
-import { varillaDe } from '../lib/items'
+
 import { usePriceTiers } from '../../lib/priceTiers'
 import { tierFor } from '../../lib/quote'
 import { findPostalCode, loadPostalCodes } from '../../lib/postalCodes'
@@ -784,7 +784,9 @@ function QuoteModal({ lead, onClose, onDone }) {
     dicho si las quería agujereadas no matcheaba ninguno de los dos y se comía
     un "revisá Stock" por un faltante que no existía.
   */
-  const producto = varillaDe(products.data)
+  /* El mismo producto que cotiza el simulador de la web: un lead pidió un
+     precio por eso, no por lo que haya quedado primero en la lista. */
+  const producto = productoWeb(products.data)
 
   const confirmar = async () => {
     if (!cantidadValida) {

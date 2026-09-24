@@ -13,11 +13,12 @@ import {
   addMovement,
   deleteMovement,
   listMovements,
-  listProducts,
   listStock,
 } from '../api/stock'
+import { conStock, listProducts } from '../api/products'
+import { getCostoVarilla } from '../api/production'
 import { useAsync } from '../lib/useAsync'
-import { formatDate, formatNumber, todayISO } from '../lib/format'
+import { formatDate, formatNumber, formatPesos, todayISO } from '../lib/format'
 import {
   Async,
   Badge,
@@ -52,11 +53,41 @@ const MOVEMENT_TONES = {
 function MovementModal({ products, onClose, onSaved }) {
   const [productId, setProductId] = useState(products[0]?.id ?? '')
   const [tipo, setTipo] = useState('produccion')
+
+  /*
+    El costo con el que se congela esta producción.
+
+    Antes no se preguntaba: se tomaba el costeo configurado y listo, porque el
+    único producto que se fabricaba era la varilla. Con más de uno, aplicarle a
+    todos el costo de la varilla sería inventarle un costo a los demás — y ese
+    número no es decorativo, es lo que Rentabilidad le descuenta a quien banca
+    la producción.
+
+    Así que se muestra y se puede corregir antes de guardarlo. Viene propuesto
+    con el costeo configurado, que sigue siendo el caso de siempre.
+  */
+  const [costo, setCosto] = useState('')
+  const [costoTocado, setCostoTocado] = useState(false)
+  const costeo = useAsync(getCostoVarilla, [])
+  const costoSugerido = Number(costeo.data?.costo_unitario) || null
+  const costoMostrado = costoTocado ? costo : (costoSugerido ?? '')
   const [cantidad, setCantidad] = useState('')
   const [fecha, setFecha] = useState(todayISO)
   const [nota, setNota] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const product = products.find((item) => item.id === productId)
+
+  /* Lo que no se fabrica acá no puede tener un movimiento de producción: entra
+     por un ajuste, que es lo que es cuando llega una compra. */
+  const tipos = MANUAL_MOVEMENTS.filter(
+    (value) => value !== 'produccion' || product?.se_produce !== false,
+  )
+
+  /* Si el producto elegido dejó de admitir el tipo que estaba seleccionado, el
+     formulario no puede quedarse mostrando uno que no va a poder guardar. */
+  const tipoUsado = tipos.includes(tipo) ? tipo : tipos[0]
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -77,10 +108,18 @@ function MovementModal({ products, onClose, onSaved }) {
     try {
       await addMovement({
         product_id: productId,
-        tipo,
+        tipo: tipoUsado,
         cantidad: cantidadNum,
         fecha,
         nota,
+        /*
+          El costo va sólo cuando se escribió. Sin nada, `addMovement` usa el
+          costeo configurado —el de la varilla—, que es lo correcto para ella y
+          lo que se venía haciendo.
+        */
+        ...(tipoUsado === 'produccion'
+          ? { costo_unitario: costoMostrado === '' ? null : Number(costoMostrado) }
+          : {}),
       })
       onSaved()
     } catch (err) {
@@ -104,8 +143,8 @@ function MovementModal({ products, onClose, onSaved }) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Tipo">
-            <Select value={tipo} onChange={(event) => setTipo(event.target.value)}>
-              {MANUAL_MOVEMENTS.map((value) => (
+            <Select value={tipoUsado} onChange={(event) => setTipo(event.target.value)}>
+              {tipos.map((value) => (
                 <option key={value} value={value}>
                   {MOVEMENT_LABELS[value]}
                 </option>
@@ -126,6 +165,32 @@ function MovementModal({ products, onClose, onSaved }) {
             />
           </Field>
         </div>
+
+        {/* El costo se congela con el movimiento: lo que costó producir esta
+            tanda no cambia si mañana sube la luz. Por eso se ve antes de
+            guardarlo, y no después. */}
+        {tipoUsado === 'produccion' && (
+          <Field
+            label="Costo por unidad"
+            hint={
+              costoSugerido
+                ? `Propuesto: ${formatPesos(costoSugerido)}, del costeo cargado en Ajustes. Corregilo si este producto cuesta otra cosa.`
+                : 'No hay costeo cargado. Sin un número acá, esta producción va a contar costo cero.'
+            }
+          >
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={costoMostrado}
+              onChange={(event) => {
+                setCostoTocado(true)
+                setCosto(event.target.value)
+              }}
+            />
+          </Field>
+        )}
 
         <Field label="Fecha">
           <Input
@@ -226,7 +291,9 @@ export default function Stock() {
   const [error, setError] = useState('')
 
   const stock = useAsync(listStock, [])
-  const products = useAsync(listProducts, [])
+  /* Sólo los que llevan existencias: un producto que se compra hecho y se
+     revende no tiene un número que contar acá. */
+  const products = useAsync(async () => conStock(await listProducts()), [])
   const movements = useAsync(() => listMovements({ tipo, productId }), [tipo, productId])
 
   const reloadAll = () => {

@@ -6,7 +6,9 @@
  * Por eso pide confirmar antes de guardar y avisa qué implica.
  */
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { createTier, deleteTier, listTiers, updateTier } from '../api/prices'
+import { listProducts, productoWeb } from '../api/products'
 import { createRate, deleteRate, listRates, updateRate } from '../api/services'
 import { useAsync } from '../lib/useAsync'
 import { formatDateTime, formatNumber, formatPesos } from '../lib/format'
@@ -56,7 +58,7 @@ const LISTAS = [
 ]
 
 /** Alta y edición de un escalón. */
-function TierModal({ tier, onClose, onSaved }) {
+function TierModal({ tier, productId, onClose, onSaved }) {
   const [form, setForm] = useState(() =>
     tier
       ? {
@@ -107,8 +109,10 @@ function TierModal({ tier, onClose, onSaved }) {
     }
 
     try {
+      /* El producto sólo se manda al crear: mover un escalón de un producto a
+         otro no es editarlo, es borrarlo y cargarlo en la otra lista. */
       if (tier) await updateTier(tier.id, values)
-      else await createTier(values)
+      else await createTier({ ...values, product_id: productId })
       onSaved()
     } catch (err) {
       setError(err.message)
@@ -252,7 +256,18 @@ function RateModal({ rate, onClose, onSaved }) {
 }
 
 export default function Prices() {
-  const query = useAsync(listTiers, [])
+  const products = useAsync(listProducts, [])
+
+  /*
+    De qué producto es la lista que se está mirando. En null todavía no se
+    cargaron los productos; apenas llegan, se abre en el que cotiza la web, que
+    es el que se toca nueve de cada diez veces.
+  */
+  const [productId, setProductId] = useState(null)
+  const elegido =
+    products.data?.find((item) => item.id === productId) ?? productoWeb(products.data)
+
+  const query = useAsync(() => listTiers(elegido?.id), [elegido?.id])
   const rates = useAsync(() => listRates(), [])
   const [editing, setEditing] = useState(null)
   const [editingRate, setEditingRate] = useState(null)
@@ -284,9 +299,49 @@ export default function Prices() {
     <>
       <PageHeader
         title="Precios"
-        description="La lista que usa el ERP y también el simulador de la web. Todo sin IVA."
-        actions={<Button onClick={() => setEditing({})}>Nuevo escalón</Button>}
+        description="Una lista por producto, con sus escalones por cantidad. Todo sin IVA."
+        actions={
+          <>
+            {/* De qué producto es la lista. Un `<select>` pelado porque el
+                `Select` de `ui.jsx` viene con `w-full`. */}
+            <select
+              value={elegido?.id ?? ''}
+              onChange={(event) => setProductId(event.target.value)}
+              className="rounded-md border border-steel-200 bg-white px-3 py-2 text-sm text-steel-700"
+            >
+              {(products.data ?? []).map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nombre}
+                  {item.en_web ? ' · en la web' : ''}
+                </option>
+              ))}
+            </select>
+            <Button onClick={() => setEditing({})} disabled={!elegido}>
+              Nuevo escalón
+            </Button>
+          </>
+        }
       />
+
+      {products.data?.length === 0 && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-800">
+          No hay productos cargados, así que no hay lista que editar.{' '}
+          <Link to="/erp/productos" className="font-semibold underline underline-offset-2">
+            Cargar un producto
+          </Link>
+        </div>
+      )}
+
+      {elegido && !elegido.en_web && (
+        <div className="mb-4 rounded-md border border-steel-200 bg-steel-50 px-4 py-3 text-xs leading-relaxed text-steel-600">
+          Estos son los precios de <strong>{elegido.nombre}</strong>. El simulador
+          de la web no cotiza este producto — cotiza el que esté marcado en{' '}
+          <Link to="/erp/productos" className="font-semibold underline underline-offset-2">
+            Productos
+          </Link>
+          .
+        </div>
+      )}
 
       {error && (
         <div className="mb-4">
@@ -294,7 +349,14 @@ export default function Prices() {
         </div>
       )}
 
-      <Async query={query} empty="No hay precios cargados.">
+      <Async
+        query={query}
+        empty={
+          elegido
+            ? `${elegido.nombre} no tiene precios cargados: el precio se escribe a mano en cada pedido hasta que tenga al menos un escalón.`
+            : 'No hay precios cargados.'
+        }
+      >
         {(tiers) => (
           <div className="space-y-6">
             {LISTAS.map(({ kind, titulo, detalle }) => {
@@ -470,6 +532,7 @@ export default function Prices() {
       {editing && (
         <TierModal
           tier={editing.id ? editing : null}
+          productId={elegido?.id}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null)

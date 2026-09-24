@@ -200,7 +200,9 @@ export async function getOrder(id) {
     db().from('orders_summary').select('*').eq('id', id).single().then(unwrap),
     db()
       .from('order_items')
-      .select('*, product:products(id, codigo, nombre)')
+      /* `se_agujerea` no es decorativo: decide si la línea se nombra con
+         acabado. Ver `nombreDeItem`. */
+      .select('*, product:products(id, codigo, nombre, unidad, se_agujerea)')
       .eq('order_id', id)
       .then(unwrap),
     /* Las horas del trabajo de reciclado. En una venta vienen vacías. */

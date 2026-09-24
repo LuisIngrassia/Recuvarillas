@@ -1,9 +1,25 @@
-/** La lista de precios, que es la que ve también la landing. */
+/**
+ * Las listas de precios: una por producto.
+ *
+ * Antes era **la** lista, porque había un solo producto. Ahora cada uno tiene
+ * sus escalones, y la landing lee los del que esté marcado para la web.
+ */
 import { db, unwrap } from './client'
 import { invalidatePriceTiers } from '../../lib/priceTiers'
 
-export async function listTiers() {
-  return unwrap(await db().from('price_tiers').select('*').order('min_qty'))
+/**
+ * Los escalones de un producto.
+ *
+ * Sin producto devuelve la lista vacía y no todos los escalones de todos: una
+ * pantalla que todavía no eligió producto no tiene que mostrar precios
+ * mezclados de dos cosas distintas, que es como se cotiza mal sin enterarse.
+ */
+export async function listTiers(productId) {
+  if (!productId) return []
+
+  return unwrap(
+    await db().from('price_tiers').select('*').eq('product_id', productId).order('min_qty'),
+  )
 }
 
 /**

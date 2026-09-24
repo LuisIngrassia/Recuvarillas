@@ -36,6 +36,7 @@ const Shipping = lazy(() => import('./pages/Shipping'))
 const ExpenseTypes = lazy(() => import('./pages/ExpenseTypes'))
 const Profit = lazy(() => import('./pages/Profit'))
 const Prices = lazy(() => import('./pages/Prices'))
+const Products = lazy(() => import('./pages/Products'))
 const Carriers = lazy(() => import('./pages/Carriers'))
 const Sellers = lazy(() => import('./pages/Sellers'))
 const ProductionCost = lazy(() => import('./pages/ProductionCost'))
@@ -74,6 +75,7 @@ const SECTIONS = [
 ]
 
 const SETTINGS = [
+  { to: '/erp/productos', label: 'Productos' },
   { to: '/erp/precios', label: 'Precios' },
   // { to: '/erp/costo-varilla', label: 'Costo de la varilla' },
   { to: '/erp/fletes', label: 'Fletes' },
@@ -228,6 +230,7 @@ function Gate() {
           <Route path="costos" element={<Expenses />} />
           <Route path="tipos-de-gasto" element={<ExpenseTypes />} />
           <Route path="rentabilidad" element={<Profit />} />
+          <Route path="productos" element={<Products />} />
           <Route path="precios" element={<Prices />} />
           <Route path="costo-varilla" element={<ProductionCost />} />
           <Route path="fletes" element={<Carriers />} />

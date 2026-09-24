@@ -22,7 +22,8 @@ Y lo que se toca de vez en cuando, bajo **Ajustes**:
 
 | Pantalla        | Para qué                                                                |
 | --------------- | ----------------------------------------------------------------------- |
-| **Precios**     | La lista por cantidad, que es la misma que usa el simulador de la web.   |
+| **Productos**   | Qué se vende, y qué da por sentado el sistema sobre cada cosa.           |
+| **Precios**     | Una lista por producto. La del producto marcado la usa la web.           |
 | **Costo de la varilla** | Qué se gasta en producir una, y de dónde sale ese número.        |
 | **Fletes**      | Los transportes, hasta dónde llega cada uno y a cuánto.                  |
 | **Vendedores**  | Quién trae la venta, su comisión y lo que hay que liquidarle en el mes.  |
@@ -520,9 +521,42 @@ son, y Rentabilidad, cuando el mes está vacío, explica que puede ser por eso.
 
 Para que cuente, el pedido tiene que pasar a **confirmado**.
 
+### Productos
+
+Durante mucho tiempo hubo uno solo —la varilla— y **todo el sistema daba por
+sentado lo que era cierto de ella**: se produce acá, se agujerea, lleva stock y
+se cotiza por escalones de cantidad. Con dos productos eso deja de ser cierto de
+a uno: una bolsa de grampas se compra hecha, no se agujerea y puede no llevar
+existencias, pero se vende en el mismo pedido.
+
+Así que cada cosa que se daba por sentada es ahora una marca de la ficha, y cada
+marca enciende algo concreto en otra pantalla:
+
+| Marca | Qué decide |
+| --- | --- |
+| **Se fabrica acá** | Habilita los movimientos de producción en Stock. Lo que se compra hecho entra por un ajuste. |
+| **Se agujerea** | La línea del pedido pide acabado y el presupuesto lo aclara. Sin esto, un presupuesto diría «Bolsa de grampas sin agujerear». |
+| **Lleva stock** | Aparece en Stock y avisa faltantes. Lo que se compra por pedido puede ir sin control de existencias. |
+| **En la web** | Es el que cotiza el simulador de la landing, y con el que se presupuesta un lead. **Uno solo**, y lo garantiza la base. |
+
+Un producto que se vendió alguna vez **no se puede borrar**: el historial de
+ventas no puede quedar sin saber qué se vendió. Lo que corresponde ahí es
+retirarlo — deja de ofrecerse al cargar un pedido sin tocar lo que ya se
+facturó.
+
+> **El costo de producción se pregunta al cargar la tanda.** Antes se tomaba
+> solo del costeo configurado, porque el único producto que se fabricaba era la
+> varilla. Con más de uno, aplicárselo a todos les inventaría un costo — y ese
+> número no es decorativo: es lo que Rentabilidad le descuenta a quien banca la
+> producción. Ahora se ve propuesto y se corrige antes de guardarlo.
+
 ### Precios y revendedores
 
-Hay **dos listas**, no una con tramos de volumen:
+Cada producto tiene **su propia lista**, y se elige cuál mirar con el
+desplegable de arriba de la pantalla. La del producto marcado **En la web** es
+la que cotiza el simulador de la landing.
+
+Dentro de cada producto hay **dos listas**, no una con tramos de volumen:
 
 - **Minorista** — la pública. Es la que cotiza el simulador de la web y la que
   paga cualquiera que no tenga acuerdo. Baja por cantidad, pero es la misma
@@ -535,6 +569,10 @@ particular que un día lleva 2.000 varillas paga la minorista; un revendedor que
 este mes lleva 300 paga la mayorista igual, porque lo que se le reconoce es que
 vuelve. Si su pedido queda por debajo del primer escalón de su lista, se le
 aplica ese primer escalón.
+
+> Un producto sin escalones cargados se puede vender igual: el precio se
+> escribe a mano al cargar la línea del pedido, y la pantalla lo dice en vez de
+> sugerir un número sacado de la lista de otro producto.
 
 Un cliente pasa a revendedor marcándolo **Mayorista** en su ficha. Es una
 decisión de una persona, no algo que dispare una cantidad: el ERP nunca lo

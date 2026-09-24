@@ -846,6 +846,61 @@ create table if not exists products (
 );
 
 /*
+  Qué es cada producto, más allá de cómo se llama.
+
+  Durante mucho tiempo hubo uno solo —la varilla— y todo el sistema lo daba por
+  sentado: se producía acá, se agujereaba, tenía stock y se cotizaba por
+  escalones de cantidad. Con dos productos eso deja de ser cierto de a uno: una
+  bolsa de grampas se compra hecha, no se agujerea y puede no llevar
+  existencias, pero se vende en el mismo pedido.
+
+  Cada cosa que el sistema daba por sentada pasa a ser una marca:
+
+  - `se_produce`: se fabrica acá. Habilita los movimientos de producción en
+    Stock y es lo que tiene costo de producción.
+  - `se_agujerea`: la línea del pedido lleva acabado. Sin esto, un presupuesto
+    diría "Bolsa de grampas sin agujerear", que es una forma de que el cliente
+    deje de confiar en el papel.
+  - `lleva_stock`: se controlan existencias. Lo que no la lleva se puede vender
+    sin tenerlo cargado, y no aparece en Stock ni avisa faltantes.
+  - `en_web`: es el que cotiza el simulador de la landing. Uno solo, y lo
+    garantiza un índice.
+
+  Las tres primeras vienen en `true` porque la fila que ya existe es la varilla
+  y para ella son ciertas. Un producto nuevo las elige en su ficha.
+*/
+alter table products add column if not exists unidad      text not null default 'unidad';
+alter table products add column if not exists se_produce  boolean not null default true;
+alter table products add column if not exists se_agujerea boolean not null default true;
+alter table products add column if not exists lleva_stock boolean not null default true;
+alter table products add column if not exists en_web      boolean not null default false;
+alter table products add column if not exists orden       integer not null default 0;
+alter table products add column if not exists notas       text;
+
+/*
+  Un solo producto en la web. El simulador cotiza una cosa y pide una cantidad;
+  con dos marcados no habría forma de saber cuál, y elegir "el primero" haría
+  que la página cotice distinto según cómo quedó ordenada una tabla.
+*/
+create unique index if not exists products_en_web_idx on products (en_web) where en_web;
+
+/*
+  Cada producto con su propia lista de precios por cantidad.
+
+  Antes `price_tiers` era **la** lista, porque había un solo producto. Los
+  escalones que ya estaban son los de la varilla y se le asignan más abajo, en
+  los datos iniciales, donde ya existe la fila a la que apuntar.
+
+  `on delete cascade`: borrar un producto se lleva sus precios. No hay ningún
+  otro dueño posible para un escalón, y dejarlos huérfanos sería dejar precios
+  que no cotizan nada y que un día alguien lee como si valieran.
+*/
+alter table price_tiers add column if not exists product_id uuid
+  references products (id) on delete cascade;
+
+create index if not exists price_tiers_product_idx on price_tiers (product_id, min_qty);
+
+/*
   Un pedido arranca como presupuesto y va cambiando de estado. Descuenta stock
   recién cuando se entrega (lo hace el trigger de más abajo) y pesa en la cuenta
   corriente del cliente desde que se confirma.
@@ -1892,6 +1947,7 @@ create index if not exists orders_tipo_idx on orders (tipo);
   El orden importa: las de abajo se apoyan en las de arriba.
 */
 drop view if exists leads_por_origen;
+drop view if exists price_tiers_web;
 drop view if exists localidades;
 drop view if exists destinos;
 drop view if exists finanzas_mensuales;
@@ -1922,11 +1978,34 @@ drop view if exists stock_actual;
   Reservar, entonces, no es una operación nueva que haya que inventar: es
   confirmar el pedido. Lo que faltaba era que se viera.
 */
+/*
+  La lista de precios que lee la landing.
+
+  El simulador de la web cotiza **un** producto: pide una cantidad y devuelve un
+  precio. Con varios cargados hay que decir cuál, y esa decisión es la marca
+  `en_web` del producto, no el orden en que estén en la tabla.
+
+  Existe como vista y no como un filtro del lado del navegador porque la página
+  se lee sin sesión: lo que puede ver alguien sin cuenta tiene que estar acotado
+  acá, no en el JavaScript que ese mismo alguien puede cambiar.
+
+  Devuelve las mismas columnas que leía antes, así que la landing no tuvo que
+  aprender nada nuevo: le cambió el nombre de la tabla y nada más.
+*/
+create or replace view price_tiers_web with (security_invoker = on) as
+  select t.id, t.min_qty, t.max_qty, t.plain_price, t.drilled_price, t.kind
+  from price_tiers t
+  join products p on p.id = t.product_id
+  where p.activo and p.en_web;
+
 create or replace view stock_actual with (security_invoker = on) as
   select
     p.id as product_id,
     p.codigo,
     p.nombre,
+    p.unidad,
+    p.se_produce,
+    p.se_agujerea,
     coalesce(m.stock, 0)::integer as stock,
     coalesce(c.comprometido, 0)::integer as comprometido,
     coalesce(c.agujereadas, 0)::integer as comprometido_agujereadas,
@@ -1951,7 +2030,12 @@ create or replace view stock_actual with (security_invoker = on) as
     where i.product_id = p.id
       and o.estado in ('confirmado', 'en_produccion')
   ) c on true
-  where p.activo;
+  /*
+    Sólo lo que lleva existencias. Un producto que se compra hecho y se revende
+    no tiene un número que mirar acá, y mostrarlo en cero sería peor que no
+    mostrarlo: parece un faltante y no lo es.
+  */
+  where p.activo and p.lleva_stock;
 
 /*
   El pedido con sus números ya sumados: mercadería, total con flete, cobrado y
@@ -2400,6 +2484,8 @@ grant usage on schema public to anon, authenticated;
 grant all on all tables in schema public to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
 grant select on price_tiers to anon;
+grant select on price_tiers_web to anon;
+grant select on products to anon;
 grant insert on leads to anon;
 
 /*
@@ -2472,6 +2558,19 @@ $permisos$;
 drop policy if exists "la web lee precios" on price_tiers;
 create policy "la web lee precios" on price_tiers
   for select to anon using (true);
+
+/*
+  Y para poder cruzarlos con el producto necesita ver ese producto — pero sólo
+  ése. `price_tiers_web` se lee con los permisos de quien consulta, así que sin
+  esta política la vista le devolvería vacío a la landing y el simulador caería
+  a los precios del código sin que nada lo avise.
+
+  Los demás productos no se ven sin sesión: el catálogo interno no tiene por qué
+  ser público.
+*/
+drop policy if exists "la web lee el producto del simulador" on products;
+create policy "la web lee el producto del simulador" on products
+  for select to anon using (activo and en_web);
 
 /*
   El simulador deja el contacto sin sesión, igual que hoy lo deja en la planilla
@@ -2635,6 +2734,48 @@ begin
   end if;
 end
 $listas$;
+
+/*
+  La lista que ya existía es la de la varilla, y la varilla es la de la web.
+
+  Va acá abajo y no junto a la tabla porque necesita que la fila del producto ya
+  esté sembrada: hasta este punto del archivo, en una base nueva, no hay ninguna
+  a la que apuntar.
+
+  Los tres pasos son idempotentes. La segunda corrida no encuentra escalones sin
+  producto, no borra nada y no cambia qué producto va a la web —si alguien lo
+  cambió desde el ERP, el `not exists` lo respeta.
+*/
+do $precios_por_producto$
+declare
+  varilla uuid;
+begin
+  select id into varilla from products where codigo = 'VAR';
+
+  /* Sin varilla no hay a quién asignarle los escalones viejos. Es una base que
+     no salió de este archivo; mejor no tocar nada que adivinar un dueño. */
+  if varilla is null then return; end if;
+
+  update price_tiers set product_id = varilla where product_id is null;
+
+  update products set en_web = true
+    where id = varilla and not exists (select 1 from products where en_web);
+end
+$precios_por_producto$;
+
+/*
+  Un escalón sin producto no cotiza nada: no hay consulta que lo encuentre y no
+  hay pantalla que lo muestre. Se borra en vez de quedar como un precio que
+  alguien puede leer un día como si valiera.
+*/
+delete from price_tiers where product_id is null;
+
+/*
+  Y a partir de acá la columna es obligatoria. Va después del borrado y no
+  antes: `set not null` sobre una tabla con filas huérfanas falla, y el archivo
+  tiene que poder correrse sobre una base que ya venía andando.
+*/
+alter table price_tiers alter column product_id set not null;
 
 /*
   Los dos conceptos que se le facturan a una empresa que trae su plástico. El

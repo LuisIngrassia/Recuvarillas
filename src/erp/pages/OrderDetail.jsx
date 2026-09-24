@@ -20,7 +20,7 @@ import {
   updateOrder,
 } from '../api/orders'
 import { addPayment, deletePayment, PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '../api/payments'
-import { listProducts } from '../api/stock'
+import { listProducts } from '../api/products'
 import { addOrderService, deleteOrderService, listRates } from '../api/services'
 import { CARRIER_TYPE_LABELS, quoteFreight } from '../api/carriers'
 import { listSellers } from '../api/sellers'
@@ -29,7 +29,8 @@ import { useDebounced } from '../lib/useDebounced'
 import { formatDate, formatNumber, formatPesos, todayISO } from '../lib/format'
 import { nombreDeItem } from '../lib/items'
 import { formatMoneda } from '../lib/cotizacion'
-import { usePriceTiers } from '../../lib/priceTiers'
+import { tierFromRow } from '../../lib/priceTiers'
+import { listTiers } from '../api/prices'
 import { tierFor } from '../../lib/quote'
 import {
   Async,
@@ -75,8 +76,20 @@ function TotalRow({ label, value, strong, hint }) {
  * la mayorista aunque esta vez lleve poco. El tipo se cambia en su ficha.
  */
 function AddItem({ order, products, onAdded }) {
-  const tiers = usePriceTiers()
   const [productId, setProductId] = useState(products[0]?.id ?? '')
+
+  /*
+    Los escalones del producto elegido, no una lista global: desde que hay
+    varios productos cada uno tiene la suya, y cotizar una bolsa de grampas con
+    los precios de la varilla sería cargar la línea mal sin que nada lo avise.
+  */
+  const listaDelProducto = useAsync(
+    async () => (await listTiers(productId)).map(tierFromRow),
+    [productId],
+  )
+  /* Memoizado porque `?? []` crea un array nuevo en cada render, y de ahí
+     cuelga el cálculo del precio sugerido. */
+  const tiers = useMemo(() => listaDelProducto.data ?? [], [listaDelProducto.data])
   /*
     El agujereado es de la línea y no del producto: en el depósito hay varillas,
     y la que sale agujereada se agujerea contra este pedido. Antes eran dos
@@ -93,12 +106,29 @@ function AddItem({ order, products, onAdded }) {
   const product = products.find((p) => p.id === productId)
   const cantidadNum = Number.parseInt(cantidad, 10)
 
+  /* Un producto que no se agujerea no tiene acabado, se haya dejado lo que se
+     haya dejado en el selector al cambiar de producto. */
+  const llevaAcabado = product?.se_agujerea !== false
+  const acabado = llevaAcabado && agujereada
+
   const sugerido = useMemo(() => {
     if (!product || !Number.isFinite(cantidadNum) || cantidadNum < 1) return null
-    const yaCargadas = order.items.reduce((sum, item) => sum + item.cantidad, 0)
+
+    /*
+      El escalón lo decide cuánto se lleva pedido **de este producto**, no del
+      pedido entero: son listas distintas y sumar cien grampas no tiene por qué
+      abaratar la varilla.
+    */
+    const yaCargadas = order.items
+      .filter((item) => item.product_id === productId)
+      .reduce((sum, item) => sum + item.cantidad, 0)
+
     const tier = tierFor(yaCargadas + cantidadNum, tiers, order.cliente_tipo)
-    return agujereada ? tier.drilled : tier.plain
-  }, [product, agujereada, cantidadNum, order.items, tiers, order.cliente_tipo])
+    /* Sin lista cargada no hay precio que sugerir, y se escribe a mano. */
+    if (!tier) return null
+
+    return acabado ? tier.drilled : tier.plain
+  }, [product, productId, acabado, cantidadNum, order.items, tiers, order.cliente_tipo])
 
   // Mientras nadie escriba un precio a mano, el campo sigue al sugerido.
   const precioMostrado = tocado ? precio : (sugerido ?? '')
@@ -127,7 +157,7 @@ function AddItem({ order, products, onAdded }) {
       await addOrderItem({
         order_id: order.id,
         product_id: productId,
-        agujereada,
+        agujereada: acabado,
         cantidad: cantidadNum,
         precio_unitario: precioNum,
       })
@@ -154,15 +184,23 @@ function AddItem({ order, products, onAdded }) {
             ))}
           </Select>
         </Field>
-        <Field label="Acabado">
-          <Select
-            value={agujereada ? 'true' : 'false'}
-            onChange={(event) => setAgujereada(event.target.value === 'true')}
-          >
-            <option value="false">Sin agujerear</option>
-            <option value="true">Agujereada</option>
-          </Select>
-        </Field>
+        {!llevaAcabado ? (
+          /* Se deja la celda en lugar de sacarla, para que las columnas no se
+             corran al cambiar de producto. */
+          <Field label="Acabado">
+            <p className="py-2 text-sm text-steel-400">No aplica</p>
+          </Field>
+        ) : (
+          <Field label="Acabado">
+            <Select
+              value={agujereada ? 'true' : 'false'}
+              onChange={(event) => setAgujereada(event.target.value === 'true')}
+            >
+              <option value="false">Sin agujerear</option>
+              <option value="true">Agujereada</option>
+            </Select>
+          </Field>
+        )}
         <Field label="Cantidad">
           <Input
             type="number"

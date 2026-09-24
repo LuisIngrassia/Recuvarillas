@@ -12,10 +12,6 @@ export const MOVEMENT_LABELS = {
 /** Los movimientos que se cargan a mano. La venta la genera el trigger de entrega. */
 export const MANUAL_MOVEMENTS = ['produccion', 'ajuste', 'devolucion']
 
-export async function listProducts() {
-  return unwrap(await db().from('products').select('*').eq('activo', true).order('codigo'))
-}
-
 /** Saldo actual por producto, sumado en la base. */
 export async function listStock() {
   return unwrap(await db().from('stock_actual').select('*').order('codigo'))
@@ -43,7 +39,14 @@ export async function listMovements({ productId, tipo, limit = 200 } = {}) {
  * contado el que revisó el depósito. Dejar que cada pantalla decida el signo es
  * la forma más fácil de terminar sumando una salida.
  */
-export async function addMovement({ product_id, tipo, cantidad, fecha, nota }) {
+export async function addMovement({
+  product_id,
+  tipo,
+  cantidad,
+  fecha,
+  nota,
+  costo_unitario: costoPasado,
+}) {
   const magnitud = Math.abs(cantidad)
   const signed = tipo === 'ajuste' ? cantidad : magnitud
 
@@ -58,8 +61,18 @@ export async function addMovement({ product_id, tipo, cantidad, fecha, nota }) {
   */
   let costo_unitario = null
   if (tipo === 'produccion') {
-    const costo = await getCostoVarilla()
-    costo_unitario = Number(costo?.costo_unitario) || null
+    /*
+      El costo puede venir de la pantalla, y es lo que pasa desde que hay más de
+      un producto que se fabrica: el costeo configurado es el de la varilla, y
+      aplicárselo a otra cosa sería inventarle un costo. Cuando no viene, se
+      usa el configurado, que es el caso de siempre.
+    */
+    if (costoPasado !== undefined) {
+      costo_unitario = Number(costoPasado) || null
+    } else {
+      const costo = await getCostoVarilla()
+      costo_unitario = Number(costo?.costo_unitario) || null
+    }
   }
 
   return unwrap(
