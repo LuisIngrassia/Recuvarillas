@@ -5,27 +5,39 @@
  * lo que se usa todos los días —"¿quién me lleva 800 varillas a Rosario?"—, y
  * abajo el tarifario, que se toca cuando llega una lista nueva.
  *
- * Un transporte tiene zonas (rangos de código postal) y cada zona su tarifario
- * por cantidad. Se ve todo anidado porque así se lee una lista de precios de
- * transporte, que es de donde se copia.
+ * Un transporte tiene zonas —cada una con la lista de ciudades a las que
+ * llega— y cada zona su tarifario por cantidad. Se ve todo anidado porque así
+ * se lee una lista de precios de transporte, que es de donde se copia.
  */
 import { useState } from 'react'
 import {
   CARRIER_TYPES,
   CARRIER_TYPE_LABELS,
   CARRIER_TYPE_TONES,
+  addZonePlaces,
+  ciudadesDe,
+  convertZoneToPlaces,
   createCarrier,
   createRate,
   createZone,
   deleteCarrier,
   deleteRate,
   deleteZone,
+  esPorRango,
   listCarriers,
   quoteFreight,
+  removeZonePlaces,
   updateCarrier,
   updateRate,
   updateZone,
 } from '../api/carriers'
+import {
+  loadPostalCodes,
+  placesInProvince,
+  placesInRange,
+  provinceNames,
+  searchPlaces,
+} from '../../lib/postalCodes'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
 import { formatNumber, formatPesos } from '../lib/format'
@@ -270,11 +282,232 @@ function CarrierModal({ carrier, onClose, onSaved }) {
   )
 }
 
+/**
+ * A qué ciudades llega una zona.
+ *
+ * Es el reemplazo del rango de códigos postales, y el cambio no es de forma: un
+ * expreso que llega a Rosario y a Venado Tuerto no llega a todo lo que hay en
+ * el medio, y el rango decía que sí. Cotizaba envíos a pueblos a los que nadie
+ * iba, y eso se descubre cuando el cliente ya tiene el precio en la mano.
+ *
+ * Se busca por nombre o por código postal contra el mismo padrón que usa el
+ * simulador de la web, así que la localidad que se guarda es la misma que va a
+ * traer el pedido — que es lo único que hace que después se encuentren.
+ */
+function PlacesModal({ zone, onClose, onSaved }) {
+  const padron = useAsync(loadPostalCodes, [])
+  const [busqueda, setBusqueda] = useState('')
+  const [provincia, setProvincia] = useState('')
+  const [error, setError] = useState('')
+  const [guardando, setGuardando] = useState(false)
+
+  const termino = useDebounced(busqueda, 200)
+  const data = padron.data
+  const ciudades = ciudadesDe(zone)
+
+  /* Lo que ya está cargado, para no volver a ofrecerlo en los resultados. */
+  const yaEstan = new Set(ciudades.flatMap((ciudad) => ciudad.codes))
+
+  const resultados = data ? searchPlaces(data, termino) : []
+  const disponibles = resultados.filter(
+    (lugar) => !lugar.codes.every((cp) => yaEstan.has(cp)),
+  )
+
+  const correr = async (accion) => {
+    setGuardando(true)
+    setError('')
+    try {
+      await accion()
+      await onSaved()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const agregar = (lugar) => correr(() => addZonePlaces(zone.id, [lugar]))
+  const quitar = (ciudad) => correr(() => removeZonePlaces(zone.id, ciudad.codes))
+
+  /*
+    Una provincia entera de un saque. El modelo sigue siendo una lista de
+    ciudades —no vuelve el rango— pero cargar Santa Fe de a una son doscientas
+    búsquedas, y nadie lo haría: terminaría cargando un rango a mano en otro
+    lado.
+  */
+  const agregarProvincia = () => {
+    if (!data || !provincia) return
+    const lugares = placesInProvince(data, provincia)
+    const nuevos = lugares.filter((lugar) => !lugar.codes.every((cp) => yaEstan.has(cp)))
+
+    if (nuevos.length === 0) {
+      setError(`${provincia} ya está entera en esta zona.`)
+      return
+    }
+    if (
+      !confirm(
+        `Agregar ${nuevos.length} localidades de ${provincia} a la zona "${zone.nombre}"?`,
+      )
+    ) {
+      return
+    }
+    correr(() => addZonePlaces(zone.id, nuevos))
+  }
+
+  return (
+    <Modal title={`A dónde llega · ${zone.nombre}`} onClose={onClose}>
+      <div className="space-y-4">
+        {esPorRango(zone) && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
+            Esta zona todavía cotiza por el rango{' '}
+            <strong>
+              CP {zone.cp_desde}–{zone.cp_hasta}
+            </strong>
+            . Apenas le agregues la primera ciudad, manda la lista y el rango deja
+            de aplicar: sólo va a cotizar a las ciudades que cargues.
+          </div>
+        )}
+
+        <Field
+          label="Buscar una ciudad"
+          hint="Por nombre o por código postal. Sale del mismo padrón que usa el simulador."
+        >
+          <Input
+            value={busqueda}
+            onChange={(event) => setBusqueda(event.target.value)}
+            placeholder="Venado Tuerto, 2600…"
+            autoFocus
+          />
+        </Field>
+
+        {padron.error && <ErrorNote>No se pudo cargar el padrón de localidades.</ErrorNote>}
+
+        {termino.trim().length >= 2 && (
+          <div className="max-h-48 overflow-y-auto rounded-md border border-steel-200">
+            {!data ? (
+              <p className="px-3 py-2 text-xs text-steel-400">Cargando el padrón…</p>
+            ) : disponibles.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-steel-400">
+                {resultados.length > 0
+                  ? 'Todo lo que coincide ya está en la zona.'
+                  : 'Ninguna localidad coincide.'}
+              </p>
+            ) : (
+              <ul className="divide-y divide-steel-100">
+                {disponibles.map((lugar) => (
+                  <li
+                    key={`${lugar.clave}`}
+                    className="flex items-center justify-between gap-3 px-3 py-2"
+                  >
+                    <span className="text-sm text-steel-700">
+                      {lugar.name}
+                      <span className="block text-xs text-steel-400">
+                        {lugar.province} ·{' '}
+                        {lugar.codes.length === 1
+                          ? `CP ${lugar.codes[0]}`
+                          : `${lugar.codes.length} códigos postales`}
+                      </span>
+                    </span>
+                    <Button
+                      variant="soft"
+                      className="px-2.5 py-1 text-xs"
+                      disabled={guardando}
+                      onClick={() => agregar(lugar)}
+                    >
+                      Agregar
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-end gap-2 border-t border-steel-100 pt-4">
+          <div className="min-w-[12rem] flex-1">
+            <Field label="O una provincia entera">
+              <Select
+                value={provincia}
+                onChange={(event) => setProvincia(event.target.value)}
+              >
+                <option value="">Elegir provincia…</option>
+                {(data ? provinceNames(data) : []).map((nombre) => (
+                  <option key={nombre} value={nombre}>
+                    {nombre}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <Button
+            variant="ghost"
+            type="button"
+            disabled={!provincia || guardando}
+            onClick={agregarProvincia}
+          >
+            Agregar provincia
+          </Button>
+        </div>
+
+        <ErrorNote>{error}</ErrorNote>
+
+        <div className="border-t border-steel-100 pt-4">
+          <p className="mb-2 text-xs font-semibold text-steel-600">
+            Llega a {ciudades.length === 0 ? 'ninguna ciudad todavía' : null}
+            {ciudades.length > 0 &&
+              `${formatNumber(ciudades.length)} ${
+                ciudades.length === 1 ? 'ciudad' : 'ciudades'
+              }`}
+          </p>
+
+          {ciudades.length === 0 ? (
+            <p className="rounded-md bg-steel-50 px-3 py-2 text-xs text-steel-500">
+              Sin ciudades cargadas esta zona no cotiza a ningún lado
+              {esPorRango(zone) ? ', salvo por su rango viejo' : ''}.
+            </p>
+          ) : (
+            <ul className="max-h-56 space-y-1 overflow-y-auto">
+              {ciudades.map((ciudad) => (
+                <li
+                  key={ciudad.clave}
+                  className="flex items-center justify-between gap-3 rounded-md bg-steel-50 px-3 py-1.5"
+                >
+                  <span className="text-sm text-steel-700">
+                    {ciudad.localidad}
+                    <span className="text-xs text-steel-400">
+                      {ciudad.provincia ? ` · ${ciudad.provincia}` : ''}
+                      {ciudad.codes.length === 1
+                        ? ` · CP ${ciudad.codes[0]}`
+                        : ` · ${ciudad.codes.length} CP`}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    disabled={guardando}
+                    onClick={() => quitar(ciudad)}
+                    className="text-xs text-steel-400 underline-offset-2 hover:text-red-600 hover:underline"
+                  >
+                    quitar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="flex justify-end">
+          <Button variant="ghost" type="button" onClick={onClose}>
+            Listo
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 function ZoneModal({ zone, carrierId, onClose, onSaved }) {
   const [form, setForm] = useState(() => ({
     nombre: zone?.nombre ?? '',
-    cp_desde: zone ? String(zone.cp_desde) : '',
-    cp_hasta: zone ? String(zone.cp_hasta) : '',
     plazo_dias: zone?.plazo_dias == null ? '' : String(zone.plazo_dias),
   }))
   const [error, setError] = useState('')
@@ -287,19 +520,9 @@ function ZoneModal({ zone, carrierId, onClose, onSaved }) {
     event.preventDefault()
 
     const nombre = form.nombre.trim()
-    const desde = Number.parseInt(form.cp_desde, 10)
-    const hasta = Number.parseInt(form.cp_hasta, 10)
 
     if (!nombre) {
       setError('Poné un nombre para la zona.')
-      return
-    }
-    if (!Number.isFinite(desde) || !Number.isFinite(hasta) || desde < 1000 || hasta > 9999) {
-      setError('Los códigos postales van de 1000 a 9999.')
-      return
-    }
-    if (hasta < desde) {
-      setError('El código postal de cierre no puede ser menor que el de apertura.')
       return
     }
 
@@ -308,8 +531,6 @@ function ZoneModal({ zone, carrierId, onClose, onSaved }) {
 
     const values = {
       nombre,
-      cp_desde: desde,
-      cp_hasta: hasta,
       plazo_dias: form.plazo_dias === '' ? null : Number.parseInt(form.plazo_dias, 10),
     }
 
@@ -330,40 +551,23 @@ function ZoneModal({ zone, carrierId, onClose, onSaved }) {
           <Input value={form.nombre} onChange={set('nombre')} autoFocus />
         </Field>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="CP desde">
-            <Input
-              type="number"
-              min="1000"
-              max="9999"
-              value={form.cp_desde}
-              onChange={set('cp_desde')}
-            />
-          </Field>
-          <Field label="CP hasta">
-            <Input
-              type="number"
-              min="1000"
-              max="9999"
-              value={form.cp_hasta}
-              onChange={set('cp_hasta')}
-            />
-          </Field>
-          <Field label="Plazo (días)">
-            <Input
-              type="number"
-              min="0"
-              step="1"
-              value={form.plazo_dias}
-              onChange={set('plazo_dias')}
-            />
-          </Field>
-        </div>
+        <Field label="Plazo (días)" hint="Opcional. Si no se pone, vale el del transporte.">
+          <Input
+            type="number"
+            min="0"
+            step="1"
+            value={form.plazo_dias}
+            onChange={set('plazo_dias')}
+          />
+        </Field>
 
         <ErrorNote>{error}</ErrorNote>
 
-        <p className="rounded-md bg-steel-50 px-3 py-2 text-xs text-steel-500">
-          Las zonas pueden solaparse. Si dos cubren el mismo destino, al cotizar
+        <p className="rounded-md bg-steel-50 px-3 py-2 text-xs leading-relaxed text-steel-500">
+          {zone
+            ? 'A qué ciudades llega se carga con el botón «Ciudades», sobre la zona.'
+            : 'Después de guardarla hay que decirle a qué ciudades llega: hasta entonces no cotiza a ningún lado.'}{' '}
+          Las zonas pueden solaparse — si dos cubren el mismo destino, al cotizar
           gana la más barata.
         </p>
 
@@ -521,7 +725,12 @@ function precioTexto(rate) {
 function CarrierCard({ carrier, onEdit, onChanged, onError }) {
   const [nuevaZona, setNuevaZona] = useState(false)
   const [zonaEditando, setZonaEditando] = useState(null)
+  /* El id y no la zona: al agregar una ciudad la lista se vuelve a pedir, y un
+     objeto congelado al abrir el diálogo seguiría mostrando la de antes. */
+  const [ciudadesZonaId, setCiudadesZonaId] = useState(null)
   const [tarifaEditando, setTarifaEditando] = useState(null)
+
+  const zonaDeCiudades = carrier.zones.find((zone) => zone.id === ciudadesZonaId)
 
   const guard = async (fn) => {
     onError('')
@@ -531,6 +740,33 @@ function CarrierCard({ carrier, onEdit, onChanged, onError }) {
     } catch (err) {
       onError(err.message)
     }
+  }
+
+  /*
+    Convertir una zona vieja: se traduce su rango a las ciudades que de verdad
+    hay adentro y se le borra el rango. No lo hace el schema al correr porque el
+    padrón vive acá, en el navegador — y porque la lista que sale del rango hay
+    que mirarla: es el punto de partida, no la respuesta.
+  */
+  const convertir = async (zone) => {
+    const data = await loadPostalCodes()
+    const lugares = placesInRange(data, zone.cp_desde, zone.cp_hasta)
+
+    if (lugares.length === 0) {
+      alert(
+        `En el rango CP ${zone.cp_desde}–${zone.cp_hasta} no hay ninguna localidad del padrón. Cargale las ciudades a mano desde «Ciudades».`,
+      )
+      return
+    }
+    if (
+      !confirm(
+        `La zona "${zone.nombre}" pasa a llegar a ${lugares.length} ciudades, las que hay entre CP ${zone.cp_desde} y ${zone.cp_hasta}. Después podés sacar las que no correspondan. ¿Convertirla?`,
+      )
+    ) {
+      return
+    }
+
+    guard(() => convertZoneToPlaces(zone.id, lugares))
   }
 
   return (
@@ -604,11 +840,31 @@ function CarrierCard({ carrier, onEdit, onChanged, onError }) {
                   <p className="text-sm font-semibold text-steel-700">
                     {zone.nombre}
                     <span className="ml-2 font-normal text-xs text-steel-400">
-                      CP {zone.cp_desde}–{zone.cp_hasta}
+                      {/* A dónde llega, que es lo que define la zona. Una que
+                          todavía va por rango se marca: sigue cotizando, pero
+                          cotiza de más. */}
+                      {esPorRango(zone) ? (
+                        <span className="text-amber-600">
+                          por rango CP {zone.cp_desde}–{zone.cp_hasta}
+                        </span>
+                      ) : ciudadesDe(zone).length === 0 ? (
+                        <span className="text-red-600">sin ciudades</span>
+                      ) : (
+                        `${formatNumber(ciudadesDe(zone).length)} ${
+                          ciudadesDe(zone).length === 1 ? 'ciudad' : 'ciudades'
+                        }`
+                      )}
                       {zone.plazo_dias !== null && ` · ${zone.plazo_dias} días`}
                     </span>
                   </p>
                   <div className="flex gap-1.5">
+                    <Button
+                      variant="soft"
+                      className="px-2 py-1 text-xs"
+                      onClick={() => setCiudadesZonaId(zone.id)}
+                    >
+                      Ciudades
+                    </Button>
                     <Button
                       variant="ghost"
                       className="px-2 py-1 text-xs"
@@ -635,6 +891,23 @@ function CarrierCard({ carrier, onEdit, onChanged, onError }) {
                     </Button>
                   </div>
                 </div>
+
+                {esPorRango(zone) && (
+                  <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
+                    Cotiza a <strong>todo</strong> lo que caiga entre CP{' '}
+                    {zone.cp_desde} y {zone.cp_hasta}, y eso casi nunca es cierto:
+                    un expreso que llega a dos ciudades no llega a todo lo que hay
+                    en el medio.{' '}
+                    <button
+                      type="button"
+                      onClick={() => convertir(zone)}
+                      className="font-semibold underline underline-offset-2"
+                    >
+                      Convertirla a la lista de ciudades del rango
+                    </button>{' '}
+                    y sacar de ahí las que no correspondan.
+                  </p>
+                )}
 
                 {zone.rates.length === 0 ? (
                   <p className="mt-2 text-xs text-steel-400">
@@ -699,6 +972,14 @@ function CarrierCard({ carrier, onEdit, onChanged, onError }) {
             setZonaEditando(null)
             onChanged()
           }}
+        />
+      )}
+
+      {zonaDeCiudades && (
+        <PlacesModal
+          zone={zonaDeCiudades}
+          onClose={() => setCiudadesZonaId(null)}
+          onSaved={onChanged}
         />
       )}
 

@@ -1063,25 +1063,70 @@ create table if not exists carriers (
 );
 
 /*
-  Hasta dónde llega cada transporte, por rango de código postal.
+  Hasta dónde llega cada transporte.
 
-  Se guarda por rango y no por localidad a propósito: los expresos tarifan por
-  zona —"todo Cuyo", "AMBA"—, no localidad por localidad, y el pedido ya trae el
-  código postal cargado. Un transporte puede tener las zonas que quiera y pueden
-  solaparse; al cotizar se toma la más barata que cubra ese destino.
+  Una zona es un nombre —"AMBA", "Cuyo", "Litoral"— y **la lista de localidades
+  a las que llega**, en `carrier_zone_places`. Un transporte puede tener las
+  zonas que quiera y pueden solaparse; al cotizar gana la más barata que cubra
+  ese destino.
+
+  Antes una zona era un rango de códigos postales, y el rango mentía. Los
+  códigos argentinos se asignaron por región pero no son un mapa: un expreso que
+  llega a Rosario y a Venado Tuerto no llega a todo lo que hay en el medio, y el
+  rango decía que sí. Cotizaba un envío a un pueblo al que nadie iba, y eso se
+  descubre cuando el cliente ya tiene el precio.
+
+  `cp_desde` y `cp_hasta` quedan, en null, para las zonas cargadas con el
+  esquema viejo: mientras una zona no tenga ni una localidad, se la sigue
+  cotizando por su rango. El ERP las marca y las convierte de a una, con el
+  padrón de códigos postales. Sacarlas de una habría dejado sin tarifario a
+  quien ya lo tenía cargado.
 */
 create table if not exists carrier_zones (
   id         uuid primary key default gen_random_uuid(),
   carrier_id uuid not null references carriers (id) on delete cascade,
   nombre     text not null check (char_length(nombre) between 1 and 120),
-  cp_desde   integer not null check (cp_desde between 1000 and 9999),
-  cp_hasta   integer not null check (cp_hasta between 1000 and 9999),
+  cp_desde   integer check (cp_desde between 1000 and 9999),
+  cp_hasta   integer check (cp_hasta between 1000 and 9999),
   plazo_dias integer check (plazo_dias is null or plazo_dias >= 0),
+  /* Con alguno de los dos en null el `check` da null, que pasa: es una zona
+     por localidades y el rango no aplica. */
   check (cp_hasta >= cp_desde)
+);
+
+/*
+  En una base que ya existe las dos columnas son `not null`, y `if not exists`
+  en la tabla no cambia eso. Se aflojan acá para que una zona nueva pueda no
+  tener rango.
+*/
+alter table carrier_zones alter column cp_desde drop not null;
+alter table carrier_zones alter column cp_hasta drop not null;
+
+/*
+  Las localidades a las que llega una zona.
+
+  El código postal es la clave —es lo que trae el pedido y lo que se busca al
+  cotizar— y el nombre va al lado para poder leer la lista sin tener que
+  traducir números. Se copia del padrón al agregarla y no se vuelve a mirar: si
+  mañana el padrón cambia de fuente, lo que el transporte dijo que cubre no
+  cambia.
+
+  `unique (zone_id, cp)` porque agregar dos veces la misma localidad a la misma
+  zona no significa nada, y al cotizar duplicaría la fila.
+*/
+create table if not exists carrier_zone_places (
+  id        uuid primary key default gen_random_uuid(),
+  zone_id   uuid not null references carrier_zones (id) on delete cascade,
+  cp        integer not null check (cp between 1000 and 9999),
+  localidad text,
+  provincia text,
+  unique (zone_id, cp)
 );
 
 create index if not exists carrier_zones_carrier_idx on carrier_zones (carrier_id);
 create index if not exists carrier_zones_cp_idx on carrier_zones (cp_desde, cp_hasta);
+/* Por acá entra la cotización: dado un CP, qué zonas lo cubren. */
+create index if not exists carrier_zone_places_cp_idx on carrier_zone_places (cp);
 
 /*
   El tarifario: cuánto sale mandar tantas varillas a esa zona.
@@ -1170,6 +1215,12 @@ $$;
   datos —"quién llega hasta acá y a cuánto"— y porque así la contesta igual
   quien la haga: la pantalla del pedido hoy, un informe mañana.
 
+  Una zona cubre un destino si **ese código postal está en su lista de
+  localidades**. El rango viejo sólo se mira cuando la zona todavía no tiene
+  ninguna cargada: en cuanto se le agrega la primera, manda la lista y el rango
+  deja de aplicar. Si valieran los dos, una zona a medio convertir cotizaría
+  destinos que ya se habían sacado a propósito.
+
   `distinct on` deja una fila por transporte: si dos zonas del mismo transporte
   cubren el destino, gana la más barata. El resultado sale ordenado por precio,
   que es el orden en que se quiere leer.
@@ -1186,6 +1237,18 @@ returns table (
 language sql
 stable
 as $$
+  /*
+    El código postal del destino, resuelto una sola vez.
+
+    Va en un CTE y no suelto en el `where` por un detalle que muerde:
+    `carrier_zone_places` tiene una columna llamada `cp` y el parámetro de esta
+    función también se llama `cp`. En una función SQL, cuando los dos nombres
+    están a la vista, **gana la columna** — así que `cp_numero(cp)` adentro de
+    esa subconsulta estaría resolviendo el código postal de la fila que se está
+    mirando en lugar del que se preguntó. Acá adentro no hay ninguna tabla a la
+    vista, así que `cp` es el parámetro y nada más.
+  */
+  with destino as (select cp_numero(cp) as numero)
   select o.op_carrier, o.op_nombre, o.op_tipo, o.op_zona, o.op_plazo, o.op_precio
   from (
     select distinct on (c.id)
@@ -1199,7 +1262,18 @@ as $$
     join carrier_zones z on z.carrier_id = c.id
     join carrier_rates r on r.zone_id = z.id
     where c.activo
-      and cp_numero(cp) between z.cp_desde and z.cp_hasta
+      and (
+        exists (
+          select 1 from carrier_zone_places p
+           where p.zone_id = z.id
+             and p.cp = (select numero from destino)
+        )
+        or (
+          z.cp_desde is not null
+          and not exists (select 1 from carrier_zone_places p where p.zone_id = z.id)
+          and (select numero from destino) between z.cp_desde and z.cp_hasta
+        )
+      )
       and cantidad >= r.min_qty
       and (r.max_qty is null or cantidad <= r.max_qty)
     order by c.id, r.precio_fijo + r.precio_por_unidad * cantidad
@@ -2198,6 +2272,7 @@ alter table stock_movements enable row level security;
 alter table sellers         enable row level security;
 alter table carriers        enable row level security;
 alter table carrier_zones   enable row level security;
+alter table carrier_zone_places enable row level security;
 alter table carrier_rates   enable row level security;
 alter table expenses        enable row level security;
 alter table expense_types   enable row level security;
@@ -2272,7 +2347,7 @@ begin
   foreach tabla in array array[
     'price_tiers', 'customers', 'leads', 'products',
     'orders', 'order_items', 'payments', 'stock_movements',
-    'sellers', 'carriers', 'carrier_zones', 'carrier_rates',
+    'sellers', 'carriers', 'carrier_zones', 'carrier_zone_places', 'carrier_rates',
     'expenses', 'expense_types', 'expense_type_payers',
     'profit_shares', 'profit_payouts',
     'service_rates', 'order_services',

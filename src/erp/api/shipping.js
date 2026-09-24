@@ -41,13 +41,18 @@ export async function listDestinos({ limit = 5000 } = {}) {
   return { filas, total, completo: filas.length >= total }
 }
 
-/** Las zonas de los transportes, para saber qué destinos cuestan lo mismo. */
+/**
+ * Las zonas de los transportes, para saber qué destinos cuestan lo mismo.
+ *
+ * Con sus ciudades: una zona cubre un destino si ese código postal está en su
+ * lista. El rango viejo viene igual, para las que todavía no se convirtieron.
+ */
 export async function listZonas() {
   return unwrap(
     await db()
       .from('carrier_zones')
-      .select('*, carrier:carriers(id, nombre, tipo, activo)')
-      .order('cp_desde'),
+      .select('*, carrier:carriers(id, nombre, tipo, activo), places:carrier_zone_places(cp)')
+      .order('nombre'),
   )
 }
 
@@ -83,9 +88,9 @@ export async function listViajes() {
    de verdad importa para el flete:
 
    1. **La misma localidad.** Mismo código postal. Es el mismo reparto.
-   2. **La misma zona de flete.** Los transportes tarifan por rango de código
-      postal: dos destinos en la misma zona **cuestan lo mismo**. No es una
-      aproximación geográfica, es el precio.
+   2. **La misma zona de flete.** Cada zona de un transporte tiene la lista de
+      ciudades a las que llega: dos destinos en la misma zona **cuestan lo
+      mismo**. No es una aproximación geográfica, es el precio.
    3. **La misma provincia.** El más flojo de los tres, y está para que la
       pantalla sirva igual antes de que alguien cargue el tarifario.
 
@@ -136,12 +141,22 @@ export function claveProvincia(nombre) {
  * Un destino puede estar en varias: cada transporte tiene las suyas y pueden
  * solaparse. Todas cuentan, porque alcanza con que **un** transporte trate a
  * dos destinos como la misma zona para que cobre lo mismo por los dos.
+ *
+ * Manda la lista de ciudades. El rango sólo se mira cuando la zona todavía no
+ * tiene ninguna cargada — la misma regla que `cotizar_flete` en la base, porque
+ * una zona a medio convertir tiene que contestar lo mismo de los dos lados.
  */
 export function zonasQueCubren(cp, zonas) {
   if (cp === null) return []
-  return zonas.filter(
-    (zona) => zona.carrier?.activo !== false && cp >= zona.cp_desde && cp <= zona.cp_hasta,
-  )
+
+  return zonas.filter((zona) => {
+    if (zona.carrier?.activo === false) return false
+
+    const ciudades = zona.places ?? []
+    if (ciudades.length > 0) return ciudades.some((lugar) => lugar.cp === cp)
+
+    return zona.cp_desde !== null && cp >= zona.cp_desde && cp <= zona.cp_hasta
+  })
 }
 
 /**

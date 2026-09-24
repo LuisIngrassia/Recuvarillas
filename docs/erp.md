@@ -663,11 +663,41 @@ respuesta está en la lista de abajo.
 
 ### Fletes
 
-Cada transporte se carga una vez con sus **zonas** —rangos de código postal— y,
-dentro de cada zona, su **tarifario por cantidad**. El precio de una tarifa
-tiene dos partes que se suman: un importe fijo por envío y otro por varilla.
-Con una sola de las dos alcanza para el caso simple; las dos juntas cubren el
-"mínimo más excedente" que cobran varios expresos.
+Cada transporte se carga una vez con sus **zonas** y, dentro de cada zona, su
+**tarifario por cantidad**. El precio de una tarifa tiene dos partes que se
+suman: un importe fijo por envío y otro por varilla. Con una sola de las dos
+alcanza para el caso simple; las dos juntas cubren el "mínimo más excedente"
+que cobran varios expresos.
+
+#### Una zona es una lista de ciudades
+
+Una zona tiene un nombre —«AMBA», «Cuyo», «Litoral»— y **la lista de ciudades a
+las que llega**. Se cargan con el botón **Ciudades** de la zona, buscando por
+nombre o por código postal contra el mismo padrón que usa el simulador de la
+web: la localidad que se guarda es la misma que va a traer el pedido, que es lo
+único que hace que después se encuentren.
+
+> **Antes una zona era un rango de códigos postales, y el rango mentía.** Los
+> códigos argentinos se asignaron por región pero no son un mapa: un expreso que
+> llega a Rosario y a Venado Tuerto no llega a todo lo que hay en el medio, y el
+> rango decía que sí. Cotizaba envíos a pueblos a los que nadie iba, y eso se
+> descubre cuando el cliente ya tiene el precio en la mano.
+
+Una ciudad puede tener varios códigos postales —la Ciudad de Buenos Aires tiene
+quinientos— y se agrega y se quita como una sola cosa. El código postal es cómo
+la encuentra el sistema; la ciudad es cómo se piensa la zona.
+
+Para no cargar doscientas localidades de a una está **Agregar provincia**, que
+suma todas las de una provincia de un saque. Sigue siendo una lista de ciudades:
+lo que cambia es cuántos clics cuesta, no qué se guarda. Después se sacan las
+que no correspondan.
+
+**Las zonas cargadas con el esquema viejo siguen funcionando.** Mientras una
+zona no tenga ni una ciudad, se la sigue cotizando por su rango, y la pantalla
+la marca en ámbar con un botón para convertirla: traduce el rango a las ciudades
+que de verdad hay adentro y ahí se depuran. Apenas tiene la primera ciudad, el
+rango deja de aplicar — si valieran los dos, una zona a medio convertir
+cotizaría destinos que ya se habían sacado a propósito.
 
 Con eso cargado, el pedido contesta solo. Al poner el código postal en **Entrega
 y flete** aparecen los transportes que llegan a ese destino con esa cantidad,
