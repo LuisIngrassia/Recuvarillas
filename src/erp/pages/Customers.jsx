@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { esProspecto, listCustomers } from '../api/customers'
+import { claveProvincia, provinciasDe } from '../api/shipping'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
 import { formatNumber, whatsappLink } from '../lib/format'
@@ -38,6 +39,10 @@ export default function Customers() {
     termina con dos fichas de la misma persona.
   */
   const [verProspectos, setVerProspectos] = useState(false)
+  /* Filtrar por provincia es la mitad de la pregunta de envíos: la otra mitad
+     —quién está cerca de un viaje que ya sale— la contesta la pantalla de
+     Envíos, que trabaja sobre estos mismos datos. */
+  const [provincia, setProvincia] = useState('')
   const [creating, setCreating] = useState(false)
 
   const term = useDebounced(search)
@@ -51,8 +56,22 @@ export default function Customers() {
      afuera. Preguntárselo a la base sería una segunda consulta para contar lo
      que ya está en la mano. */
   const todos = query.data ?? []
-  const prospectos = todos.filter(esProspecto)
-  const visibles = verProspectos ? todos : todos.filter((item) => !esProspecto(item))
+
+  /* Las opciones salen de lo que hay cargado y no de las 24 jurisdicciones: un
+     desplegable con veinticuatro opciones de las que sirven tres hay que leerlo
+     entero cada vez. */
+  const provincias = provinciasDe(todos)
+
+  /* La provincia corta antes que los prospectos para que el cartel de "hay N
+     fuera de la lista" hable de los de esta provincia y no de todo el padrón. */
+  const enZona = provincia
+    ? todos.filter(
+        (item) => (item.provincia_clave ?? claveProvincia(item.provincia)) === provincia,
+      )
+    : todos
+
+  const prospectos = enZona.filter(esProspecto)
+  const visibles = verProspectos ? enZona : enZona.filter((item) => !esProspecto(item))
   const ocultos = verProspectos ? 0 : prospectos.length
 
   return (
@@ -71,6 +90,20 @@ export default function Customers() {
           onChange={(event) => setSearch(event.target.value)}
           className="w-auto min-w-[16rem] flex-1"
         />
+        {/* Un `<select>` pelado y no el `Select` de `ui.jsx`: aquel viene con
+            `w-full` y acá va al lado del buscador. */}
+        <select
+          value={provincia}
+          onChange={(event) => setProvincia(event.target.value)}
+          className="rounded-md border border-steel-200 bg-white px-3 py-2 text-sm text-steel-700"
+        >
+          <option value="">Todas las provincias</option>
+          {provincias.map((item) => (
+            <option key={item.clave} value={item.clave}>
+              {item.nombre} ({item.cuenta})
+            </option>
+          ))}
+        </select>
         <label className="flex items-center gap-2 text-sm text-steel-600">
           <input
             type="checkbox"
@@ -123,7 +156,9 @@ export default function Customers() {
             <Empty>
               {ocultos > 0
                 ? 'Los que coinciden todavía no compraron. Marcá "Incluir prospectos" para verlos.'
-                : 'Nadie coincide con ese filtro.'}
+                : provincia
+                  ? 'Nadie con dirección en esa provincia. Puede que esté cargado sin localidad.'
+                  : 'Nadie coincide con ese filtro.'}
             </Empty>
           ) : (
             <Table
@@ -131,6 +166,7 @@ export default function Customers() {
                 <>
                   <Th>Cliente</Th>
                   <Th>Tipo</Th>
+                  <Th>Dónde</Th>
                   <Th align="right">Pedidos</Th>
                   <Th align="right">Facturado</Th>
                   <Th align="right">Cobrado</Th>
@@ -172,6 +208,23 @@ export default function Customers() {
                         <Badge tone={customer.tipo === 'mayorista' ? 'info' : 'neutral'}>
                           {customer.tipo}
                         </Badge>
+                      )}
+                    </Td>
+                    {/* Sin esto, filtrar por provincia deja una lista en la
+                        que no se ve por qué está cada uno. */}
+                    <Td className="text-xs text-steel-500">
+                      {customer.localidad || customer.provincia ? (
+                        <>
+                          {customer.localidad}
+                          {customer.provincia && (
+                            <span className="block text-steel-400">
+                              {customer.provincia}
+                              {customer.codigo_postal ? ` · ${customer.codigo_postal}` : ''}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-steel-300">sin dirección</span>
                       )}
                     </Td>
                     <Td align="right" className="tabular-nums text-steel-600">

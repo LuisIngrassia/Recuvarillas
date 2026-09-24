@@ -32,6 +32,7 @@ const QuotePrint = lazy(() => import('./pages/QuotePrint'))
 const Stock = lazy(() => import('./pages/Stock'))
 const Cash = lazy(() => import('./pages/Cash'))
 const Expenses = lazy(() => import('./pages/Expenses'))
+const Shipping = lazy(() => import('./pages/Shipping'))
 const ExpenseTypes = lazy(() => import('./pages/ExpenseTypes'))
 const Profit = lazy(() => import('./pages/Profit'))
 const Prices = lazy(() => import('./pages/Prices'))
@@ -66,6 +67,7 @@ const SECTIONS = [
   { to: '/erp/pedidos', label: 'Pedidos' },
   { to: '/erp/stock', label: 'Stock' },
   { to: '/erp/caja', label: 'Caja' },
+  { to: '/erp/envios', label: 'Envíos' },
   { to: '/erp/costos', label: 'Costos' },
   { to: '/erp/rentabilidad', label: 'Rentabilidad' },
   { to: '/erp/documentos', label: 'Documentos' },
@@ -222,6 +224,7 @@ function Gate() {
           <Route path="pedidos/:id/presupuesto" element={<QuotePrint />} />
           <Route path="stock" element={<Stock />} />
           <Route path="caja" element={<Cash />} />
+          <Route path="envios" element={<Shipping />} />
           <Route path="costos" element={<Expenses />} />
           <Route path="tipos-de-gasto" element={<ExpenseTypes />} />
           <Route path="rentabilidad" element={<Profit />} />

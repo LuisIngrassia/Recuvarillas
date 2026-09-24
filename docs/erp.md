@@ -13,6 +13,7 @@ El día a día:
 | **Pedidos**      | Dos solapas: los presupuestos mandados, y lo vendido hasta la entrega.  |
 | **Stock**        | Existencias y movimientos: producción, ventas, ajustes y devoluciones.  |
 | **Caja**         | Los cobros del período, con el total por medio de pago.                 |
+| **Envíos**       | Quién está cerca de un viaje que ya sale, para compartir el flete.      |
 | **Costos**       | Lo que sale, y de la parte de quién sale cada cosa.                     |
 | **Rentabilidad** | El resultado del mes y la cuenta de cada socio.                         |
 | **Documentos**   | La lista de precios, el folleto y la ficha técnica, con el contacto de cada vendedor. |
@@ -680,6 +681,83 @@ en lugar de darlo por gratis, que es como se pierde plata sin verla.
 
 La pantalla de **Fletes** tiene arriba un probador: código postal y cantidad, y
 muestra la misma comparación sin tener que inventar un pedido de prueba.
+
+### Envíos: quién está cerca de un viaje que ya sale
+
+El flete es lo que más veces mata una venta lejos. La varilla compite bien y el
+envío no, y hay leads perdidos con motivo **Costo de flete** que lo dicen con
+todas las letras.
+
+Pero el grueso del costo de un envío es el viaje, no la varilla de más. Si ya
+hay un pedido confirmado a Rosario, al de al lado se le puede ofrecer un flete
+que solo no pagaría. **Envíos** contesta a quién llamar.
+
+Arriba, los **viajes que ya salen**: los pedidos confirmados o en producción con
+entrega por envío. Un presupuesto todavía no es un viaje y un entregado ya
+volvió, así que no cuentan. Cada uno muestra cuánta gente hay cerca de ese
+destino; tocándolo se abre la lista.
+
+#### Qué quiere decir «cerca»
+
+No hay kilómetros entre dos destinos, y conviene saber por qué: el padrón de
+códigos postales guarda la distancia hasta la **fábrica**, no coordenadas. Dos
+localidades a 300 km de la fábrica pueden estar a 600 km entre sí, una al norte
+y la otra al sur. Estimarlo con ese dato daría un número que parece preciso y no
+lo es.
+
+Así que «cerca» no se estima, se define con lo que sí es exacto:
+
+| Nivel | Qué significa |
+| --- | --- |
+| **Misma localidad** | Mismo código postal: entra en el mismo reparto. |
+| **Misma zona de flete** | El transporte cobra **lo mismo** por los dos destinos. No es una aproximación geográfica, es el precio. |
+| **Misma provincia** | Cerca en sentido amplio. Conviene confirmar el flete antes de prometer nada. |
+
+El del medio es el bueno, y sale del tarifario que ya está cargado en Fletes:
+dos destinos que caen en la misma zona de un mismo transporte cuestan lo mismo.
+**Sin tarifario cargado la pantalla funciona igual**, pero sólo puede distinguir
+misma localidad y misma provincia — y lo avisa.
+
+Dentro de cada nivel se ordena por diferencia de código postal. En Argentina los
+códigos se asignaron por región, así que dos números parecidos suelen ser dos
+pueblos vecinos. Es un desempate para ordenar una lista corta, nunca una medida
+de distancia.
+
+#### A quién llamar primero
+
+La lista no viene ordenada por cercanía sino por **a quién conviene llamar**:
+
+1. **Los que se perdieron por el flete.** Ya quisieron comprar, ya dijeron que
+   sí al producto, y lo que los frenó es exactamente lo que este viaje abarata.
+   Van marcados en ámbar.
+2. **Los que quedaron a mitad de camino**: perdidos por otro motivo, y dormidos.
+3. **Los leads abiertos.**
+4. **Los clientes**, al final: ya compran, y esto les suma un envío más barato,
+   no una venta nueva.
+
+Abajo, **la cartera por provincia**: cuántos clientes y leads hay en cada una,
+cuántas localidades distintas, y cuántos se perdieron por el flete. Tocando una
+provincia se la usa como destino, que sirve para planear un viaje que todavía no
+existe.
+
+> «Córdoba» y «Cordoba» cuentan como una sola provincia. Se agrupan sin tildes y
+> se muestra la grafía que más se usó — si no, media cartera queda en una
+> provincia y media en otra, y ninguna de las dos mitades sirve.
+
+#### Filtrar por provincia
+
+**Clientes** y **Leads** tienen su propio filtro por provincia, con la cantidad
+al lado de cada una, y las dos listas muestran dónde está cada uno. Las opciones
+salen de lo que hay cargado y no de las 24 jurisdicciones: un desplegable con
+veinticuatro opciones de las que sirven tres hay que leerlo entero cada vez.
+
+En Leads el filtro lo resuelve la base y no el navegador, y es a propósito: esa
+lista corta en los primeros 300, así que filtrar después de traerlos contestaría
+«los de Mendoza que entraron últimos», que no es lo que se está preguntando.
+
+Quien no tenga localidad cargada no puede aparecer en ninguna de las dos
+pantallas: Envíos lo cuenta aparte, en **Sin dirección**, porque a esa gente no
+se le puede ofrecer un envío hasta saber dónde está.
 
 ### Documentos
 

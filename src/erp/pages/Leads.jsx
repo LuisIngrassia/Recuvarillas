@@ -29,12 +29,14 @@ import {
   createQuoteFromLead,
   deleteLead,
   linkLeadToCustomer,
+  listLeadProvinces,
   listLeads,
   updateLead,
 } from '../api/leads'
 import { listCustomerOptions } from '../api/customers'
 import { StatusBadge } from '../components/LeadPipeline'
 import { listProducts } from '../api/stock'
+import { provinciasDe } from '../api/shipping'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
 import { formatDate, formatDateTime, formatNumber, formatPesos, whatsappLink } from '../lib/format'
@@ -938,6 +940,10 @@ function QuoteModal({ lead, onClose, onDone }) {
 export default function Leads() {
   const [status, setStatus] = useState('')
   const [source, setSource] = useState('')
+  /* El filtro por provincia lo resuelve la base, no esta pantalla: la lista
+     corta en las primeras 300 y filtrarla acá contestaría "los de Mendoza que
+     entraron últimos", que no es lo que se está preguntando. */
+  const [provincia, setProvincia] = useState('')
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState(null)
   const [creating, setCreating] = useState(false)
@@ -947,8 +953,12 @@ export default function Leads() {
 
   // El buscador espera a que dejes de escribir antes de consultar.
   const term = useDebounced(search)
+  /* No depende de ningún filtro: es la lista de provincias que existen, y se
+     pide una sola vez. */
+  const provincias = useAsync(listLeadProvinces, [])
+
   const query = useAsync(
-    () => listLeads({ status, source, search: term }),
+    () => listLeads({ status, source, provincia, search: term }),
     [status, source, term],
   )
   const navigate = useNavigate()
@@ -1004,6 +1014,18 @@ export default function Leads() {
             </option>
           ))}
         </Select>
+        <Select
+          value={provincia}
+          onChange={(event) => setProvincia(event.target.value)}
+          className="w-auto"
+        >
+          <option value="">Todas las provincias</option>
+          {provinciasDe(provincias.data ?? []).map((item) => (
+            <option key={item.clave} value={item.clave}>
+              {item.nombre} ({item.cuenta})
+            </option>
+          ))}
+        </Select>
         <Input
           type="search"
           placeholder="Buscar por nombre, teléfono o email"
@@ -1022,7 +1044,13 @@ export default function Leads() {
       <Card>
         <Async
           query={query}
-          empty={status ? 'No hay leads en esa etapa.' : 'No hay leads con ese filtro.'}
+          empty={
+            provincia
+              ? 'No hay leads con dirección en esa provincia.'
+              : status
+                ? 'No hay leads en esa etapa.'
+                : 'No hay leads con ese filtro.'
+          }
         >
           {(leads) => (
             <Table
@@ -1095,6 +1123,14 @@ export default function Leads() {
                       {lead.entrega === 'envio'
                         ? `${lead.localidad ?? '—'} · ${formatNumber(lead.kilometros ?? 0)} km`
                         : (lead.localidad ?? 'Retira')}
+                      {/* La provincia, para que filtrar por ella deje una lista
+                          en la que se ve por qué está cada uno. */}
+                      {lead.provincia && (
+                        <span className="block text-xs text-steel-400">
+                          {lead.provincia}
+                          {lead.codigo_postal ? ` · ${lead.codigo_postal}` : ''}
+                        </span>
+                      )}
                     </Td>
                     <Td>
                       <StatusBadge status={lead.status} />

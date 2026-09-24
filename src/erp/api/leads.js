@@ -227,7 +227,14 @@ export const LEAD_EVENT_TYPES = [
  * un lead de hace ocho meses no se llama, y para revisar el histórico está el
  * buscador por nombre o teléfono.
  */
-export async function listLeads({ status, source, owner, search, limit = 300 } = {}) {
+export async function listLeads({
+  status,
+  source,
+  owner,
+  provincia,
+  search,
+  limit = 300,
+} = {}) {
   let query = db()
     .from('leads')
     .select('*, customer:customers(id, nombre, tipo)')
@@ -237,6 +244,9 @@ export async function listLeads({ status, source, owner, search, limit = 300 } =
   if (status) query = query.eq('status', status)
   if (source) query = query.eq('source', source)
   if (owner) query = query.eq('owner', owner)
+  /* Por la clave normalizada y no por lo que se escribió: "Córdoba" y
+     "Cordoba" son la misma provincia y el desplegable manda una sola. */
+  if (provincia) query = query.eq('provincia_clave', provincia)
 
   const term = searchTerm(search)
   if (term) {
@@ -246,6 +256,25 @@ export async function listLeads({ status, source, owner, search, limit = 300 } =
   }
 
   return unwrap(await query)
+}
+
+/**
+ * Las provincias que aparecen en los leads, para armar el desplegable.
+ *
+ * Consulta propia y no las provincias de la lista que se está viendo: esa corta
+ * en las primeras 300, así que el desplegable no ofrecería las provincias que
+ * quedaron afuera —justamente las que hay que poder elegir para ir a buscarlas.
+ *
+ * Son dos columnas de texto y una fila por lead; alcanza y sobra para un
+ * negocio de este tamaño.
+ */
+export async function listLeadProvinces() {
+  return unwrap(
+    await db()
+      .from('leads')
+      .select('provincia, provincia_clave')
+      .not('provincia_clave', 'is', null),
+  )
 }
 
 /**

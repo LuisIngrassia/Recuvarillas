@@ -1104,6 +1104,53 @@ create table if not exists carrier_rates (
 create index if not exists carrier_rates_zone_idx on carrier_rates (zone_id);
 
 /*
+  La misma provincia escrita de dos maneras es dos provincias.
+
+  El padrón de códigos postales la escribe sin tildes —"Cordoba", "Entre
+  Rios"— y quien la carga a mano la escribe como se escribe. Agrupar o filtrar
+  por provincia sin normalizar parte a Córdoba en dos, y ninguna de las dos
+  mitades sirve.
+
+  Con `translate` y no con la extensión `unaccent`: aquélla hay que instalarla
+  en el proyecto de Supabase y esto es un reemplazo de veintipico de letras que
+  no va a crecer. Una dependencia menos para algo que no la necesita.
+*/
+create or replace function sin_acentos(t text) returns text
+language sql
+immutable
+as $$
+  select translate(
+    lower(t),
+    'áàäâãéèëêíìïîóòöôõúùüûñçÁÀÄÂÃÉÈËÊÍÌÏÎÓÒÖÔÕÚÙÜÛÑÇ',
+    'aaaaaeeeeiiiiooooouuuuncaaaaaeeeeiiiiooooouuuunc'
+  );
+$$;
+
+/*
+  La provincia normalizada, al lado de la que se escribió.
+
+  Es una columna calculada y no un dato que alguien mantenga: se guarda sola y
+  no se puede desincronizar. Está para dos cosas que sin ella no se pueden
+  hacer bien —filtrar por provincia y agrupar la cartera por zona— y va
+  indexada porque la pantalla de Leads corta la lista en las primeras 300 y por
+  lo tanto el filtro tiene que resolverlo la base, no el navegador: filtrar
+  después de traer 300 filas contestaría con los leads de esa provincia que
+  entraron en las últimas 300, que no es la pregunta.
+
+  Van acá abajo y no en el `create table` porque necesitan que `sin_acentos`
+  exista, y porque `if not exists` en la tabla no agrega columnas a una que ya
+  está creada.
+*/
+alter table leads add column if not exists provincia_clave text
+  generated always as (sin_acentos(provincia)) stored;
+alter table customers add column if not exists provincia_clave text
+  generated always as (sin_acentos(provincia)) stored;
+
+create index if not exists leads_provincia_idx     on leads (provincia_clave);
+create index if not exists customers_provincia_idx on customers (provincia_clave);
+create index if not exists customers_cp_idx        on customers (codigo_postal);
+
+/*
   El código postal escrito a mano viene de cualquier forma: "1900", "B1900",
   "B1900ABC", a veces con espacios. Lo que ubica la zona son los cuatro dígitos
   del medio, así que se sacan de donde estén en vez de exigir un formato que
@@ -1699,6 +1746,7 @@ create index if not exists orders_tipo_idx on orders (tipo);
   El orden importa: las de abajo se apoyan en las de arriba.
 */
 drop view if exists leads_por_origen;
+drop view if exists destinos;
 drop view if exists finanzas_mensuales;
 drop view if exists customer_balances;
 drop view if exists orders_summary;
@@ -1850,13 +1898,79 @@ create or replace view customer_balances with (security_invoker = on) as
     c.nombre,
     c.tipo,
     c.telefono,
+    /* Dónde está. La pantalla de Clientes filtra por provincia, y `destinos`
+       contesta quién más hay cerca de un viaje que ya sale. */
+    c.localidad,
+    c.provincia,
+    c.provincia_clave,
+    c.codigo_postal,
     (count(o.id) filter (where o.estado not in ('presupuesto', 'cancelado')))::integer as pedidos,
     coalesce(sum(o.total)  filter (where o.estado not in ('presupuesto', 'cancelado')), 0) as facturado,
     coalesce(sum(o.pagado) filter (where o.estado not in ('presupuesto', 'cancelado')), 0) as cobrado,
     coalesce(sum(o.saldo)  filter (where o.estado not in ('presupuesto', 'cancelado')), 0) as saldo
   from customers c
   left join orders_summary o on o.customer_id = c.id
-  group by c.id, c.nombre, c.tipo, c.telefono;
+  group by c.id, c.nombre, c.tipo, c.telefono,
+           c.localidad, c.provincia, c.provincia_clave, c.codigo_postal;
+
+/*
+  Todo el que tiene una dirección, sea cliente o lead, en una sola lista.
+
+  Existe para una pregunta que antes no se podía hacer: **quién más hay cerca de
+  un destino al que ya estamos mandando**. El flete se cotiza por zona y el
+  grueso del costo es el viaje, no la varilla de más: si el camión ya va a
+  Rosario, al de al lado se le puede ofrecer un flete que solo no pagaría.
+
+  Clientes y leads van juntos porque para esa pregunta son lo mismo: un punto en
+  el mapa con un teléfono. Lo que cambia es qué se le dice a cada uno, y para
+  eso está `clase`.
+
+  Un lead ya convertido en cliente queda afuera: figura del otro lado, con su
+  ficha, y contarlo dos veces haría creer que hay más gente de la que hay.
+
+  Los perdidos **sí** entran, y son los más interesantes de todos: un lead que
+  se perdió con motivo `freight` se perdió justamente por esto. Si aparece un
+  viaje a su zona, es el primero al que hay que llamar.
+*/
+create or replace view destinos with (security_invoker = on) as
+  select
+    'cliente'::text           as clase,
+    c.id,
+    c.nombre,
+    c.telefono,
+    c.localidad,
+    c.provincia,
+    c.provincia_clave,
+    c.codigo_postal,
+    cp_numero(c.codigo_postal) as cp,
+    null::lead_status         as status,
+    null::lost_reason         as lost_reason,
+    (
+      select count(*) from orders o
+       where o.customer_id = c.id
+         and o.estado not in ('presupuesto', 'cancelado')
+    )::integer                as pedidos,
+    c.created_at
+  from customers c
+
+  union all
+
+  select
+    'lead',
+    l.id,
+    l.nombre,
+    l.telefono,
+    l.localidad,
+    l.provincia,
+    l.provincia_clave,
+    l.codigo_postal,
+    cp_numero(l.codigo_postal),
+    l.status,
+    l.lost_reason,
+    0,
+    l.created_at
+  from leads l
+  where l.customer_id is null;
 
 /*
   El resultado de cada mes: lo que entró, lo que salió y lo que quedó.
@@ -2115,8 +2229,10 @@ grant insert on leads to anon;
   puede tocar desde afuera.
 */
 revoke execute on function cp_numero(text) from public;
+revoke execute on function sin_acentos(text) from public;
 revoke execute on function cotizar_flete(text, integer) from public;
 grant execute on function cp_numero(text) to authenticated;
+grant execute on function sin_acentos(text) to authenticated;
 grant execute on function cotizar_flete(text, integer) to authenticated;
 
 /*
