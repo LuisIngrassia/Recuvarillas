@@ -1,0 +1,156 @@
+[
+  {
+    "id": "grafito",
+    "name": "Grafito",
+    "hex": "#1D2120",
+    "rgb": [
+      29,
+      33,
+      32
+    ],
+    "cmyk_propuesta": [
+      65,
+      50,
+      55,
+      85
+    ],
+    "uso": "Texto, botones, la varilla"
+  },
+  {
+    "id": "blanco",
+    "name": "Blanco",
+    "hex": "#FFFFFF",
+    "rgb": [
+      255,
+      255,
+      255
+    ],
+    "cmyk_propuesta": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "uso": "Fondo principal"
+  },
+  {
+    "id": "celeste",
+    "name": "Celeste",
+    "hex": "#74ACDF",
+    "rgb": [
+      116,
+      172,
+      223
+    ],
+    "cmyk_propuesta": [
+      55,
+      19,
+      0,
+      0
+    ],
+    "uso": "Franja de la bandera, marca, selección",
+    "referencia": "Pantone 284 C (referencia de la bandera)"
+  },
+  {
+    "id": "hormigon",
+    "name": "Hormigón",
+    "hex": "#EEF0EC",
+    "rgb": [
+      238,
+      240,
+      236
+    ],
+    "cmyk_propuesta": [
+      5,
+      2,
+      6,
+      0
+    ],
+    "uso": "Fondo alterno"
+  },
+  {
+    "id": "celeste-hondo",
+    "name": "Celeste hondo",
+    "hex": "#1F5E96",
+    "rgb": [
+      31,
+      94,
+      150
+    ],
+    "cmyk_propuesta": [
+      92,
+      58,
+      8,
+      12
+    ],
+    "uso": "Links, foco, información"
+  },
+  {
+    "id": "gris",
+    "name": "Gris",
+    "hex": "#5D6562",
+    "rgb": [
+      93,
+      101,
+      98
+    ],
+    "cmyk_propuesta": [
+      55,
+      40,
+      45,
+      30
+    ],
+    "uso": "Texto secundario"
+  },
+  {
+    "id": "alambre",
+    "name": "Alambre",
+    "hex": "#9AA39F",
+    "rgb": [
+      154,
+      163,
+      159
+    ],
+    "cmyk_propuesta": [
+      35,
+      24,
+      30,
+      5
+    ],
+    "uso": "Líneas de alambre, filetes"
+  },
+  {
+    "id": "pasto",
+    "name": "Pasto",
+    "hex": "#4F7F2A",
+    "rgb": [
+      79,
+      127,
+      42
+    ],
+    "cmyk_propuesta": [
+      70,
+      28,
+      100,
+      20
+    ],
+    "uso": "Éxito (solo estados)"
+  },
+  {
+    "id": "tapita",
+    "name": "Tapita",
+    "hex": "#C8432B",
+    "rgb": [
+      200,
+      67,
+      43
+    ],
+    "cmyk_propuesta": [
+      10,
+      85,
+      90,
+      5
+    ],
+    "uso": "Error, stock bajo (solo estados)"
+  }
+]

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Recuvarilla · Aplicaciones</title>
+<link rel="stylesheet" href="plantillas.css">
+<style>
+.pieza { padding: 0; gap: 0; grid-template-rows: minmax(0, 1fr) auto; }
+.arriba { position: relative; min-height: 0; }
+.arriba .foto { border-radius: 0; }
+.arriba::after { content: ""; position: absolute; inset: 0 0 auto; height: 240px; background: linear-gradient(rgba(29,33,32,.55), rgba(29,33,32,0)); }
+.arriba .logo { position: absolute; z-index: 1; left: var(--m); top: var(--m); width: 300px; }
+body.historia .arriba .logo { top: 150px; }
+.abajo { padding: 52px var(--m) var(--m); display: grid; gap: 26px; }
+.abajo .fila { display: flex; justify-content: space-between; align-items: end; gap: 40px; }
+.abajo .logo { width: 260px; }
+body.historia .abajo { padding-bottom: 180px; }
+</style>
+</head>
+<body>
+<script>if (new URLSearchParams(location.search).get('formato') === 'historia') document.body.classList.add('historia')</script>
+<!-- Editá solo los textos marcados con EDITÁ. Cuadrado: abrir tal cual. Historia: agregar ?formato=historia a la dirección. -->
+<main class="pieza">
+  <div class="arriba"><img class="foto" src="../fotos/uso-alambrado-vs-madera.jpg" alt="" style="object-position:30% 45%"><img class="logo" src="../logo/recuvarilla-palabra-negativo.svg" alt="Recuvarilla"></div>
+  <div class="abajo">
+    <span class="etiqueta">Aplicaciones</span>
+    <div class="fila"><h1 class="titular" style="font-size:96px"><!-- EDITÁ -->Alambrados perimetrales.</h1></div>
+    <p class="bajada"><!-- EDITÁ -->Agujereada a la altura de cada hilo.</p>
+    <div class="pie">
+    <div class="varilla"></div>
+    <div class="contactos"><span>WhatsApp 11 2395-8302</span><span>@recuvarilla</span><span>recuvarilla.com.ar</span></div>
+  </div>
+  </div>
+</main>
+</body>
+</html>

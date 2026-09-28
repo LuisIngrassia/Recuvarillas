@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Recuvarilla · Marca</title>
+<link rel="stylesheet" href="plantillas.css">
+<style>
+.pieza { padding-top: 0; }
+.franja { margin: 0 calc(var(--m) * -1); }
+.cuerpo { display: grid; align-content: center; gap: 56px; }
+.cuerpo .logo { width: 560px; }
+body.historia .pieza { padding-top: 0; }
+body.historia .franja { margin-bottom: 60px; }
+</style>
+</head>
+<body>
+<script>if (new URLSearchParams(location.search).get('formato') === 'historia') document.body.classList.add('historia')</script>
+<!-- Editá solo los textos marcados con EDITÁ. Cuadrado: abrir tal cual. Historia: agregar ?formato=historia a la dirección. -->
+<main class="pieza">
+  <div class="franja"></div>
+  <div class="cuerpo">
+    <img class="logo" src="../logo/recuvarilla-principal-color.svg" alt="Recuvarilla, 100% Argentina">
+    <h1 class="titular"><!-- EDITÁ -->Hecha para el campo. Pensada para durar.</h1>
+  </div>
+  <div class="pie">
+    <div class="varilla"></div>
+    <div class="contactos"><span>WhatsApp 11 2395-8302</span><span>@recuvarilla</span><span>recuvarilla.com.ar</span></div>
+  </div>
+</main>
+</body>
+</html>

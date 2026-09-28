@@ -1,0 +1,49 @@
+/*
+  Plantillas de redes de Recuvarilla.
+  Cuadrado 1080 × 1080 por defecto; con ?formato=historia pasa a 1080 × 1920.
+  Usa las fuentes estáticas de assets/fonts/instalar, así el render sale igual
+  en cualquier máquina aunque no tenga Archivo instalada.
+*/
+@font-face { font-family: "Archivo Condensed"; src: url("../fonts/instalar/ArchivoCondensed-ExtraBold.ttf"); font-weight: 800; }
+@font-face { font-family: "Archivo"; src: url("../fonts/instalar/Archivo-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: "Archivo"; src: url("../fonts/instalar/Archivo-Bold.ttf"); font-weight: 700; }
+@font-face { font-family: "Chivo Mono"; src: url("../fonts/instalar/ChivoMono-Medium.ttf"); font-weight: 500; }
+@font-face { font-family: "Chivo Mono"; src: url("../fonts/instalar/ChivoMono-SemiBold.ttf"); font-weight: 600; }
+
+:root {
+  --grafito: #1D2120; --blanco: #FFFFFF; --celeste: #74ACDF; --hormigon: #EEF0EC; --gris: #5D6562; --alambre: #9AA39F;
+  --m: 90px;            /* margen: 1/12 de 1080 */
+  --w: 1080px; --h: 1080px;
+}
+body.historia { --h: 1920px; --m: 90px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { width: var(--w); height: var(--h); overflow: hidden; background: var(--blanco); color: var(--grafito); font-family: "Archivo", sans-serif; }
+
+.pieza { position: relative; width: var(--w); height: var(--h); padding: var(--m); display: grid; grid-template-rows: auto 1fr auto; gap: 48px; }
+body.historia .pieza { padding-top: 150px; padding-bottom: 180px; gap: 64px; } /* zonas seguras de la historia */
+.oscura { background: var(--grafito); color: #fff; }
+.hormigon { background: var(--hormigon); }
+
+.logo { width: 330px; display: block; }
+.titular { font-family: "Archivo Condensed", sans-serif; font-weight: 800; font-size: 118px; line-height: .92; letter-spacing: -.005em; margin: 0; }
+body.historia .titular { font-size: 136px; }
+.bajada { font-size: 38px; line-height: 1.3; margin: 0; color: var(--gris); }
+.oscura .bajada { color: #CFD5D2; }
+.etiqueta { font-family: "Chivo Mono", monospace; font-weight: 600; font-size: 26px; letter-spacing: .08em; text-transform: uppercase; color: var(--gris); }
+.oscura .etiqueta { color: #9BA39F; }
+.dato { font-family: "Chivo Mono", monospace; font-weight: 500; }
+
+/* Pie: la varilla separa y abajo van los contactos. */
+.pie { display: grid; gap: 26px; }
+.pie .varilla { width: 100%; aspect-ratio: 40 / 1; background: url("../sistema/varilla-separador.svg") left center / contain no-repeat; }
+.oscura .pie .varilla { background-image: url("../sistema/varilla-separador-blanca.svg"); }
+.pie .contactos { display: flex; justify-content: space-between; gap: 24px; font-family: "Chivo Mono", monospace; font-weight: 500; font-size: 27px; white-space: nowrap; }
+body.historia .pie .contactos { flex-direction: column; gap: 10px; font-size: 34px; }
+
+.foto { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; display: block; min-height: 0; }
+.lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px; font-size: 40px; line-height: 1.25; }
+.lista li { position: relative; padding-left: 64px; }
+.lista li::before { content: ""; position: absolute; left: 0; top: 6px; width: 36px; height: 36px; background: url("../sistema/vineta-agujero.svg") center / contain no-repeat; }
+.oscura .lista li::before { filter: invert(1); }
+.franja { height: 42px; background: linear-gradient(var(--celeste) 0 33.33%, #fff 33.33% 66.66%, var(--celeste) 66.66%); }

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Recuvarilla · Pruebas</title>
+<link rel="stylesheet" href="plantillas.css">
+<style>
+.marco { position: relative; display: grid; align-content: center; gap: 36px; padding: 0 70px; }
+.marco::before, .marco::after { content: ""; position: absolute; top: -20px; bottom: -20px; width: 22px; background: var(--grafito); }
+.marco::before { left: 0; } .marco::after { right: 0; }
+.cita { font-family: "Archivo Condensed", sans-serif; font-weight: 800; font-size: 104px; line-height: .95; margin: 0; }
+.quien { font-size: 34px; margin: 0; }
+</style>
+</head>
+<body>
+<script>if (new URLSearchParams(location.search).get('formato') === 'historia') document.body.classList.add('historia')</script>
+<!-- Editá solo los textos marcados con EDITÁ. Cuadrado: abrir tal cual. Historia: agregar ?formato=historia a la dirección. -->
+<main class="pieza hormigon">
+  <img class="logo" src="../logo/recuvarilla-palabra-color.svg" alt="Recuvarilla">
+  <div class="marco">
+    <span class="etiqueta">Reseña en Google</span>
+    <p class="cita"><!-- EDITÁ: la reseña tal cual, sin retocar -->"Gran calidad en las varillas de 1,20."</p>
+    <p class="quien"><b><!-- EDITÁ: nombre como figura en Google -->Joaquin Sartini</b></p>
+  </div>
+  <div class="pie">
+    <div class="varilla"></div>
+    <div class="contactos"><span>WhatsApp 11 2395-8302</span><span>@recuvarilla</span><span>recuvarilla.com.ar</span></div>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Recuvarilla · Producto</title>
+<link rel="stylesheet" href="plantillas.css">
+<style>
+.pieza { grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 40px; }
+.cabeza { display: grid; gap: 20px; }
+.cuerpo { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; min-height: 0; }
+.cuerpo .bajada { align-self: end; }
+body.historia .cuerpo { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+body.historia .cuerpo .bajada { align-self: start; }
+</style>
+</head>
+<body>
+<script>if (new URLSearchParams(location.search).get('formato') === 'historia') document.body.classList.add('historia')</script>
+<!-- Editá solo los textos marcados con EDITÁ. Cuadrado: abrir tal cual. Historia: agregar ?formato=historia a la dirección. -->
+<main class="pieza">
+  <img class="logo" src="../logo/recuvarilla-palabra-color.svg" alt="Recuvarilla">
+  <div class="cabeza">
+    <span class="etiqueta">Producto</span>
+    <h1 class="titular"><!-- EDITÁ -->3&nbsp;×&nbsp;3&nbsp;×&nbsp;120&nbsp;cm.</h1>
+  </div>
+  <div class="cuerpo">
+    <p class="bajada"><!-- EDITÁ -->Varilla de plástico recuperado. Lisa o agujereada a la medida de tu alambrado.</p>
+    <img class="foto" src="../fotos/producto-perforada.jpg" alt="" style="object-position:50% 30%">
+  </div>
+  <div class="pie">
+    <div class="varilla"></div>
+    <div class="contactos"><span>WhatsApp 11 2395-8302</span><span>@recuvarilla</span><span>recuvarilla.com.ar</span></div>
+  </div>
+</main>
+</body>
+</html>

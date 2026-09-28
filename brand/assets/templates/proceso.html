@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Recuvarilla · Proceso</title>
+<link rel="stylesheet" href="plantillas.css">
+<style>
+.cuerpo { display: grid; align-content: center; gap: 44px; }
+.paso { font-family: "Chivo Mono", monospace; font-weight: 500; font-size: 220px; line-height: .8; }
+.pasos { display: flex; gap: 12px; }
+.pasos i { flex: 1; height: 12px; background: var(--hormigon); }
+.pasos i.on { background: var(--grafito); }
+.regla { width: 100%; }
+</style>
+</head>
+<body>
+<script>if (new URLSearchParams(location.search).get('formato') === 'historia') document.body.classList.add('historia')</script>
+<!-- Editá solo los textos marcados con EDITÁ. Cuadrado: abrir tal cual. Historia: agregar ?formato=historia a la dirección. -->
+<main class="pieza">
+  <img class="logo" src="../logo/recuvarilla-palabra-color.svg" alt="Recuvarilla">
+  <div class="cuerpo">
+    <span class="etiqueta">Proceso · paso <!-- EDITÁ -->4 de 6</span>
+    <div class="paso"><!-- EDITÁ -->04</div>
+    <h1 class="titular"><!-- EDITÁ -->Pasa por el molde.</h1>
+    <p class="bajada"><!-- EDITÁ -->El plástico fundido entra al molde y sale del otro lado ya perfilado: una varilla de 3 × 3 × 120 cm.</p>
+    <div class="pasos"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div>
+  </div>
+  <div class="pie">
+    <div class="varilla"></div>
+    <div class="contactos"><span>WhatsApp 11 2395-8302</span><span>@recuvarilla</span><span>recuvarilla.com.ar</span></div>
+  </div>
+</main>
+</body>
+</html>

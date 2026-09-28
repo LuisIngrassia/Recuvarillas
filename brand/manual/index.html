@@ -1,0 +1,1182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recuvarilla · Manual de marca</title>
+<style>
+  /* Fuentes locales: el manual funciona sin internet y el PDF sale igual en cualquier máquina. */
+  @font-face { font-family: "Archivo"; src: url("../assets/fonts/Archivo[wdth,wght].ttf") format("truetype"); font-weight: 100 900; font-stretch: 62% 125%; }
+  @font-face { font-family: "Chivo Mono"; src: url("../assets/fonts/ChivoMono[wght].ttf") format("truetype"); font-weight: 100 900; }
+
+  :root {
+    --grafito: #1D2120; --blanco: #FFFFFF; --celeste: #74ACDF; --hormigon: #EEF0EC;
+    --celeste-hondo: #1F5E96; --gris: #5D6562; --alambre: #9AA39F; --pasto: #4F7F2A; --tapita: #C8432B;
+    --line: #D6DBD6;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: #D9DDD8; color: var(--grafito); font-family: "Archivo", sans-serif; font-stretch: 100%; line-height: 1.45; counter-reset: pagina; }
+  img { display: block; max-width: 100%; }
+
+  /* ---------- Barra de navegación (solo pantalla) ---------- */
+  .toolbar { position: sticky; top: 0; z-index: 20; background: var(--grafito); color: #fff; }
+  .toolbar .in { max-width: 1240px; margin: 0 auto; padding: 0 16px; height: 48px; display: flex; align-items: center; gap: 20px; }
+  .toolbar img { height: 22px; width: auto; }
+  .toolbar nav { display: flex; gap: 16px; overflow-x: auto; font-size: 13px; scrollbar-width: none; }
+  .toolbar nav a { color: #CFD5D2; text-decoration: none; white-space: nowrap; }
+  .toolbar nav a:hover { color: #fff; }
+  .toolbar .print { margin-left: auto; font: 600 13px "Archivo", sans-serif; background: #fff; color: var(--grafito); border: 0; border-radius: 4px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+  .toolbar .print:focus-visible, .toolbar a:focus-visible { outline: 2px solid var(--celeste); outline-offset: 2px; }
+
+  /* ---------- Página A4 apaisada ---------- */
+  .pages { padding: 32px 16px 64px; display: grid; gap: 32px; justify-items: center; }
+  .page {
+    counter-increment: pagina;
+    container-type: inline-size;
+    --u: 1cqw;
+    position: relative; width: min(1200px, 100%); aspect-ratio: 297 / 210; overflow: hidden;
+    background: var(--blanco); box-shadow: 0 2px 4px rgba(29,33,32,.08), 0 12px 32px rgba(29,33,32,.10);
+    display: grid; grid-template-rows: auto 1fr auto;
+    font-size: calc(var(--u) * 1.22);
+  }
+  .page.dark { background: var(--grafito); color: #fff; }
+  .page.concrete { background: var(--hormigon); }
+  .ph { display: flex; justify-content: space-between; gap: 2em; padding: calc(var(--u) * 2.2) calc(var(--u) * 4) 0; font-family: "Chivo Mono", monospace; font-size: calc(var(--u) * .78); letter-spacing: .06em; text-transform: uppercase; color: var(--gris); }
+  .dark .ph, .dark .pf { color: #9BA39F; }
+  .pb { padding: calc(var(--u) * 2.4) calc(var(--u) * 4); min-height: 0; }
+  .pf { display: flex; align-items: center; gap: calc(var(--u) * 1.5); padding: 0 calc(var(--u) * 4) calc(var(--u) * 2); font-family: "Chivo Mono", monospace; font-size: calc(var(--u) * .78); color: var(--gris); }
+  /* La varilla nunca se estira: se usa en su proporción real (3 × 120 = 1:40). */
+  .pf::before { content: ""; width: calc(var(--u) * 16); aspect-ratio: 40 / 1; background: url("../assets/sistema/varilla-separador.svg") left center / contain no-repeat; }
+  .pf .sp, .pf::after { margin-left: auto; }
+  .dark .pf::before { background-image: url("../assets/sistema/varilla-separador-blanca.svg"); }
+  .pf::after { content: counter(pagina, decimal-leading-zero); }
+
+  /* ---------- Tipografía del manual ---------- */
+  .d-xl, .d-l, .d-m, h2 { font-weight: 800; font-stretch: 75%; line-height: .95; letter-spacing: -.003em; margin: 0; }
+  .d-xl { font-size: calc(var(--u) * 7.4); }
+  .d-l { font-size: calc(var(--u) * 5); }
+  h2 { font-size: calc(var(--u) * 3.6); margin-bottom: calc(var(--u) * 1.4); }
+  .d-m { font-size: calc(var(--u) * 2.3); }
+  h3 { font-size: calc(var(--u) * 1.35); font-weight: 700; margin: 0 0 .4em; line-height: 1.2; }
+  p { margin: 0 0 .7em; }
+  .lead { font-size: calc(var(--u) * 1.55); line-height: 1.35; max-width: 34em; }
+  .muted { color: var(--gris); }
+  .dark .muted { color: #AAB3AF; }
+  .small { font-size: calc(var(--u) * 1); }
+  .mono { font-family: "Chivo Mono", monospace; font-feature-settings: "tnum"; }
+  .label { font-family: "Chivo Mono", monospace; font-size: calc(var(--u) * .8); letter-spacing: .06em; text-transform: uppercase; color: var(--gris); }
+  .dark .label { color: #9BA39F; }
+  .prop { display: inline-block; font-family: "Chivo Mono", monospace; font-size: calc(var(--u) * .7); font-weight: 600; letter-spacing: .06em; padding: .15em .5em; border-radius: 3px; background: #FBEFCB; color: #6B4A00; vertical-align: middle; }
+  ul.bul { list-style: none; margin: 0; padding: 0; display: grid; gap: .45em; }
+  ul.bul li { position: relative; padding-left: 1.5em; }
+  ul.bul li::before { content: ""; position: absolute; left: 0; top: .32em; width: .8em; height: .8em; background: url("../assets/sistema/vineta-agujero.svg") center / contain no-repeat; }
+  .dark ul.bul li::before { filter: invert(1); }
+
+  /* ---------- Grillas ---------- */
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 4); height: 100%; }
+  .g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 2.4); }
+  .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u) * 2); }
+  .g-5-7 { display: grid; grid-template-columns: 5fr 7fr; gap: calc(var(--u) * 4); height: 100%; }
+  .g-7-5 { display: grid; grid-template-columns: 7fr 5fr; gap: calc(var(--u) * 4); height: 100%; }
+  .stack { display: grid; gap: calc(var(--u) * 1.6); align-content: start; }
+  .end { align-self: end; }
+  .rule { width: min(100%, calc(var(--u) * 30)); aspect-ratio: 40 / 1; background: url("../assets/sistema/varilla-separador.svg") left center / contain no-repeat; margin: calc(var(--u) * 1.2) 0; }
+  .cell { border: 1px solid var(--line); border-radius: 4px; padding: calc(var(--u) * 1.6); }
+  .photo { width: 100%; height: 100%; min-height: 0; object-fit: cover; border-radius: 4px; }
+  .photos { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; grid-template-rows: minmax(0, 1fr); gap: calc(var(--u) * 1); }
+
+  /* ---------- Sí / No ---------- */
+  .ok, .no { position: relative; }
+  .ok::after, .no::after { position: absolute; top: calc(var(--u) * .8); right: calc(var(--u) * .8); font: 600 calc(var(--u) * .75) "Chivo Mono", monospace; letter-spacing: .06em; padding: .25em .6em; border-radius: 3px; color: #fff; }
+  .ok::after { content: "SÍ"; background: var(--pasto); }
+  .no::after { content: "NO"; background: var(--tapita); }
+
+  /* ---------- Específicos ---------- */
+  .cover { display: grid; grid-template-rows: 1fr auto; height: 100%; }
+  .cover-logo { width: 40%; }
+  .anat { position: relative; margin: calc(var(--u) * 3) 0 calc(var(--u) * 2); }
+  .anat img { width: 100%; }
+  .pin { position: absolute; transform: translate(-50%, -50%); width: calc(var(--u) * 2.2); aspect-ratio: 1; border-radius: 50%; background: var(--celeste-hondo); color: #fff; display: grid; place-items: center; font: 600 calc(var(--u) * 1) "Chivo Mono", monospace; box-shadow: 0 0 0 3px #fff; }
+  .legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u) * 2.4); }
+  .legend > div { display: grid; grid-template-columns: auto 1fr; gap: calc(var(--u) * 1); align-items: start; }
+  .legend .pin { position: static; transform: none; }
+  .ver { display: grid; grid-template-rows: calc(var(--u) * 26) auto; gap: calc(var(--u) * 1.2); }
+  .ver .box { display: grid; place-items: center; background: var(--hormigon); border-radius: 4px; padding: calc(var(--u) * 2); min-height: 0; }
+  .ver .box img { width: 100%; height: 100%; object-fit: contain; }
+  .bgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 1.4); }
+  .bgs .bg { height: calc(var(--u) * 18); border-radius: 4px; display: grid; place-items: center; padding: calc(var(--u) * 2); }
+  .bgs .bg img { width: 74%; height: auto; }
+  .bgs .cap { font-size: calc(var(--u) * .9); margin-top: .5em; }
+  .protect { position: relative; display: inline-block; padding: calc(var(--u) * 3.3); background:
+     repeating-linear-gradient(45deg, rgba(116,172,223,.22) 0 6px, transparent 6px 12px); outline: 1px dashed var(--celeste-hondo); }
+  .protect img { width: calc(var(--u) * 40); background: #fff; }
+  .x-mark { position: absolute; font: 700 calc(var(--u) * .85) "Archivo", sans-serif; color: var(--celeste-hondo); }
+  .min { display: flex; align-items: end; gap: calc(var(--u) * 3); }
+  .wrong { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u) * 1.4); }
+  .wrong > div { display: grid; grid-template-rows: calc(var(--u) * 14.5) auto; gap: .5em; }
+  .wrong .box { position: relative; background: var(--hormigon); border-radius: 4px; display: grid; place-items: center; overflow: hidden; padding: calc(var(--u) * 1); }
+  .wrong .box img { width: 80%; height: 80%; object-fit: contain; }
+  .wrong .box::after { content: "NO"; position: absolute; top: 6px; right: 6px; font: 600 calc(var(--u) * .7) "Chivo Mono", monospace; background: var(--tapita); color: #fff; padding: .2em .5em; border-radius: 3px; }
+  .wrong .fake { font-weight: 800; font-size: calc(var(--u) * 2.5); line-height: 1; white-space: nowrap; }
+  .sw { display: grid; grid-template-rows: calc(var(--u) * 14) auto; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: #fff; }
+  .sw div { padding: calc(var(--u) * 1) calc(var(--u) * 1.2); font-size: calc(var(--u) * .92); line-height: 1.5; }
+  .sw b { font-size: calc(var(--u) * 1.15); display: block; margin-bottom: .2em; }
+  .prop-bar { display: flex; height: calc(var(--u) * 11); border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
+  .prop-bar > div { display: flex; align-items: end; padding: calc(var(--u) * .8); font: 500 calc(var(--u) * .9) "Chivo Mono", monospace; }
+  .pairs { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 1); }
+  .pairs > div { border-radius: 4px; padding: calc(var(--u) * 2) calc(var(--u) * 1.6); font-weight: 700; font-size: calc(var(--u) * 1.1); border: 1px solid var(--line); }
+  .pairs span { display: block; font: 400 calc(var(--u) * .8) "Chivo Mono", monospace; margin-top: .3em; opacity: .85; }
+  .spec { border-top: 2px solid var(--grafito); padding-top: calc(var(--u) * 1.2); }
+  .spec .big { font-size: calc(var(--u) * 11); line-height: 1; margin: calc(var(--u) * .6) 0 calc(var(--u) * 1); }
+  table.t { align-self: start; width: 100%; border-collapse: collapse; font-size: calc(var(--u) * .95); }
+  .t th, .t td { text-align: left; padding: .55em .6em .55em 0; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+  .t th { font: 500 calc(var(--u) * .75) "Chivo Mono", monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--gris); border-bottom: 1.5px solid var(--grafito); }
+  .t td.n { font-family: "Chivo Mono", monospace; }
+  .res { display: grid; grid-template-rows: calc(var(--u) * 15) auto; gap: calc(var(--u) * 1); }
+  .res .box { display: grid; place-items: center; background: var(--hormigon); border-radius: 4px; padding: calc(var(--u) * 1.4); overflow: hidden; }
+  .fence-frame { position: relative; border-radius: 4px; overflow: hidden; background: #fff; height: calc(var(--u) * 38); }
+  .fence-frame::before, .fence-frame::after { content: ""; position: absolute; top: 0; bottom: 0; width: calc(var(--u) * 1.1); background: var(--grafito); }
+  .fence-frame::before { left: calc(var(--u) * 2); } .fence-frame::after { right: calc(var(--u) * 2); }
+  .fence-frame .w { position: absolute; left: 0; right: 0; height: 1.5px; background: var(--alambre); }
+  .fence-frame .content { position: absolute; inset: 18% calc(var(--u) * 5.5); background: #fff; display: grid; align-content: center; gap: calc(var(--u) * .8); padding: calc(var(--u) * 1.2); }
+  .grid-demo { position: relative; aspect-ratio: 1; background: #fff; border: 1px solid var(--line); border-radius: 4px; }
+  .grid-demo .m { position: absolute; inset: 8.33%; outline: 1px dashed var(--celeste-hondo); background: repeating-linear-gradient(90deg, rgba(116,172,223,.14) 0 calc(100% / 12 - 2px), transparent calc(100% / 12 - 2px) calc(100% / 12)); }
+
+  /* ---------- Etapa 4 ---------- */
+  .wa { background: #E5DDD5; border-radius: 6px; padding: calc(var(--u) * 1.2); display: grid; gap: calc(var(--u) * .8); font-size: calc(var(--u) * 1); }
+  .wa p { margin: 0; padding: .6em .8em; border-radius: 6px; max-width: 88%; line-height: 1.35; box-shadow: 0 1px 1px rgba(0,0,0,.08); }
+  .wa .in { background: #fff; justify-self: start; }
+  .wa .out { background: #DCF8C6; justify-self: end; }
+  .app { display: grid; gap: .5em; align-content: start; }
+  .app img { width: 100%; aspect-ratio: 600 / 360; object-fit: cover; object-position: bottom; border: 1px solid var(--line); border-radius: 4px; }
+  .app h3 { margin: .3em 0 0; }
+
+  /* ---------- Etapa 5: maquetas ---------- */
+  .presu { width: calc(var(--u) * 32); aspect-ratio: 4 / 5; background: #fff; border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 8px 24px rgba(29,33,32,.12); padding: calc(var(--u) * 2); display: grid; grid-template-rows: auto auto auto 1fr auto; gap: calc(var(--u) * 1.1); }
+  .presu-h { display: flex; justify-content: space-between; align-items: center; gap: 1em; font-size: calc(var(--u) * .8); }
+  .presu-h img { width: 45%; }
+  .presu-f { align-self: end; padding-top: calc(var(--u) * .8); border-top: calc(var(--u) * .25) solid var(--celeste); }
+  .browser { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; box-shadow: 0 8px 24px rgba(29,33,32,.10); }
+  .browser-bar { display: flex; align-items: center; gap: 6px; padding: calc(var(--u) * .6) calc(var(--u) * 1); background: var(--hormigon); font-size: calc(var(--u) * .75); }
+  .browser-bar i { width: 9px; height: 9px; border-radius: 50%; background: #C9CEC9; }
+  .browser-bar span { margin-left: calc(var(--u) * 1); background: #fff; padding: .2em 1em; border-radius: 4px; }
+  .web { background: #fff; font-size: calc(var(--u) * .9); }
+  .web-nav { display: flex; align-items: center; gap: calc(var(--u) * 1.6); padding: calc(var(--u) * 1) calc(var(--u) * 1.6); font-weight: 600; }
+  .web-nav img { width: calc(var(--u) * 11); margin-right: auto; }
+  .web-nav b { background: var(--grafito); color: #fff; padding: .45em .9em; border-radius: 5px; }
+  .web-hero { display: grid; grid-template-columns: 1.1fr .9fr; align-items: center; gap: calc(var(--u) * 2); padding: calc(var(--u) * 3) calc(var(--u) * 1.6) calc(var(--u) * 3.4); }
+  .web-h1 { font-weight: 800; font-stretch: 75%; font-size: calc(var(--u) * 3.6); line-height: .95; margin: 0 0 .5em; }
+  .web-lede { color: var(--gris); margin: 0 0 1.2em; font-size: calc(var(--u) * 1.05); }
+  .web-btn { background: var(--grafito); color: #fff; padding: .6em 1em; border-radius: 5px; font-size: calc(var(--u) * .85); }
+  .web-btn.line { background: #fff; color: var(--grafito); box-shadow: inset 0 0 0 2px var(--grafito); }
+  .web-rods { position: relative; height: calc(var(--u) * 20); }
+  .web-rods img { position: absolute; width: calc(var(--u) * 26); left: 50%; top: 50%; transform-origin: center; }
+  .web-rods img:nth-child(1) { transform: translate(-50%, -50%) rotate(-62deg); }
+  .web-rods img:nth-child(2) { transform: translate(-44%, -50%) rotate(-78deg); }
+  .web-rods img:nth-child(3) { transform: translate(-56%, -50%) rotate(-100deg); }
+  .franja-web { height: calc(var(--u) * 1.1); background: linear-gradient(var(--celeste) 0 33.33%, #fff 33.33% 66.66%, var(--celeste) 66.66%); }
+  .phone { width: calc(var(--u) * 17); aspect-ratio: 9 / 19; border: calc(var(--u) * .55) solid var(--grafito); border-radius: calc(var(--u) * 2.2); overflow: hidden; }
+  .sheet { background: #fff; box-shadow: 0 2px 4px rgba(29,33,32,.08), 0 12px 32px rgba(29,33,32,.14); display: flex; flex-direction: column; padding: calc(var(--u) * 2.2); font-size: calc(var(--u) * .92); overflow: hidden; }
+  .sheet.a4 { height: calc(var(--u) * 55); aspect-ratio: 210 / 297; }
+  .sheet.a5 { height: calc(var(--u) * 50); aspect-ratio: 148 / 210; font-size: calc(var(--u) * .85); }
+  .card { width: calc(var(--u) * 21); aspect-ratio: 85 / 55; background: #fff; border-radius: 3px; box-shadow: 0 2px 4px rgba(29,33,32,.1), 0 10px 24px rgba(29,33,32,.14); display: grid; place-items: center; font-size: calc(var(--u) * 1); }
+  .card.dark-card { background: var(--grafito); color: #fff; display: flex; flex-direction: column; place-items: stretch; padding: calc(var(--u) * 1.3); }
+  .lona { position: relative; aspect-ratio: 2 / 1; background: #fff; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; font-size: calc(var(--u) * .95); }
+  .lona::before, .lona::after { content: ""; position: absolute; top: 0; bottom: 0; width: 3.2%; background: var(--grafito); }
+  .lona::before { left: 4%; } .lona::after { right: 4%; }
+  .lona .w { position: absolute; left: 0; right: 0; height: 1.5px; background: var(--alambre); }
+  .lona-in { position: absolute; inset: 9% 13%; background: #fff; display: flex; flex-direction: column; justify-content: center; }
+
+  /* ---------- Pantalla angosta: la página deja de ser A4 y se lee como documento ---------- */
+  @media (max-width: 899px) {
+    .page { aspect-ratio: auto; --u: 11.5px; }
+    .d-xl { font-size: 46px; } .d-l { font-size: 38px; } h2 { font-size: 32px; }
+    .g2, .g-5-7, .g-7-5, .g3, .g4, .bgs, .wrong, .pairs { grid-template-columns: 1fr !important; height: auto; }
+    .fence-frame { min-height: 320px; }
+    .protect img { width: 100%; }
+    .legend { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Impresión / PDF ---------- */
+  @page { size: A4 landscape; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .toolbar { display: none; }
+    .pages { padding: 0; gap: 0; display: block; }
+    .page { width: 297mm; height: 210mm; aspect-ratio: auto; box-shadow: none; break-after: page; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<header class="toolbar">
+  <div class="in">
+    <img src="../assets/logo/recuvarilla-palabra-negativo.svg" alt="Recuvarilla">
+    <nav aria-label="Secciones">
+      <a href="#esencia">Esencia</a><a href="#logo">Logo</a><a href="#color">Color</a><a href="#tipografia">Tipografía</a><a href="#sistema">Sistema visual</a><a href="#fotografia">Fotografía</a><a href="#tono">Tono</a><a href="#producto">Producto</a><a href="#aplicaciones">Aplicaciones</a><a href="#mockups">Maquetas</a>
+    </nav>
+    <button class="print" type="button" onclick="window.print()">Guardar PDF</button>
+  </div>
+</header>
+
+<main class="pages">
+
+<!-- ================= PORTADA ================= -->
+<section class="page">
+  <div class="ph"><span>Recuvarilla</span><span>v1 · septiembre 2026</span></div>
+  <div class="pb">
+    <div class="cover">
+      <div class="stack" style="align-content:center;gap:calc(var(--u)*3)">
+        <img class="cover-logo" src="../assets/logo/recuvarilla-principal-color.svg" alt="Recuvarilla, 100% Argentina">
+        <p class="d-xl" style="max-width:9em">Manual de marca</p>
+        <p class="lead muted" style="margin:0">Todo lo que hace falta para que cualquier pieza, sea un posteo, un cartel o una lista de precios, se vea siempre como Recuvarilla.</p>
+      </div>
+      <img src="../assets/sistema/regla-120.svg" alt="Regla de 120 centímetros" style="width:100%">
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= CÓMO USARLO ================= -->
+<section class="page">
+  <div class="ph"><span>Recuvarilla · Manual de marca</span><span>Cómo usar este manual</span></div>
+  <div class="pb">
+    <div class="g-5-7">
+      <div class="stack">
+        <h2>Cómo usar este manual</h2>
+        <p class="lead">No hace falta leerlo entero. Buscá lo que tenés que hacer en la tabla y andá directo a esa página.</p>
+        <p class="muted">Los archivos de logo, colores, fuentes y recursos gráficos están en la carpeta <span class="mono">brand/assets</span>. Cada página te dice qué archivo usar.</p>
+      </div>
+      <table class="t">
+        <thead><tr><th>Tengo que…</th><th>Mirá</th><th>Archivo</th></tr></thead>
+        <tbody>
+          <tr><td>Poner el logo en algo</td><td>Logo · versiones</td><td class="mono">assets/logo</td></tr>
+          <tr><td>Saber qué color usar</td><td>Color</td><td class="mono">assets/colors/paleta.txt</td></tr>
+          <tr><td>Instalar las fuentes</td><td>Tipografía</td><td class="mono">assets/fonts/instalar</td></tr>
+          <tr><td>Hacer que una pieza "parezca Recuvarilla"</td><td>Sistema visual</td><td class="mono">assets/sistema</td></tr>
+          <tr><td>Explicar qué es Recuvarilla</td><td>Esencia</td><td>—</td></tr>
+          <tr><td>Chequear si algo está mal</td><td>Usos incorrectos · Sí/No</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= ESENCIA 1 ================= -->
+<section class="page" id="esencia">
+  <div class="ph"><span>01 · Esencia</span><span>Qué es Recuvarilla</span></div>
+  <div class="pb">
+    <div class="g-7-5">
+      <div class="stack">
+        <h2>Varillas para el campo, hechas con plástico que ya existía</h2>
+        <p class="lead">Recuvarilla fabrica en Luján varillas para alambrado de plástico recuperado. Miden 3 × 3 × 120 cm, se venden lisas o perforadas a pedido y se usan en alambrados, cercos eléctricos, divisiones y reparaciones.</p>
+        <div class="rule"></div>
+        <div class="g2" style="height:auto">
+          <div><h3>El problema</h3><p class="muted">La varilla de madera se pudre en la base, se astilla y hay que reponerla. La de hierro se oxida y conduce. Cada reposición es plata, material y un día de trabajo en el campo.</p></div>
+          <div><h3>Cómo lo resolvemos</h3><p class="muted">Una varilla que no se pudre ni se oxida, que viene perforada de fábrica a la medida de cada alambrado y que está hecha con plástico recuperado en la provincia.</p></div>
+        </div>
+      </div>
+      <img class="photo" src="../assets/fotos/uso-alambrado-vs-madera.jpg" alt="Alambrado con varillas negras Recuvarilla y un poste de madera">
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= ESENCIA 2 ================= -->
+<section class="page">
+  <div class="ph"><span>01 · Esencia</span><span>Propósito, misión, visión y valores</span></div>
+  <div class="pb">
+    <div class="g2">
+      <div class="stack">
+        <div><span class="label">Propósito</span><p class="d-l" style="margin-top:.3em">Que lo que se tira termine sosteniendo el campo.</p></div>
+        <div class="rule"></div>
+        <div><span class="label">Misión</span><p style="margin-top:.4em">Fabricar en Luján varillas de plástico recuperado que duren más que las de madera, perforarlas a la medida de cada alambrado y hacerlas llegar a cada campo.</p></div>
+        <div><span class="label">Visión</span><p style="margin-top:.4em">Que en la región pampeana la varilla reciclada sea la opción de todos los días, no la alternativa.</p></div>
+      </div>
+      <div class="stack" style="grid-template-rows:auto repeat(4,1fr);align-content:stretch">
+        <span class="label">Valores</span>
+        <div class="cell"><h3>Durar</h3><p class="muted small" style="margin:0">Hacemos cosas que no haya que reponer. Si algo no aguanta el campo, no sale.</p></div>
+        <div class="cell"><h3>Decir las cosas como son</h3><p class="muted small" style="margin:0">Medidas, precios y plazos claros. Sin promesas que no podamos medir.</p></div>
+        <div class="cell"><h3>Aprovechar</h3><p class="muted small" style="margin:0">Si un material todavía puede servir, no se tira: se transforma.</p></div>
+        <div class="cell"><h3>Resolver</h3><p class="muted small" style="margin:0">Cortamos, perforamos y adaptamos. El alambrado de cada campo es distinto.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= ESENCIA 3 ================= -->
+<section class="page">
+  <div class="ph"><span>01 · Esencia</span><span>Público y posicionamiento</span></div>
+  <div class="pb">
+    <div class="stack" style="gap:calc(var(--u)*2.2)">
+      <div class="g-7-5" style="height:auto">
+        <div><span class="label">Posicionamiento</span><p class="d-m" style="margin-top:.4em">Para el que alambra en el campo, Recuvarilla es la varilla que no hay que reponer: resistente, perforada a medida y hecha en Luján con plástico recuperado.</p></div>
+        <div class="end"><span class="label">Frase de marca</span><p class="d-m" style="margin-top:.4em">Hecha para el campo.<br>Pensada para durar.</p></div>
+      </div>
+      <div class="g4">
+        <div class="cell"><h3>Productor</h3><p class="muted small" style="margin:0">Decide y paga. Quiere no volver a reponer varillas y saber cuánto le sale el alambrado completo.</p></div>
+        <div class="cell"><h3>Alambrador</h3><p class="muted small" style="margin:0">Instala. Valora que llegue perforada a la medida y que no se astille ni se parta al trabajarla.</p></div>
+        <div class="cell"><h3>Agropecuaria o ferretería rural</h3><p class="muted small" style="margin:0">Revende. Necesita un producto que se explique solo y material para mostrarlo.</p></div>
+        <div class="cell"><h3>Casa de campo o quinta</h3><p class="muted small" style="margin:0">Cercos, divisiones y arreglos. Quiere algo prolijo que dure sin mantenimiento.</p></div>
+      </div>
+      <div class="g-7-5" style="height:auto;grid-template-columns:8fr 4fr">
+      <table class="t">
+        <thead><tr><th>Diferencial</th><th>Recuvarilla</th><th>Madera</th><th>Hierro</th></tr></thead>
+        <tbody>
+          <tr><td>Humedad</td><td><b>No se pudre</b></td><td>Se pudre en la base</td><td>Se oxida</td></tr>
+          <tr><td>Cerco eléctrico</td><td><b>Plástico: no conduce</b></td><td>Según humedad</td><td>Conduce, lleva aisladores</td></tr>
+          <tr><td>Perforado</td><td><b>De fábrica, a medida</b></td><td>A mano, en el campo</td><td>Según modelo</td></tr>
+          <tr><td>Origen</td><td><b>Plástico recuperado, Luján</b></td><td>Árbol talado</td><td>Industrial</td></tr>
+        </tbody>
+      </table>
+      <img class="photo" src="../assets/fotos/producto-perforada.jpg" alt="Varillas perforadas sobre el pasto" style="height:calc(var(--u)*24);object-position:50% 30%">
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= LOGO: ANATOMÍA ================= -->
+<section class="page" id="logo">
+  <div class="ph"><span>02 · Logo</span><span>El logo</span></div>
+  <div class="pb">
+    <h2>La varilla está en el nombre</h2>
+    <p class="lead muted" style="margin:0">La I de RECUVARILLA es una varilla de verdad: sección cuadrada, tres perforaciones y la punta clavada debajo de la línea. No se redibuja, no se reemplaza por una I común y no se separa del nombre.</p>
+    <div class="anat" style="width:84%;margin:calc(var(--u)*3.4) auto calc(var(--u)*3)">
+      <img src="../assets/logo/recuvarilla-principal-color.svg" alt="Logo principal de Recuvarilla">
+      <span class="pin" style="left:-3%;top:30%">1</span>
+      <span class="pin" style="left:71.2%;top:-10%">2</span>
+      <span class="pin" style="left:76%;top:76%">3</span>
+      <span class="pin" style="left:-3%;top:93%">4</span>
+    </div>
+    <div class="legend">
+      <div><span class="pin">1</span><p class="small"><b>Palabra.</b> Archivo condensada ExtraBold, vectorizada: no depende de tener la fuente.</p></div>
+      <div><span class="pin">2</span><p class="small"><b>Perforaciones.</b> Las mismas del servicio de agujereado. Dejan ver el fondo.</p></div>
+      <div><span class="pin">3</span><p class="small"><b>Punta clavada.</b> La varilla baja de la línea, como en el campo.</p></div>
+      <div><span class="pin">4</span><p class="small"><b>Bajada.</b> "100% ARGENTINA" entre dos franjas celestes.</p></div>
+    </div>
+    <div class="g2" style="height:auto;margin-top:calc(var(--u)*3);gap:calc(var(--u)*2)">
+      <div class="cell ok"><span class="label">En un texto, el nombre se escribe</span><p class="d-m" style="margin:.3em 0 0">Recuvarilla</p><p class="small muted" style="margin:.4em 0 0">Una palabra, con R mayúscula. Sin guion, sin plural.</p></div>
+      <div class="cell no"><span class="label">Nunca</span><p class="d-m" style="margin:.3em 0 0;color:var(--gris);text-decoration:line-through;text-decoration-thickness:2px">Recu-Varilla · RecuVarilla · Recuvarillas</p><p class="small muted" style="margin:.4em 0 0">Las mayúsculas sostenidas (RECUVARILLA) solo en el logo.</p></div>
+    </div>
+</div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= LOGO: VERSIONES ================= -->
+<section class="page">
+  <div class="ph"><span>02 · Logo</span><span>Versiones</span></div>
+  <div class="pb">
+    <h2>Cuatro versiones, un logo</h2>
+    <div class="g4" style="margin-top:calc(var(--u)*2)">
+      <div class="ver"><div class="box"><img src="../assets/logo/recuvarilla-principal-color.svg" alt=""></div><div><h3>Principal</h3><p class="muted small">La que va por defecto: folletos, carteles, web, firma.</p><p class="mono small">recuvarilla-principal-*.svg</p></div></div>
+      <div class="ver"><div class="box"><img src="../assets/logo/recuvarilla-palabra-color.svg" alt=""></div><div><h3>Solo palabra</h3><p class="muted small">Cuando el espacio es bajo y ancho: barra de la web, pie de página, remito, ERP.</p><p class="mono small">recuvarilla-palabra-*.svg</p></div></div>
+      <div class="ver"><div class="box"><img src="../assets/logo/recuvarilla-vertical-color.svg" alt=""></div><div><h3>Vertical</h3><p class="muted small">Espacios cuadrados o altos: remeras, stand, stickers, portadas.</p><p class="mono small">recuvarilla-vertical-*.svg</p></div></div>
+      <div class="ver"><div class="box"><img src="../assets/logo/recuvarilla-isotipo-color.svg" alt=""></div><div><h3>Isotipo</h3><p class="muted small">Solo cuando el nombre ya está cerca o no entra: avatar de WhatsApp e Instagram, favicon, sello.</p><p class="mono small">recuvarilla-isotipo-*.svg</p></div></div>
+    </div>
+    <p class="small muted" style="margin-top:calc(var(--u)*2)">Cada versión viene en <b>color</b>, <b>negativo</b> (para fondos oscuros), <b>negro</b> y <b>blanco</b> (una sola tinta: sellos, grabados, fotocopias). También hay PNG en <span class="mono">assets/logo/png</span> para quien no pueda abrir un SVG.</p>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= LOGO: FONDOS ================= -->
+<section class="page">
+  <div class="ph"><span>02 · Logo</span><span>Color y fondos</span></div>
+  <div class="pb">
+    <h2>Sobre qué fondo va cada versión</h2>
+    <div class="bgs" style="margin-top:calc(var(--u)*1.6)">
+      <div><div class="bg" style="background:#fff;border:1px solid var(--line)"><img src="../assets/logo/recuvarilla-principal-color.svg" alt=""></div><p class="cap"><b>Blanco</b> · color. La combinación principal.</p></div>
+      <div><div class="bg" style="background:var(--hormigon)"><img src="../assets/logo/recuvarilla-principal-color.svg" alt=""></div><p class="cap"><b>Hormigón</b> · color.</p></div>
+      <div><div class="bg" style="background:var(--grafito)"><img src="../assets/logo/recuvarilla-principal-negativo.svg" alt=""></div><p class="cap"><b>Grafito</b> · negativo.</p></div>
+      <div><div class="bg" style="background:var(--celeste)"><img src="../assets/logo/recuvarilla-principal-negro.svg" alt=""></div><p class="cap"><b>Celeste</b> · negro (las franjas pasan a negro).</p></div>
+      <div><div style="background:url('../assets/fotos/producto-pallet.jpg') center 18% / cover" class="bg"><img src="../assets/logo/recuvarilla-principal-color.svg" alt=""></div><p class="cap"><b>Foto clara</b> · color, sobre una zona lisa de la foto.</p></div>
+      <div><div style="background:linear-gradient(rgba(29,33,32,.55),rgba(29,33,32,.55)),url('../assets/fotos/uso-alambrado-vs-madera.jpg') center 30% / cover" class="bg"><img src="../assets/logo/recuvarilla-principal-negativo.svg" alt=""></div><p class="cap"><b>Foto oscura</b> · negativo, con la foto oscurecida al 55%.</p></div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= LOGO: PROTECCIÓN Y MÍNIMOS ================= -->
+<section class="page">
+  <div class="ph"><span>02 · Logo</span><span>Área de protección y tamaño mínimo</span></div>
+  <div class="pb">
+    <div class="g-7-5">
+      <div class="stack">
+        <h2>Aire alrededor</h2>
+        <p class="muted">Alrededor del logo no puede haber nada, ni texto, ni bordes, ni otras imágenes, en una distancia igual a la <b>altura de la R</b> (la marcamos como <b>R</b>). Cuanto más aire, mejor.</p>
+        <div class="protect" style="justify-self:start">
+          <img src="../assets/logo/recuvarilla-principal-color.svg" alt="Logo con su área de protección">
+          <span class="x-mark" style="top:4%;left:50%">R</span><span class="x-mark" style="bottom:4%;left:50%">R</span>
+          <span class="x-mark" style="left:2.5%;top:45%">R</span><span class="x-mark" style="right:2.5%;top:45%">R</span>
+        </div>
+        <div style="display:flex;gap:calc(var(--u)*2.4);align-items:end">
+          <div class="protect" style="padding:calc(var(--u)*2)"><img src="../assets/logo/recuvarilla-isotipo-color.svg" alt="Isotipo con su área de protección" style="width:calc(var(--u)*9)"></div>
+          <p class="small muted" style="margin:0;max-width:22em">En el isotipo, el aire es <b>1/4 de su lado</b>. En el avatar de WhatsApp o Instagram el círculo ya lo recorta: usá el PNG de 1024 tal cual, sin achicarlo ni agregarle bordes.</p>
+        </div>
+      </div>
+      <div class="stack">
+        <span class="label">Tamaños mínimos</span>
+        <div class="min">
+          <div><img src="../assets/logo/recuvarilla-principal-color.svg" alt="" style="width:140px"><p class="small" style="margin-top:.6em"><b>Principal</b><br><span class="mono">35 mm · 140 px</span></p></div>
+        </div>
+        <div class="min">
+          <div><img src="../assets/logo/recuvarilla-palabra-color.svg" alt="" style="width:100px"><p class="small" style="margin-top:.6em"><b>Palabra</b><br><span class="mono">25 mm · 100 px</span></p></div>
+          <div><img src="../assets/logo/recuvarilla-isotipo-color.svg" alt="" style="width:16px"><p class="small" style="margin-top:.6em"><b>Isotipo color</b><br><span class="mono">5 mm · 16 px</span></p></div>
+          <div><img src="../assets/logo/recuvarilla-isotipo-negro.svg" alt="" style="width:32px"><p class="small" style="margin-top:.6em"><b>Isotipo 1 tinta</b><br><span class="mono">10 mm · 32 px</span></p></div>
+        </div>
+        <p class="small muted">Debajo de esos tamaños la bajada o las perforaciones dejan de leerse. Si no entra, usá la versión más simple.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= LOGO: USOS INCORRECTOS ================= -->
+<section class="page">
+  <div class="ph"><span>02 · Logo</span><span>Usos incorrectos</span></div>
+  <div class="pb">
+    <h2>Lo que nunca se hace</h2>
+    <div class="wrong" style="margin-top:calc(var(--u)*1.4)">
+      <div><div class="box"><img src="../assets/logo/recuvarilla-palabra-color.svg" alt="" style="transform:scaleX(1.45)"></div><p class="small"><b>Estirar o aplastar.</b> Siempre escalá con Shift.</p></div>
+      <div><div class="box"><img src="../assets/logo/recuvarilla-principal-color.svg" alt="" style="filter:invert(36%) sepia(90%) saturate(520%) hue-rotate(58deg)"></div><p class="small"><b>Cambiar los colores.</b> Ni verde, ni dorado, ni "para que combine".</p></div>
+      <div><div class="box"><img src="../assets/logo/recuvarilla-principal-color.svg" alt="" style="filter:drop-shadow(4px 5px 3px rgba(0,0,0,.55))"></div><p class="small"><b>Sombras, brillos o relieves.</b> El logo es plano.</p></div>
+      <div><div class="box"><img src="../assets/logo/recuvarilla-principal-color.svg" alt="" style="transform:rotate(-14deg)"></div><p class="small"><b>Rotarlo o inclinarlo.</b> Siempre horizontal.</p></div>
+      <div><div class="box"><span class="fake" style="font-stretch:75%">RECUVARILLA</span></div><p class="small"><b>Escribirlo con una I común.</b> Usá siempre el archivo.</p></div>
+      <div><div class="box"><span class="fake" style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:calc(var(--u)*2)">Recuvarilla</span></div><p class="small"><b>Escribirlo con otra letra.</b></p></div>
+      <div><div class="box" style="background:url('../assets/fotos/uso-quinta.jpg') center 60% / cover"><img src="../assets/logo/recuvarilla-principal-color.svg" alt=""></div><p class="small"><b>Ponerlo sobre una foto cargada.</b> Buscá una zona lisa u oscurecé la foto.</p></div>
+      <div><div class="box"><img src="../assets/fotos/NO-logo-anterior.png" alt="Logo anterior de Recuvarilla"></div><p class="small"><b>Usar el logo anterior.</b> El óvalo con cinta queda retirado.</p></div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= COLOR: PALETA ================= -->
+<section class="page" id="color">
+  <div class="ph"><span>03 · Color</span><span>Paleta</span></div>
+  <div class="pb">
+    <h2>Pocos colores, todos con motivo</h2>
+    <div class="g4" style="margin-top:calc(var(--u)*1.4)">
+      <div class="sw"><i style="background:#1D2120"></i><div><b>Grafito</b><span class="mono">HEX #1D2120<br>RGB 29 33 32<br>CMYK 65 50 55 85</span><br>La varilla. Texto, botones.</div></div>
+      <div class="sw"><i style="background:#FFFFFF;border-bottom:1px solid var(--line)"></i><div><b>Blanco</b><span class="mono">HEX #FFFFFF<br>RGB 255 255 255<br>CMYK 0 0 0 0</span><br>El fondo de casi todo.</div></div>
+      <div class="sw"><i style="background:#74ACDF"></i><div><b>Celeste</b><span class="mono">HEX #74ACDF<br>RGB 116 172 223<br>CMYK 55 19 0 0</span><br>La bandera. Ref. Pantone 284 C.</div></div>
+      <div class="sw"><i style="background:#EEF0EC"></i><div><b>Hormigón</b><span class="mono">HEX #EEF0EC<br>RGB 238 240 236<br>CMYK 5 2 6 0</span><br>Fondo alterno, cajas.</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:calc(var(--u)*1.2);margin-top:calc(var(--u)*1.6)">
+      <div class="small"><i style="display:block;height:calc(var(--u)*2.4);background:#1F5E96;border-radius:3px"></i><b>Celeste hondo</b> <span class="mono">#1F5E96</span><br><span class="muted">Links, info</span></div>
+      <div class="small"><i style="display:block;height:calc(var(--u)*2.4);background:#5D6562;border-radius:3px"></i><b>Gris</b> <span class="mono">#5D6562</span><br><span class="muted">Texto secundario</span></div>
+      <div class="small"><i style="display:block;height:calc(var(--u)*2.4);background:#9AA39F;border-radius:3px"></i><b>Alambre</b> <span class="mono">#9AA39F</span><br><span class="muted">Líneas, filetes</span></div>
+      <div class="small"><i style="display:block;height:calc(var(--u)*2.4);background:#4F7F2A;border-radius:3px"></i><b>Pasto</b> <span class="mono">#4F7F2A</span><br><span class="muted">Solo "OK", confirmado</span></div>
+      <div class="small"><i style="display:block;height:calc(var(--u)*2.4);background:#C8432B;border-radius:3px"></i><b>Tapita</b> <span class="mono">#C8432B</span><br><span class="muted">Solo error, faltante</span></div>
+    </div>
+    <p class="small muted" style="margin-top:calc(var(--u)*1.4)">CMYK: antes de una tirada grande, pedí una prueba impresa. Texto chico impreso: 100% negro (K) en vez del CMYK del grafito. Todos los valores en <span class="mono">assets/colors/paleta.txt</span>.</p>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= COLOR: PROPORCIÓN ================= -->
+<section class="page">
+  <div class="ph"><span>03 · Color</span><span>Proporción y combinaciones</span></div>
+  <div class="pb">
+    <h2>Cuánto de cada uno</h2>
+    <p class="muted" style="max-width:52em">El blanco da aire, el grafito es la varilla y el celeste es la bandera: aparece poco y por eso se nota. <b>No hay verde de marca.</b> El verde "de campo" es el cliché que queremos evitar, y el campo ya aparece en las fotos.</p>
+    <div class="prop-bar" style="margin:calc(var(--u)*1.6) 0">
+      <div style="flex:60;background:#fff">Blanco 60%</div>
+      <div style="flex:25;background:var(--grafito);color:#fff">Grafito 25%</div>
+      <div style="flex:10;background:var(--celeste)">Celeste 10%</div>
+      <div style="flex:5;background:var(--hormigon)">5%</div>
+    </div>
+    <span class="label">Texto sobre fondo: estas combinaciones se leen bien</span>
+    <div class="pairs" style="margin-top:calc(var(--u)*.8)">
+      <div style="background:#fff;color:var(--grafito)">Grafito sobre blanco<span>16,3 : 1 · todo uso</span></div>
+      <div style="background:var(--grafito);color:#fff">Blanco sobre grafito<span>16,3 : 1 · todo uso</span></div>
+      <div style="background:var(--celeste);color:var(--grafito)">Grafito sobre celeste<span>6,8 : 1 · títulos y textos</span></div>
+      <div style="background:#fff;color:var(--celeste-hondo)">Celeste hondo sobre blanco<span>6,8 : 1 · links, datos</span></div>
+      <div class="no" style="background:var(--celeste);color:#fff">Blanco sobre celeste<span>2,4 : 1 · no se lee</span></div>
+      <div class="no" style="background:#fff;color:var(--celeste)">Celeste sobre blanco<span>2,4 : 1 · no se lee</span></div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= TIPOGRAFÍA: FAMILIAS ================= -->
+<section class="page" id="tipografia">
+  <div class="ph"><span>04 · Tipografía</span><span>Familias</span></div>
+  <div class="pb">
+    <h2>Dos familias argentinas</h2>
+    <p class="muted" style="max-width:56em">Las dos son de Omnibus-Type, una fundidora de Buenos Aires, y son gratis para cualquier uso (licencia OFL). Instalá los 5 archivos de <span class="mono">assets/fonts/instalar</span>: doble clic y "Instalar". En Canva Pro se suben como fuentes de marca.</p>
+    <div class="g3" style="margin-top:calc(var(--u)*1.6)">
+      <div class="spec"><span class="label">Títulos</span><p class="big" style="font-weight:800;font-stretch:75%">Aa</p><h3>Archivo Condensed ExtraBold</h3><p style="font-weight:800;font-stretch:75%;font-size:calc(var(--u)*1.5);margin:0 0 .4em">ABCDEFGHIJKLMNÑOPQRSTUVWXYZ 0123456789</p><p class="muted small">Titulares, carteles, precios grandes. Alta y compacta, como la palabra del logo: entra mucho texto en poco ancho.</p></div>
+      <div class="spec"><span class="label">Textos</span><p class="big" style="font-weight:400">Aa</p><h3>Archivo Regular y Bold</h3><p style="font-size:calc(var(--u)*1.5);margin:0 0 .4em">Aa Bb Cc Ññ 0123456789 <b>Aa Bb Ññ</b></p><p class="muted small">Todo lo que se lee: descripciones, folletos, web. Bold para destacar dentro del texto y para botones.</p></div>
+      <div class="spec"><span class="label">Números y datos</span><p class="big mono" style="font-weight:500">120</p><h3>Chivo Mono Medium y SemiBold</h3><p class="mono" style="font-size:calc(var(--u)*1.5);margin:0 0 .4em">$ 2.950 · 3 × 3 cm</p><p class="muted small">Medidas, precios en tablas, teléfonos, códigos. Todos los números ocupan lo mismo y las columnas quedan alineadas.</p></div>
+    </div>
+    <p class="small muted" style="margin-top:calc(var(--u)*1.2)">Si una herramienta no deja instalar fuentes: títulos en <b>Arial Narrow Bold</b>, textos en <b>Arial</b>. Es un reemplazo de emergencia, no la regla.</p>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= TIPOGRAFÍA: JERARQUÍA ================= -->
+<section class="page">
+  <div class="ph"><span>04 · Tipografía</span><span>Jerarquía</span></div>
+  <div class="pb">
+    <div class="g-5-7">
+      <div class="stack" style="gap:calc(var(--u)*1.1)">
+        <div><span class="label">H1 · Archivo Condensed ExtraBold</span><p style="font-weight:800;font-stretch:75%;font-size:calc(var(--u)*4.4);line-height:.95;margin:.1em 0 0">Hecha para el campo.</p></div>
+        <div><span class="label">H2 · Archivo Bold</span><p style="font-weight:700;font-size:calc(var(--u)*2);line-height:1.1;margin:.2em 0 0">Perforada a la medida de tu alambrado</p></div>
+        <div><span class="label">Texto · Archivo Regular</span><p style="margin:.2em 0 0">Indicá la distancia entre hilos y los metros de alambrado. Te armamos el pedido con el flete hasta tu localidad.</p></div>
+        <div><span class="label">Números · Chivo Mono Medium</span><p class="mono" style="font-weight:500;font-size:calc(var(--u)*1.8);margin:.1em 0 0">3 × 3 × 120 cm · $ 2.950</p></div>
+        <div><span class="label">Botón / llamado · Archivo Bold</span><p style="margin:.4em 0 0"><span style="display:inline-block;background:var(--grafito);color:#fff;font-weight:700;padding:.6em 1.1em;border-radius:6px">Pedí tu presupuesto por WhatsApp</span></p></div>
+      </div>
+      <table class="t">
+        <thead><tr><th>Pieza</th><th>H1</th><th>H2</th><th>Texto</th><th>Números</th></tr></thead>
+        <tbody>
+          <tr><td>Instagram 1080 × 1080</td><td class="n">96 px</td><td class="n">48 px</td><td class="n">32 px</td><td class="n">40 px</td></tr>
+          <tr><td>Historia 1080 × 1920</td><td class="n">120 px</td><td class="n">56 px</td><td class="n">36 px</td><td class="n">48 px</td></tr>
+          <tr><td>Folleto A5</td><td class="n">36 pt</td><td class="n">16 pt</td><td class="n">10 pt</td><td class="n">12 pt</td></tr>
+          <tr><td>Cartel A3</td><td class="n">96 pt</td><td class="n">36 pt</td><td class="n">18 pt</td><td class="n">28 pt</td></tr>
+          <tr><td>Lista de precios A4</td><td class="n">28 pt</td><td class="n">14 pt</td><td class="n">10 pt</td><td class="n">11 pt</td></tr>
+          <tr><td>Web (celular / compu)</td><td class="n">48 / 88 px</td><td class="n">24 / 32 px</td><td class="n">16 / 18 px</td><td class="n">16 px</td></tr>
+          <tr><td>Presentación 16:9</td><td class="n">60 pt</td><td class="n">28 pt</td><td class="n">18 pt</td><td class="n">24 pt</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small muted" style="margin-top:calc(var(--u)*1)"><b>WhatsApp no tiene fuentes:</b> los títulos van en <span class="mono">*negrita*</span>, las medidas y los precios en <span class="mono">```monoespaciado```</span>, y nada de mayúsculas sostenidas.</p>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= SISTEMA VISUAL: RECURSOS ================= -->
+<section class="page" id="sistema">
+  <div class="ph"><span>05 · Sistema visual</span><span>Los recursos</span></div>
+  <div class="pb">
+    <h2>La varilla como lenguaje</h2>
+    <p class="muted" style="max-width:58em">Estos cinco recursos hacen que una pieza parezca Recuvarilla aunque se tape el logo. Todos salen de la varilla o del alambrado. Los archivos están en <span class="mono">assets/sistema</span>.</p>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:calc(var(--u)*1.4);margin-top:calc(var(--u)*1.6)">
+      <div class="res"><div class="box"><img src="../assets/sistema/varilla-separador.svg" alt="" style="width:100%"></div><div><h3>Varilla separador</h3><p class="small muted">Separa bloques: el pie de un cartel, la base de un posteo. Siempre horizontal, con la punta hacia la derecha.</p></div></div>
+      <div class="res"><div class="box"><img src="../assets/sistema/vineta-agujero.svg" alt="" style="width:28%"></div><div><h3>Viñeta agujero</h3><p class="small muted">La perforación reemplaza al punto de las listas. Nunca uses emojis ni tildes de colores.</p></div></div>
+      <div class="res"><div class="box" style="padding:0;background:url('../assets/sistema/alambrado-modulo.svg') 0 0 / 34% auto"></div><div><h3>Alambrado</h3><p class="small muted">Pattern para fondos y bordes. Una sola vez por pieza y nunca detrás de un texto.</p></div></div>
+      <div class="res"><div class="box"><img src="../assets/sistema/regla-120.svg" alt="" style="width:100%"></div><div><h3>Regla 120 cm</h3><p class="small muted">La varilla como medida. Para fichas, medidas y el gráfico de dimensiones.</p></div></div>
+      <div class="res"><div class="box"><div style="width:100%;height:calc(var(--u)*2.2);background:linear-gradient(var(--celeste) 0 33.33%,#fff 33.33% 66.66%,var(--celeste) 66.66%);outline:1px solid var(--line)"></div></div><div><h3>Franja</h3><p class="small muted">La bandera, como en el isotipo. Marca de origen en bordes y cierres, no como fondo.</p></div></div>
+    </div>
+    <table class="t" style="margin-top:calc(var(--u)*2)">
+      <thead><tr><th>Cómo se combinan</th><th>Separador</th><th>Viñeta</th><th>Alambrado</th><th>Regla</th><th>Franja</th></tr></thead>
+      <tbody>
+        <tr><td>Posteo, historia</td><td>Siempre</td><td>Si hay lista</td><td colspan="3">Elegí <b>uno</b> de los tres según el tema</td></tr>
+        <tr><td>Ficha de producto, catálogo</td><td>Siempre</td><td>Siempre</td><td>—</td><td><b>Sí</b></td><td>—</td></tr>
+        <tr><td>Cartel, stand</td><td>Siempre</td><td>Si hay lista</td><td><b>Sí</b> (marco)</td><td>Opcional</td><td>—</td></tr>
+        <tr><td>Etiqueta, fajín, sticker</td><td>—</td><td>—</td><td>—</td><td>—</td><td><b>Sí</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= SISTEMA VISUAL: MARCO Y GRILLA ================= -->
+<section class="page">
+  <div class="ph"><span>05 · Sistema visual</span><span>Marco y grilla</span></div>
+  <div class="pb">
+    <div class="g2">
+      <div class="stack">
+        <h2 style="margin:0">El marco alambrado</h2>
+        <p class="muted">Dos varillas a los costados y tres hilos cruzando: la pieza queda "dentro" del alambrado. Sirve para portadas, carteles del stand y placas destacadas.</p>
+        <div class="fence-frame">
+          <div class="w" style="top:20%"></div><div class="w" style="top:50%"></div><div class="w" style="top:80%"></div>
+          <div class="content"><span class="label">Varilla perforada</span><p class="d-m" style="margin:0">Agujereada a la medida de tu alambrado.</p></div>
+        </div>
+      </div>
+      <div class="stack">
+        <h2 style="margin:0">La grilla de 12</h2>
+        <p class="muted">Margen de <b>1/12 del lado más corto</b> en todas las piezas. Adentro, 12 columnas. El logo va arriba a la izquierda y los contactos abajo, siempre separados por la varilla.</p>
+        <div class="grid-demo" style="width:calc(var(--u)*38)">
+          <div class="m"></div>
+          <img src="../assets/logo/recuvarilla-palabra-color.svg" alt="" style="position:absolute;left:8.33%;top:8.33%;width:30%">
+          <p style="position:absolute;left:8.33%;top:28%;right:30%;font-weight:800;font-stretch:75%;font-size:calc(var(--u)*3);line-height:.95;margin:0">Titular hasta 8 columnas</p>
+          <div style="position:absolute;left:8.33%;right:8.33%;bottom:17%;aspect-ratio:40/1;background:url('../assets/sistema/varilla-separador.svg') left center / contain no-repeat"></div>
+          <p class="mono" style="position:absolute;left:8.33%;bottom:8.33%;margin:0;font-size:calc(var(--u)*.75)">WhatsApp · IG · QR</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= SISTEMA VISUAL: SÍ / NO ================= -->
+<section class="page">
+  <div class="ph"><span>05 · Sistema visual</span><span>Sí y no</span></div>
+  <div class="pb">
+    <h2>Reglas del sistema</h2>
+    <div class="g2" style="height:auto;margin-top:calc(var(--u)*1)">
+      <ul class="bul">
+        <li><b>La varilla siempre es negra</b> (o blanca sobre fondo oscuro). Es el color real del producto.</li>
+        <li><b>Horizontal, con la punta a la derecha.</b> Vertical solo en el logo y en el alambrado.</li>
+        <li><b>Un recurso protagonista por pieza.</b> Si hay alambrado, no hay franja grande, y al revés.</li>
+        <li><b>La franja va en bordes y cierres</b>, nunca como fondo detrás de un texto.</li>
+        <li><b>Fotos reales</b> del producto y de campos donde se usa.</li>
+      </ul>
+      <ul class="bul">
+        <li><b>Nada de verde "ecológico"</b>, hojitas, flechas de reciclaje ni globos terráqueos.</li>
+        <li><b>No curvar, cortar ni pintar la varilla</b> de celeste u otro color.</li>
+        <li><b>No mezclar</b> el alambrado con otros patterns, degradés ni texturas de madera.</li>
+        <li><b>No usar emojis</b> como viñetas ni como íconos en piezas impresas.</li>
+        <li><b>No usar fotos de stock</b> con postes de madera o campos que no son nuestros.</li>
+      </ul>
+    </div>
+    <div class="g2" style="height:auto;margin-top:calc(var(--u)*1.6);grid-template-columns:1fr 1fr">
+      <div class="ok photos" style="height:calc(var(--u)*29)"><img class="photo" src="../assets/fotos/uso-alambrado-vs-madera.jpg" alt="Foto real de alambrado con varillas Recuvarilla" style="object-position:30% 40%"><img class="photo" src="../assets/fotos/producto-pallet.jpg" alt="Foto real de varillas en pallet" style="object-position:50% 30%"></div>
+      <div class="no photos" style="height:calc(var(--u)*29)"><img class="photo" src="../assets/fotos/NO-stock-generico.jpg" alt="Foto de stock genérica con postes de madera" style="object-position:50% 60%"></div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+
+<!-- ================= FOTOGRAFÍA: PRODUCTO ================= -->
+<section class="page" id="fotografia">
+  <div class="ph"><span>06 · Fotografía</span><span>Producto</span></div>
+  <div class="pb">
+    <div class="g-5-7">
+      <div class="stack">
+        <h2 style="margin:0">El producto, como es</h2>
+        <p class="muted">La varilla es negra, mate y recta. La foto tiene que mostrar eso sin maquillarlo.</p>
+        <ul class="bul small">
+          <li><b>Fondo:</b> liso y neutro (piso de hormigón, pared clara) o el pasto donde se va a usar. Nunca un fondo de color.</li>
+          <li><b>Luz:</b> natural, de día nublado o a la sombra. Sin flash: hace brillar el plástico.</li>
+          <li><b>Ángulo:</b> desde arriba o a la altura de la varilla, con la varilla entera en cuadro.</li>
+          <li><b>Escala:</b> algo conocido al lado, como una mano, un rollo de alambre u otro poste.</li>
+          <li><b>Detalle:</b> un primer plano de la punta, del corte 3 × 3 y de las perforaciones.</li>
+          <li><b>Textura:</b> que se vea el plástico mate. Sin retoques que lo hagan parecer metal.</li>
+        </ul>
+      </div>
+      <div class="photos" style="grid-template-columns:1fr 1fr 1fr;grid-auto-flow:row;height:100%">
+        <div class="ok" style="display:grid;grid-template-rows:minmax(0,1fr) auto;gap:.5em"><img class="photo" src="../assets/fotos/producto-pallet.jpg" alt="Pallet de varillas sobre piso de hormigón"><p class="small" style="margin:0"><b>Fondo neutro.</b> Se ve la cantidad, el color y la punta.</p></div>
+        <div class="ok" style="display:grid;grid-template-rows:minmax(0,1fr) auto;gap:.5em"><img class="photo" src="../assets/fotos/producto-perforada.jpg" alt="Varillas perforadas vistas desde arriba sobre el pasto"><p class="small" style="margin:0"><b>Desde arriba, en el pasto.</b> Se ven las perforaciones.</p></div>
+        <div class="no" style="display:grid;grid-template-rows:minmax(0,1fr) auto;gap:.5em"><img class="photo" src="../assets/fotos/uso-quinta.jpg" alt="Varillas tiradas en el piso frente a un fogón" style="object-position:50% 70%"><p class="small" style="margin:0"><b>El fogón se lleva la foto.</b> La varilla queda tirada y chica.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= FOTOGRAFÍA: USO ================= -->
+<section class="page">
+  <div class="ph"><span>06 · Fotografía</span><span>En uso</span></div>
+  <div class="pb">
+    <div class="g-7-5">
+      <div class="ok" style="height:100%;min-height:0"><img class="photo" src="../assets/fotos/uso-alambrado-vs-madera.jpg" alt="Alambrado con varillas Recuvarilla que sigue hasta el fondo, con un poste de madera en el medio" style="object-position:50% 45%"></div>
+      <div class="stack">
+        <h2 style="margin:0">La varilla trabajando</h2>
+        <p class="muted">Esta es la foto modelo: la varilla adelante y nítida, el alambrado que sigue hasta el fondo, luz de día, y un poste de madera en el medio que cuenta la comparación sin decir nada.</p>
+        <div class="rule"></div>
+        <ul class="bul small">
+          <li><b>Plano largo:</b> el alambrado que se pierde en el fondo da idea de escala y de obra terminada.</li>
+          <li><b>Plano medio:</b> una varilla con los hilos pasando por las perforaciones.</li>
+          <li><b>Personas:</b> manos trabajando, alambradores en la obra. Nada de poses ni sonrisas a cámara.</li>
+          <li><b>Animales:</b> detrás del alambrado, en segundo plano. El alambrado sigue siendo el tema.</li>
+          <li><b>Siempre campos reales</b> donde está puesta la varilla. Si no es nuestro, no va.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= FOTOGRAFÍA: ENCUADRE ================= -->
+<section class="page">
+  <div class="ph"><span>06 · Fotografía</span><span>Encuadre y edición</span></div>
+  <div class="pb">
+    <h2>Una foto, tres recortes</h2>
+    <div style="display:flex;gap:calc(var(--u)*2.4);align-items:end;margin-top:calc(var(--u)*1)">
+      <figure style="margin:0"><img src="../assets/fotos/uso-alambrado-vs-madera.jpg" alt="Recorte 1:1" style="width:calc(var(--u)*27);aspect-ratio:1;object-fit:cover;object-position:30% 40%;border-radius:4px"><figcaption class="small" style="margin-top:.5em"><b>1:1</b> · feed de Instagram</figcaption></figure>
+      <figure style="margin:0"><img src="../assets/fotos/uso-alambrado-vs-madera.jpg" alt="Recorte 4:5" style="width:calc(var(--u)*21.6);aspect-ratio:4/5;object-fit:cover;object-position:30% 40%;border-radius:4px"><figcaption class="small" style="margin-top:.5em"><b>4:5</b> · feed, más alto</figcaption></figure>
+      <figure style="margin:0"><img src="../assets/fotos/uso-alambrado-vs-madera.jpg" alt="Recorte 9:16" style="width:calc(var(--u)*15.2);aspect-ratio:9/16;object-fit:cover;object-position:20% 40%;border-radius:4px"><figcaption class="small" style="margin-top:.5em"><b>9:16</b> · historias</figcaption></figure>
+      <div class="stack small" style="flex:1">
+        <p class="muted" style="margin:0">En los tres, <b>la varilla más cercana queda nítida, en el tercio izquierdo o derecho</b>, y se ve dónde entra en la tierra.</p>
+        <span class="label">Edición permitida</span>
+        <ul class="bul"><li>Enderezar el horizonte.</li><li>Recortar.</li><li>Corregir la luz y el balance de blancos.</li></ul>
+        <span class="label">Nunca</span>
+        <ul class="bul"><li>Filtros, viñeteo o HDR.</li><li>Saturar el pasto o el cielo.</li><li>Pintar la varilla o borrarle las marcas del uso.</li></ul>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= FOTOGRAFÍA: FOTOS QUE FALTAN ================= -->
+<section class="page concrete">
+  <div class="ph"><span>06 · Fotografía</span><span>Fotos que faltan</span></div>
+  <div class="pb">
+    <div class="g-5-7" style="grid-template-columns:4fr 8fr">
+      <div class="stack">
+        <h2 style="margin:0">Lista para salir a sacar</h2>
+        <p class="muted">Hoy hay fotos buenas del producto y una sola del uso. Estas doce cubren todo lo que pide el manual: redes, catálogo, stand y web. Con un celular alcanza si se respeta la luz y el encuadre.</p>
+        <p class="small muted">Tachá cada una cuando la tengas. Guardalas en <span class="mono">assets/fotos</span> con el número adelante: <span class="mono">05-alambrador.jpg</span>.</p>
+      </div>
+      <table class="t" style="background:#fff;border-radius:4px">
+        <thead><tr><th style="padding-left:.8em">#</th><th>Foto</th><th>Cómo</th><th>Para</th></tr></thead>
+        <tbody class="small">
+          <tr><td class="n" style="padding-left:.8em">01</td><td><b>El corte 3 × 3</b></td><td>La punta de la varilla de frente, fondo hormigón</td><td>Fichas, ícono</td></tr>
+          <tr><td class="n" style="padding-left:.8em">02</td><td><b>La punta</b></td><td>Primer plano en diagonal, luz lateral</td><td>Redes, web</td></tr>
+          <tr><td class="n" style="padding-left:.8em">03</td><td><b>Alambre por la perforación</b></td><td>Macro, el hilo pasando</td><td>Agujereado</td></tr>
+          <tr><td class="n" style="padding-left:.8em">04</td><td><b>Mano con varilla</b></td><td>Una mano sosteniéndola, para la escala</td><td>Catálogo</td></tr>
+          <tr><td class="n" style="padding-left:.8em">05</td><td><b>Alambrador instalando</b></td><td>Manos y herramienta, sin pose</td><td>Redes, stand</td></tr>
+          <tr><td class="n" style="padding-left:.8em">06</td><td><b>Cerco eléctrico</b></td><td>Varilla con los hilos del eléctrico</td><td>Aplicaciones</td></tr>
+          <tr><td class="n" style="padding-left:.8em">07</td><td><b>Hacienda detrás</b></td><td>Vacas en segundo plano, alambrado adelante</td><td>Web, folleto</td></tr>
+          <tr><td class="n" style="padding-left:.8em">08</td><td><b>Alambrado largo</b></td><td>Plano general, luz de la tarde</td><td>Portadas</td></tr>
+          <tr><td class="n" style="padding-left:.8em">09</td><td><b>Antes y después</b></td><td>La misma esquina con madera vieja y con varilla</td><td>Pruebas</td></tr>
+          <tr><td class="n" style="padding-left:.8em">10</td><td><b>La carga</b></td><td>Pallets subiendo a la camioneta o camión</td><td>Entregas</td></tr>
+          <tr><td class="n" style="padding-left:.8em">11</td><td><b>La fábrica</b></td><td>Tolva, molde y perforado, en Luján</td><td>Proceso</td></tr>
+          <tr><td class="n" style="padding-left:.8em">12</td><td><b>El material</b></td><td>Botellas y tapitas antes de molerlas</td><td>Educación</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= TONO: CÓMO HABLAMOS ================= -->
+<section class="page" id="tono">
+  <div class="ph"><span>07 · Tono</span><span>Cómo hablamos</span></div>
+  <div class="pb">
+    <div class="g2" style="height:auto;gap:calc(var(--u)*2)">
+      <div class="cell ok" style="padding:calc(var(--u)*2.4)"><span class="label">Así</span><p class="d-l" style="margin:.2em 0 0">Hecha para el campo. Pensada para durar.</p></div>
+      <div class="cell no" style="padding:calc(var(--u)*2.4)"><span class="label">Así no</span><p class="d-m" style="margin:.3em 0 0;color:var(--gris)">Soluciones sustentables de alto rendimiento para aplicaciones agroindustriales.</p></div>
+    </div>
+    <div class="g4" style="margin-top:calc(var(--u)*2)">
+      <div><h3>Claro</h3><p class="small muted">Medidas, precios y plazos con números. "3 × 3 × 120 cm" antes que "gran tamaño".</p></div>
+      <div><h3>Rural</h3><p class="small muted">Hablamos como en el campo: alambrado, hilos, potrero, tranquera. Sin disfrazarnos de gauchos.</p></div>
+      <div><h3>Profesional</h3><p class="small muted">Un dato vale más que un adjetivo. Si no lo podemos medir, no lo prometemos.</p></div>
+      <div><h3>Cercano</h3><p class="small muted">De vos, en rioplatense, como quien atiende el teléfono en Luján.</p></div>
+    </div>
+    <div class="g2" style="height:auto;margin-top:calc(var(--u)*2)">
+      <div><span class="label">Palabras que usamos</span><p style="margin-top:.5em">varilla · alambrado · hilos · perforada · agujereada · potrero · campo · no se pudre · no se oxida · dura · plástico recuperado · hecha en Luján · flete · presupuesto</p></div>
+      <div><span class="label">Palabras que evitamos</span><p style="margin-top:.5em;color:var(--gris)">soluciones · alto rendimiento · agroindustrial · eco-friendly · innovador · disruptivo · premium · "madera plástica" · "para toda la vida" · "100% garantizado"</p></div>
+    </div>
+    <span class="label" style="display:block;margin-top:calc(var(--u)*2)">Frases listas para usar</span>
+    <div class="g4" style="margin-top:calc(var(--u)*.8)">
+      <div class="cell"><p style="margin:0;font-weight:800;font-stretch:75%;font-size:calc(var(--u)*1.7);line-height:1">La negra es la que queda.</p></div>
+      <div class="cell"><p style="margin:0;font-weight:800;font-stretch:75%;font-size:calc(var(--u)*1.7);line-height:1">No se pudre. No se oxida.</p></div>
+      <div class="cell"><p style="margin:0;font-weight:800;font-stretch:75%;font-size:calc(var(--u)*1.7);line-height:1">Perforada a la medida de tu alambrado.</p></div>
+      <div class="cell"><p style="margin:0;font-weight:800;font-stretch:75%;font-size:calc(var(--u)*1.7);line-height:1">Plástico que ya existía, trabajando en tu campo.</p></div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= TONO: POR CANAL ================= -->
+<section class="page">
+  <div class="ph"><span>07 · Tono</span><span>Por canal</span></div>
+  <div class="pb">
+    <div class="g3" style="height:100%">
+      <div class="stack">
+        <h3 style="font-size:calc(var(--u)*1.8)">WhatsApp</h3>
+        <p class="small muted" style="margin:0">Respuesta corta, con el precio y la próxima pregunta. Nada de audios largos.</p>
+        <div class="wa">
+          <p class="in">Hola, precio de las varillas?</p>
+          <p class="out">¡Hola! La lisa está <b>$&nbsp;2.950&nbsp;+&nbsp;IVA</b> y la agujereada <b>$&nbsp;3.450&nbsp;+&nbsp;IVA</b>, de 1 a 99 unidades. Por cantidad baja.<br><br>¿Cuántos metros de alambrado son y en qué localidad? Así te paso el presupuesto con el flete.</p>
+        </div>
+        <p class="small muted" style="margin:0">Precios de la lista vigente desde el 01/08/2026. <b>Siempre</b> sacalos de la lista del día, no de este manual.</p>
+        <ul class="bul small"><li>Contestá en el día.</li><li>Un mensaje, una idea.</li><li>Cerrá con una pregunta que haga avanzar el pedido.</li><li>El presupuesto va en una sola imagen o PDF, no en diez mensajes.</li></ul>
+      </div>
+      <div class="stack">
+        <h3 style="font-size:calc(var(--u)*1.8)">Instagram</h3>
+        <p class="small muted" style="margin:0">La foto cuenta; el texto agrega un dato y una acción. Tres o cuatro hashtags, al final.</p>
+        <div class="cell small" style="background:#fff">
+          <p style="margin:0 0 .6em"><b>recuvarilla</b></p>
+          <p style="margin:0">Hay una varilla de madera entre las nuestras. Adiviná cuál hay que cambiar primero.</p>
+          <p style="margin:.6em 0 0">3 × 3 × 120 cm, plástico recuperado, perforada a la medida de tu alambrado. Presupuesto por WhatsApp: link en el perfil.</p>
+          <p style="margin:.6em 0 0;color:var(--celeste-hondo)">#alambrado #campo #hechoenlujan</p>
+        </div>
+        <ul class="bul small"><li>La primera línea tiene que funcionar sola.</li><li>Un número en cada posteo: medida, precio, metros.</li><li>Siempre una acción: escribinos por WhatsApp.</li><li>Nada de emojis como viñetas.</li></ul>
+      </div>
+      <div class="stack">
+        <h3 style="font-size:calc(var(--u)*1.8)">Comercial</h3>
+        <p class="small muted" style="margin:0">Presupuestos, distribuidores, mails. De vos por defecto; de usted solo si el cliente lo usa primero.</p>
+        <div class="cell small" style="background:#fff">
+          <p class="mono" style="margin:0 0 .6em;font-size:calc(var(--u)*.85)">Asunto: Presupuesto · 1.200 varillas agujereadas</p>
+          <p style="margin:0">Hola, Martín:</p>
+          <p style="margin:.6em 0 0">Te paso el presupuesto por 1.200 varillas agujereadas de 3 × 3 × 120 cm, a precio de lista mayorista. El flete a Mercedes lo cotiza el expreso y te lo confirmo antes de cerrar.</p>
+          <p style="margin:.6em 0 0">El presupuesto se sostiene 7 días.</p>
+          <p style="margin:.6em 0 0">Saludos,<br>Recuvarilla · Luján</p>
+        </div>
+        <ul class="bul small"><li>Asunto con la cantidad y el producto.</li><li>Precios aclarados como sin IVA.</li><li>Validez de 7 días y flete aparte, siempre escritos.</li></ul>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= PRODUCTO: FICHA ================= -->
+<section class="page" id="producto">
+  <div class="ph"><span>08 · Producto</span><span>Ficha</span></div>
+  <div class="pb">
+    <div class="g-7-5">
+      <div class="stack">
+        <h2 style="margin:0">La varilla</h2>
+        <div class="g2" style="height:auto;gap:calc(var(--u)*2.4)">
+          <div class="stack" style="gap:calc(var(--u)*1)">
+            <span class="label">Material</span><p style="margin:0">Polipropileno recuperado de botellas y envases, fundido y moldeado en Luján.</p>
+            <span class="label">Características</span>
+            <ul class="bul small"><li>3 × 3 × 120 cm, sección cuadrada.</li><li>Punta en un extremo.</li><li>Negra, mate.</li><li>Liviana.</li></ul>
+            <span class="label">Opciones</span>
+            <ul class="bul small"><li><b>Lisa</b>, sin agujerear.</li><li><b>Agujereada</b> de fábrica, a medida.</li><li>Lista <b>minorista</b> por cantidad y <b>mayorista</b> para revendedores, desde 1.000 unidades.</li></ul>
+          </div>
+          <div class="stack" style="gap:calc(var(--u)*1)">
+            <span class="label">Beneficios</span>
+            <ul class="bul small"><li><b>No se oxida ni se pudre.</b> Aguanta la intemperie sin mantenimiento.</li><li><b>Precio competitivo:</b> el material recuperado baja el costo.</li><li><b>Plástico:</b> sirve para cercos eléctricos.</li><li><b>Entrega a campo:</b> coordinamos la logística hasta el establecimiento.</li><li><b>Segunda vida</b> para plástico que iba a la basura.</li></ul>
+          </div>
+        </div>
+        <span class="label" style="margin-top:calc(var(--u)*.6)">Cómo se pide</span>
+        <div class="g4" style="gap:calc(var(--u)*1)">
+          <div class="cell small"><span class="mono">01</span><br><b>Metros y localidad</b></div>
+          <div class="cell small"><span class="mono">02</span><br><b>Lisa o agujereada</b>: cuántos hilos y a qué altura</div>
+          <div class="cell small"><span class="mono">03</span><br><b>Presupuesto</b> sin IVA, vale 7 días, flete aparte</div>
+          <div class="cell small"><span class="mono">04</span><br><b>Entrega</b> coordinada hasta el campo</div>
+        </div>
+      </div>
+      <div class="stack" style="background:var(--grafito);color:#fff;border-radius:4px;padding:calc(var(--u)*2.4)">
+        <span class="label" style="color:#9BA39F">Servicio de agujereado</span>
+        <p class="d-m" style="margin:0">Los hilos pasan a la altura justa de tu alambrado.</p>
+        <p class="small" style="margin:0;color:#CFD5D2">Perforamos en fábrica según el tipo de alambrado: cuántos hilos y a qué altura. Se pide al presupuestar y se coordina por WhatsApp.</p>
+        <img src="../assets/fotos/producto-perforada.jpg" alt="Varillas agujereadas" style="border-radius:4px;height:calc(var(--u)*14);width:100%;object-fit:cover;object-position:50% 25%;margin-top:auto">
+        <p class="small" style="margin:0;color:#CFD5D2">También vendemos <b style="color:#fff">alambre galvanizado 17/15</b>, en rollos de 1.000 m.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= PRODUCTO: DIMENSIONES ================= -->
+<section class="page">
+  <div class="ph"><span>08 · Producto</span><span>Gráfico de dimensiones</span></div>
+  <div class="pb">
+    <h2>El gráfico de dimensiones</h2>
+    <img src="../assets/producto/dimensiones-perforada.svg" alt="Varilla perforada: 120 cm de largo, sección de 3 × 3 cm" style="width:100%;border:1px solid var(--line);border-radius:4px;margin-top:calc(var(--u)*.6)">
+    <div class="g3" style="margin-top:calc(var(--u)*1.6)">
+      <p class="small"><b>Cuatro archivos</b> en <span class="mono">assets/producto</span>: lisa y perforada, cada una en positivo y negativo. Las letras están vectorizadas: se ven igual en cualquier computadora.</p>
+      <p class="small"><b>Usalo tal cual</b> en fichas, catálogos, la web y el stand. Si solo necesitás la varilla con la medida, usá la <b>regla de 120 cm</b> del sistema visual.</p>
+      <p class="small"><b>Nunca lo estires.</b> La varilla está dibujada en su proporción real: 3 de ancho por 120 de largo.</p>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= APLICACIONES ================= -->
+<section class="page" id="aplicaciones">
+  <div class="ph"><span>09 · Aplicaciones</span><span>Producto → aplicación</span></div>
+  <div class="pb">
+    <h2>Dónde trabaja la varilla</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:calc(var(--u)*1.6) calc(var(--u)*2.4);margin-top:calc(var(--u)*.6)">
+      <div class="app"><img src="../assets/producto/aplicaciones/alambrado.svg" alt="Esquema de alambrado"><h3>Alambrados</h3><p class="small muted">Perimetrales y de potrero. <b>Agujereada</b> a la altura de cada hilo.</p></div>
+      <div class="app"><img src="../assets/producto/aplicaciones/cerco-electrico.svg" alt="Esquema de cerco eléctrico"><h3>Cercos eléctricos</h3><p class="small muted">El plástico no conduce la corriente: el hilo pasa directo por la varilla.</p></div>
+      <div class="app"><img src="../assets/producto/aplicaciones/division.svg" alt="Esquema de división"><h3>Divisiones</h3><p class="small muted">Parcelas, huertas y jardines. Varillas más juntas y menos hilos.</p></div>
+      <div class="app"><img src="../assets/producto/aplicaciones/instalacion.svg" alt="Esquema de tramo con tranquera"><h3>Instalaciones rurales</h3><p class="small muted">Los tramos de un cerco con tranquera. La tranquera va en sus postes; la varilla, en los tramos.</p></div>
+      <div class="app"><img src="../assets/producto/aplicaciones/reparacion.svg" alt="Esquema de reparación"><h3>Reparaciones</h3><p class="small muted">Reemplazá la varilla rota sin rehacer el alambrado. Pedila agujereada a la misma altura.</p></div>
+      <div class="cell" style="display:grid;align-content:center;gap:calc(var(--u)*1);background:var(--hormigon);border:0">
+        <p class="d-m" style="margin:0">"Cambiamos varios kilómetros de alambrado, todo excelente."</p>
+        <p class="small muted" style="margin:0">Juan Cordone · Provincia de Buenos Aires · reseña en Google. Las reseñas se usan <b>tal cual</b>, con el nombre como figura en Google.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+
+<!-- ================= APLICACIONES DE MARCA: INSTAGRAM ================= -->
+<section class="page" id="mockups">
+  <div class="ph"><span>10 · Aplicaciones de marca</span><span>Instagram</span></div>
+  <div class="pb">
+    <div style="display:grid;grid-template-columns:1fr auto;gap:calc(var(--u)*4);height:100%">
+      <div class="stack" style="gap:calc(var(--u)*1.4)">
+        <div style="display:flex;gap:calc(var(--u)*1.6);align-items:center">
+          <img src="../assets/logo/recuvarilla-isotipo-color.svg" alt="" style="width:calc(var(--u)*6.4);border-radius:50%;clip-path:circle(50%)">
+          <div class="small"><b style="font-size:calc(var(--u)*1.3)">recuvarilla</b><br>Varillas de plástico recuperado para el campo.<br>3 × 3 × 120 cm · Hechas en Luján.<br><span style="color:var(--celeste-hondo)">Presupuestos por WhatsApp: wa.me/5491123958302</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px">
+          <img src="../assets/templates/png/producto-1080x1080.png" alt="Posteo de producto" style="width:100%">
+          <img src="../assets/templates/png/aplicaciones-1080x1080.png" alt="Posteo de aplicaciones" style="width:100%">
+          <img src="../assets/templates/png/educacion-1080x1080.png" alt="Posteo de educación" style="width:100%">
+          <img src="../assets/templates/png/proceso-1080x1080.png" alt="Posteo de proceso" style="width:100%">
+          <img src="../assets/templates/png/pruebas-1080x1080.png" alt="Posteo de pruebas" style="width:100%">
+          <img src="../assets/templates/png/marca-1080x1080.png" alt="Posteo de marca" style="width:100%">
+        </div>
+      </div>
+      <div class="stack" style="width:calc(var(--u)*22)">
+        <div style="border:calc(var(--u)*.6) solid var(--grafito);border-radius:calc(var(--u)*2.4);overflow:hidden;aspect-ratio:9/16"><img src="../assets/templates/png/producto-1080x1920.png" alt="Historia de producto" style="width:100%;height:100%;object-fit:cover"></div>
+        <p class="small muted" style="margin:0">Los seis tipos de posteo, en cuadrado y en historia, están en <span class="mono">assets/templates</span>. El feed alterna fondos blancos, fotos y un posteo oscuro cada tanto.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= WHATSAPP ================= -->
+<section class="page">
+  <div class="ph"><span>10 · Aplicaciones de marca</span><span>WhatsApp Business</span></div>
+  <div class="pb">
+    <div class="g2">
+      <div class="stack">
+        <h2 style="margin:0">WhatsApp, el mostrador</h2>
+        <p class="muted" style="margin:0">Es por donde entra casi todo el negocio. El perfil tiene que estar completo y el presupuesto tiene que salir en una sola imagen prolija.</p>
+        <div class="cell" style="display:grid;gap:calc(var(--u)*.9)">
+          <div style="display:flex;gap:calc(var(--u)*1.2);align-items:center"><img src="../assets/logo/recuvarilla-isotipo-color.svg" alt="" style="width:calc(var(--u)*5);clip-path:circle(50%)"><div><b>Recuvarilla</b><br><span class="small muted">Proveedor de insumos agropecuarios</span></div></div>
+          <table class="t small">
+            <tr><td class="muted">Descripción</td><td>Varillas de plástico recuperado para alambrados. 3 × 3 × 120 cm, lisas o agujereadas a medida. Hechas en Luján.</td></tr>
+            <tr><td class="muted">Horario</td><td>Lunes a sábado de 8 a 18</td></tr>
+            <tr><td class="muted">Dirección</td><td>Luján, Buenos Aires</td></tr>
+            <tr><td class="muted">Catálogo</td><td>Varilla lisa · Varilla agujereada · Alambre 17/15</td></tr>
+            <tr><td class="muted">Foto de perfil</td><td>Isotipo, PNG de 1024 (<span class="mono">recuvarilla-isotipo-color-1024.png</span>)</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="stack" style="justify-items:center">
+        <div class="presu">
+          <div class="presu-h"><img src="../assets/logo/recuvarilla-palabra-color.svg" alt="Recuvarilla"><span class="mono">Presupuesto N.º 0482</span></div>
+          <p class="small" style="margin:0">Para: <b>Martín Aguirre</b> · Luján · 28/09/2026</p>
+          <table class="t small">
+            <thead><tr><th>Detalle</th><th style="text-align:right">Cant.</th><th style="text-align:right">Unitario</th><th style="text-align:right">Subtotal</th></tr></thead>
+            <tbody>
+              <tr><td>Varilla agujereada 3 × 3 × 120</td><td class="n" style="text-align:right">150</td><td class="n" style="text-align:right">$ 3.400</td><td class="n" style="text-align:right">$ 510.000</td></tr>
+              <tr><td><b>Total sin IVA</b></td><td></td><td></td><td class="n" style="text-align:right"><b>$ 510.000</b></td></tr>
+            </tbody>
+          </table>
+          <p class="small muted" style="margin:0">Precios sin IVA. Válido 7 días. Flete aparte, lo cotiza el expreso.</p>
+          <div class="presu-f"><span class="mono small">WhatsApp 11 2395-8302</span></div>
+        </div>
+        <p class="small muted" style="margin:0">Imagen de presupuesto, 1080 × 1350. Precio de lista para 100 a 499 unidades agujereadas.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= WEB ================= -->
+<section class="page">
+  <div class="ph"><span>10 · Aplicaciones de marca</span><span>Web</span></div>
+  <div class="pb">
+    <div style="display:grid;grid-template-columns:1fr auto;gap:calc(var(--u)*3);align-items:start">
+      <div class="browser">
+        <div class="browser-bar"><i></i><i></i><i></i><span class="mono">recuvarilla.com.ar</span></div>
+        <div class="web">
+          <div class="web-nav"><img src="../assets/logo/recuvarilla-palabra-color.svg" alt="Recuvarilla"><span>Productos</span><span>Presupuesto</span><span>Proceso</span><span>Nosotros</span><b>Cotizar</b></div>
+          <div class="web-hero">
+            <div>
+              <p class="web-h1">Varillas de plástico recuperado, hechas en Luján.</p>
+              <p class="web-lede">No se pudren, no se oxidan y vienen agujereadas a la medida de tu alambrado.</p>
+              <div style="display:flex;gap:calc(var(--u)*.8)"><b class="web-btn">Calcular mi presupuesto</b><b class="web-btn line">Escribir por WhatsApp</b></div>
+            </div>
+            <div class="web-rods" aria-hidden="true"><img src="../assets/sistema/varilla-separador.svg" alt=""><img src="../assets/sistema/varilla-separador.svg" alt=""><img src="../assets/sistema/varilla-separador.svg" alt=""></div>
+          </div>
+          <div class="franja-web"></div>
+        </div>
+      </div>
+      <div class="phone"><div class="web" style="height:100%">
+        <div class="web-nav"><img src="../assets/logo/recuvarilla-palabra-color.svg" alt="Recuvarilla" style="width:55%"><b>Cotizar</b></div>
+        <div style="padding:calc(var(--u)*1.2)"><p class="web-h1" style="font-size:calc(var(--u)*2.3)">Varillas de plástico recuperado, hechas en Luján.</p><p class="web-lede" style="font-size:calc(var(--u)*.85)">No se pudren, no se oxidan y vienen agujereadas a medida.</p><b class="web-btn" style="display:block;text-align:center">Calcular mi presupuesto</b></div>
+      </div></div>
+    </div>
+    <div class="g3" style="margin-top:calc(var(--u)*1.6)">
+      <p class="small"><b>Hero blanco.</b> En el sitio, la varilla 3D ocupa el lugar de las varillas dibujadas: negra sobre blanco, el mayor contraste posible.</p>
+      <p class="small"><b>Un botón principal</b> en grafito, del negro de la varilla. El segundo va con contorno. Nunca dos botones iguales.</p>
+      <p class="small"><b>La franja</b> cierra el hero y separa el mundo de la marca del contenido. Aparece una sola vez.</p>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= LISTA DE PRECIOS ================= -->
+<section class="page concrete">
+  <div class="ph"><span>10 · Aplicaciones de marca</span><span>Lista de precios</span></div>
+  <div class="pb">
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:calc(var(--u)*4);height:100%">
+      <div class="sheet a4">
+        <div style="display:flex;justify-content:space-between;align-items:end"><img src="../assets/logo/recuvarilla-principal-color.svg" alt="Recuvarilla" style="width:48%"><span class="mono" style="font-size:.8em;text-align:right">Lista de precios<br>vigente desde 01/08/2026</span></div>
+        <p style="font-weight:800;font-stretch:75%;font-size:2.3em;line-height:.95;margin:1.1em 0 .2em">Varilla 3 × 3 × 120 cm</p>
+        <p style="margin:0 0 1em;color:var(--gris)">Plástico recuperado. Precio por unidad, sin IVA.</p>
+        <table class="t" style="font-size:1em">
+          <thead><tr><th>Cantidad</th><th style="text-align:right">Lisa</th><th style="text-align:right">Agujereada</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1 a 99</td><td class="n" style="text-align:right">$ 2.950</td><td class="n" style="text-align:right">$ 3.450</td></tr>
+            <tr><td class="n">100 a 499</td><td class="n" style="text-align:right">$ 2.900</td><td class="n" style="text-align:right">$ 3.400</td></tr>
+            <tr><td class="n">500 a 999</td><td class="n" style="text-align:right">$ 2.850</td><td class="n" style="text-align:right">$ 3.350</td></tr>
+            <tr><td class="n">1.000 a 4.999</td><td class="n" style="text-align:right">$ 2.750</td><td class="n" style="text-align:right">$ 3.250</td></tr>
+            <tr><td class="n">5.000 o más</td><td class="n" style="text-align:right">$ 2.550</td><td class="n" style="text-align:right">$ 2.800</td></tr>
+          </tbody>
+        </table>
+        <img src="../assets/sistema/regla-120.svg" alt="" style="width:100%;margin:1.6em 0 1.2em">
+        <ul class="bul" style="font-size:.9em;gap:.3em"><li>El presupuesto vale 7 días.</li><li>Flete aparte: lo cotiza el expreso según la localidad.</li><li>Revendedores: pedí la lista mayorista.</li></ul>
+        <div style="margin-top:auto;display:flex;justify-content:space-between;align-items:end;gap:1em">
+          <div class="mono" style="font-size:.85em;line-height:1.5">WhatsApp 11 2395-8302<br>recuvarilla@gmail.com<br>Luján, Buenos Aires</div>
+          <img src="../assets/qr/qr-whatsapp.svg" alt="QR a WhatsApp" style="width:22%">
+        </div>
+      </div>
+      <div class="stack">
+        <h2 style="margin:0">La lista de precios</h2>
+        <p class="muted">A4 vertical. Es la pieza que más se imprime y se reenvía por WhatsApp como foto: tiene que leerse en un celular.</p>
+        <ul class="bul small">
+          <li><b>Una sola tabla</b> con los escalones de cantidad y las dos opciones lado a lado.</li>
+          <li><b>Precios en Chivo Mono</b>, alineados a la derecha: los montos se comparan de un vistazo.</li>
+          <li><b>Fecha de vigencia arriba</b>, siempre. Una lista sin fecha es una lista vieja.</li>
+          <li><b>QR a WhatsApp</b> abajo a la derecha, con el mensaje ya escrito.</li>
+          <li>La lista mayorista es otra hoja, con el mismo diseño, y solo se manda a revendedores.</li>
+        </ul>
+        <p class="small muted">Los precios de esta muestra son los de la lista vigente desde el 01/08/2026. Cuando cambien, se cambian en la hoja; el diseño queda.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= TARJETA Y FIRMA ================= -->
+<section class="page">
+  <div class="ph"><span>10 · Aplicaciones de marca</span><span>Tarjeta y firma de mail</span></div>
+  <div class="pb">
+    <div class="g2">
+      <div class="stack">
+        <h2 style="margin:0">Tarjeta de contacto</h2>
+        <p class="small muted" style="margin:0">85 × 55 mm, cartulina mate. Frente blanco con el logo; dorso grafito con todo lo necesario para escribirnos.</p>
+        <div style="display:flex;gap:calc(var(--u)*2);flex-wrap:wrap">
+          <div class="card"><img src="../assets/logo/recuvarilla-principal-color.svg" alt="Recuvarilla" style="width:72%"></div>
+          <div class="card dark-card">
+            <div style="display:flex;justify-content:space-between;gap:1em;align-items:start">
+              <div class="mono" style="font-size:.78em;line-height:1.6">WhatsApp 11 2395-8302<br>recuvarilla@gmail.com<br>@recuvarilla<br>recuvarilla.com.ar</div>
+              <img src="../assets/qr/qr-whatsapp-negativo.svg" alt="QR" style="width:30%">
+            </div>
+            <div style="margin-top:auto;display:grid;gap:.5em"><div style="aspect-ratio:40/1;background:url('../assets/sistema/varilla-separador-blanca.svg') left/contain no-repeat"></div><span style="font-size:.72em;color:#CFD5D2">Luján, Buenos Aires</span></div>
+          </div>
+        </div>
+        <p class="small muted" style="margin:0">Frente y dorso a escala 2:1 de pantalla. Si alguien necesita tarjeta propia, el nombre va en el dorso, arriba, en Archivo Bold.</p>
+      </div>
+      <div class="stack">
+        <h2 style="margin:0">Firma de mail</h2>
+        <p class="small muted" style="margin:0">Texto real, no una imagen: se lee aunque el mail bloquee imágenes. Solo el logo es imagen (PNG de la palabra, 200 px de ancho).</p>
+        <div class="cell" style="font-family:Arial,sans-serif;font-size:calc(var(--u)*1)">
+          <p style="margin:0 0 1em">Saludos,</p>
+          <p style="margin:0"><b>Martín Aguirre</b><br><span style="color:#5D6562">Ventas</span></p>
+          <img src="../assets/logo/recuvarilla-palabra-color.svg" alt="Recuvarilla" style="width:calc(var(--u)*14);margin:1em 0 .6em">
+          <p style="margin:0;color:#5D6562;line-height:1.5">WhatsApp 11 2395-8302 · recuvarilla.com.ar<br>Luján, Buenos Aires</p>
+        </div>
+        <p class="small muted" style="margin:0">En la firma se usa Arial: las fuentes de marca no viajan por mail. Sin frases, sin banners, sin redes en íconos.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= FOLLETO ================= -->
+<section class="page concrete">
+  <div class="ph"><span>10 · Aplicaciones de marca</span><span>Folleto A5</span></div>
+  <div class="pb">
+    <div style="display:grid;grid-template-columns:auto auto 1fr;gap:calc(var(--u)*2.4);height:100%">
+      <div class="sheet a5" style="padding:0">
+        <div style="height:1.4em;background:linear-gradient(var(--celeste) 0 33.33%,#fff 33.33% 66.66%,var(--celeste) 66.66%)"></div>
+        <div style="padding:1.6em 1.6em 0;display:grid;gap:.9em"><img src="../assets/logo/recuvarilla-principal-color.svg" alt="Recuvarilla" style="width:62%"><p style="font-weight:800;font-stretch:75%;font-size:2.5em;line-height:.93;margin:.3em 0 0">Hecha para el campo. Pensada para durar.</p><p style="margin:0;color:var(--gris)">Varillas de plástico recuperado para alambrados, 3 × 3 × 120 cm.</p></div>
+        <img src="../assets/fotos/uso-alambrado-vs-madera.jpg" alt="" style="margin-top:auto;width:100%;height:46%;object-fit:cover;object-position:30% 45%">
+      </div>
+      <div class="sheet a5">
+        <p style="font-weight:800;font-stretch:75%;font-size:1.7em;line-height:1;margin:0 0 .6em">La varilla</p>
+        <img src="../assets/producto/dimensiones-perforada.svg" alt="Dimensiones de la varilla" style="width:100%">
+        <ul class="bul" style="font-size:.9em;gap:.35em;margin-top:1em"><li><b>No se pudre ni se oxida.</b> Sin mantenimiento.</li><li><b>Agujereada de fábrica</b> a la altura de cada hilo.</li><li><b>Sirve para cercos eléctricos.</b></li><li><b>Entrega a campo</b> coordinada.</li></ul>
+        <div style="margin-top:auto;display:grid;grid-template-columns:1fr auto;gap:1em;align-items:end">
+          <div><div style="aspect-ratio:40/1;background:url('../assets/sistema/varilla-separador.svg') left/contain no-repeat;margin-bottom:.8em"></div><span class="mono" style="font-size:.8em;line-height:1.55;display:block">Pedí tu presupuesto:<br>WhatsApp 11 2395-8302<br>recuvarilla.com.ar</span></div>
+          <img src="../assets/qr/qr-whatsapp.svg" alt="QR" style="width:5.4em">
+        </div>
+      </div>
+      <div class="stack">
+        <h2 style="margin:0">Folleto</h2>
+        <p class="small muted">A5, frente y dorso. El frente vende con una frase y una foto real. El dorso explica: medida, beneficios y cómo pedir.</p>
+        <ul class="bul small"><li>Franja arriba del frente: la marca de origen, como en el isotipo.</li><li>El gráfico de dimensiones tal cual, sin redibujar.</li><li>El QR siempre al lado del número, por si no funciona la cámara.</li></ul>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= CARTEL Y STAND ================= -->
+<section class="page">
+  <div class="ph"><span>10 · Aplicaciones de marca</span><span>Cartel y stand</span></div>
+  <div class="pb">
+    <div class="g2" style="grid-template-columns:6fr 5fr">
+      <div class="stack">
+        <span class="label">Lona 2 × 1 m (tranquera, galpón, ruta)</span>
+        <div class="lona">
+          <div class="w" style="top:26%"></div><div class="w" style="top:50%"></div><div class="w" style="top:74%"></div>
+          <div class="lona-in">
+            <img src="../assets/logo/recuvarilla-palabra-color.svg" alt="Recuvarilla" style="width:38%">
+            <p style="font-weight:800;font-stretch:75%;font-size:3.3em;line-height:.92;margin:.25em 0 .15em">Varillas de plástico recuperado.</p>
+            <div style="display:flex;justify-content:space-between;align-items:end;gap:1em"><span class="mono" style="font-size:1.35em;line-height:1.3">3 × 3 × 120 cm<br><b>WhatsApp 11 2395-8302</b></span><img src="../assets/qr/qr-whatsapp.svg" alt="QR" style="width:16%"></div>
+          </div>
+        </div>
+        <p class="small muted" style="margin:0">Se lee a 30 m: una frase, la medida, el teléfono grande. El marco alambrado es el único recurso. En lona, el QR va de 20 cm como mínimo.</p>
+      </div>
+      <div class="stack">
+        <span class="label">Stand · vista de frente</span>
+        <svg viewBox="0 0 600 380" style="width:100%;border:1px solid var(--line);border-radius:4px;background:#fff" role="img" aria-label="Esquema del stand">
+          <rect x="20" y="20" width="460" height="290" fill="#fff" stroke="#1D2120" stroke-width="3"/>
+          <image href="../assets/logo/recuvarilla-principal-color.svg" x="110" y="48" width="280" height="62"/>
+          <text x="250" y="160" text-anchor="middle" font-family="Archivo" font-weight="800" font-stretch="75%" font-size="38" fill="#1D2120">Hecha para el campo.</text>
+          <text x="250" y="200" text-anchor="middle" font-family="Archivo" font-weight="800" font-stretch="75%" font-size="38" fill="#1D2120">Pensada para durar.</text>
+          <rect x="20" y="280" width="460" height="10" fill="#74ACDF"/><rect x="20" y="290" width="460" height="10" fill="#fff"/><rect x="20" y="300" width="460" height="10" fill="#74ACDF"/>
+          <rect x="150" y="240" width="200" height="110" fill="#1D2120"/>
+          <image href="../assets/logo/recuvarilla-palabra-negativo.svg" x="175" y="258" width="150" height="34"/>
+          <text x="250" y="325" text-anchor="middle" font-family="Chivo Mono" font-size="15" fill="#fff">WhatsApp 11 2395-8302</text>
+          <g fill="#1D2120">
+            <path d="M502 200h10v140l-5 10l-5-10z"/><path d="M520 200h10v140l-5 10l-5-10z"/><path d="M538 200h10v140l-5 10l-5-10z"/><path d="M556 200h10v140l-5 10l-5-10z"/>
+          </g>
+          <rect x="494" y="330" width="80" height="20" fill="#9AA39F"/>
+          <path d="M20 360H480" stroke="#9AA39F" stroke-width="2"/>
+          <text x="250" y="376" text-anchor="middle" font-family="Chivo Mono" font-size="13" fill="#5D6562">3 m</text>
+        </svg>
+        <ul class="bul small"><li><b>Fondo blanco</b> con logo, frase y franja abajo.</li><li><b>Mostrador grafito</b> con la palabra en negativo y el WhatsApp.</li><li><b>Varillas reales</b> paradas al costado: el producto es la mejor decoración.</li></ul>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= REMERAS Y VEHÍCULO ================= -->
+<section class="page">
+  <div class="ph"><span>10 · Aplicaciones de marca</span><span>Remeras y vehículo</span></div>
+  <div class="pb">
+    <div class="g2" style="grid-template-columns:5fr 6fr">
+      <div class="stack">
+        <h2 style="margin:0">Remeras</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*1.4)">
+          <figure style="margin:0"><svg viewBox="0 0 300 320" style="width:100%" role="img" aria-label="Remera, frente">
+            <path d="M100 20Q150 48 200 20L270 55L300 120L250 142L240 115V310H60V115L50 142L0 120L30 55Z" fill="#1D2120"/>
+            <path d="M100 20Q150 60 200 20" fill="none" stroke="#333938" stroke-width="6"/>
+            <image href="../assets/logo/recuvarilla-isotipo-color.svg" x="176" y="74" width="30" height="30"/>
+          </svg><figcaption class="small"><b>Frente:</b> isotipo en el pecho, 8 cm.</figcaption></figure>
+          <figure style="margin:0"><svg viewBox="0 0 300 320" style="width:100%" role="img" aria-label="Remera, espalda">
+            <path d="M100 20Q150 30 200 20L270 55L300 120L250 142L240 115V310H60V115L50 142L0 120L30 55Z" fill="#1D2120"/>
+            <image href="../assets/logo/recuvarilla-vertical-negativo.svg" x="85" y="80" width="130" height="80"/>
+            <text x="150" y="205" text-anchor="middle" font-family="Archivo" font-weight="800" font-stretch="75%" font-size="17" fill="#fff">Hecha para el campo.</text>
+          </svg><figcaption class="small"><b>Espalda:</b> vertical en negativo, 25 cm, y la frase.</figcaption></figure>
+        </div>
+        <p class="small muted" style="margin:0">Remera grafito o negra, estampa blanca y celeste. Para trabajo en el campo, también en gris claro con el logo en color.</p>
+      </div>
+      <div class="stack">
+        <h2 style="margin:0">Vehículo</h2>
+        <svg viewBox="0 0 600 250" style="width:100%" role="img" aria-label="Camioneta ploteada, vista lateral">
+          <path d="M20 180V128L64 116L150 112L205 62L312 58L340 112H580V180Z" fill="#fff" stroke="#1D2120" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M214 72L300 68L324 112H214Z" fill="#DADFDA" stroke="#1D2120" stroke-width="2"/>
+          <path d="M340 112V180" stroke="#1D2120" stroke-width="2"/>
+          <rect x="21.5" y="162" width="557" height="6" fill="#74ACDF"/><rect x="21.5" y="168" width="557" height="6" fill="#fff"/><rect x="21.5" y="174" width="557" height="5" fill="#74ACDF"/>
+          <image href="../assets/logo/recuvarilla-palabra-color.svg" x="365" y="117" width="190" height="24"/>
+          <image href="../assets/logo/recuvarilla-isotipo-color.svg" x="240" y="118" width="26" height="26"/>
+          <text x="438" y="156" font-family="Chivo Mono" font-size="14" fill="#1D2120" text-anchor="middle">WhatsApp 11 2395-8302</text>
+          <circle cx="130" cy="192" r="30" fill="#1D2120"/><circle cx="130" cy="192" r="13" fill="#9AA39F"/>
+          <circle cx="490" cy="192" r="30" fill="#1D2120"/><circle cx="490" cy="192" r="13" fill="#9AA39F"/>
+        </svg>
+        <ul class="bul small"><li><b>Vehículo blanco</b>: la palabra en la caja, el isotipo en la puerta.</li><li><b>La franja</b> recorre la parte baja de punta a punta.</li><li><b>El WhatsApp</b> en la caja, debajo de la palabra, y repetido en la compuerta: se lee desde el auto de atrás.</li><li>Nada de fotos ploteadas ni degradés: se ensucian y envejecen mal.</li></ul>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,13 @@
+RECUVARILLA · PALETA
+CMYK: valores para imprenta. Antes de una tirada grande, pedí una prueba impresa.
+Texto chico impreso en grafito: usar 100% K en lugar del CMYK del grafito.
+
+Grafito        HEX #1D2120  RGB 29 33 32     CMYK 65 50 55 85    Texto, botones, la varilla
+Blanco         HEX #FFFFFF  RGB 255 255 255  CMYK 0 0 0 0        Fondo principal
+Celeste        HEX #74ACDF  RGB 116 172 223  CMYK 55 19 0 0      Franja de la bandera, marca, selección  · Pantone 284 C (referencia de la bandera)
+Hormigón       HEX #EEF0EC  RGB 238 240 236  CMYK 5 2 6 0        Fondo alterno
+Celeste hondo  HEX #1F5E96  RGB 31 94 150    CMYK 92 58 8 12     Links, foco, información
+Gris           HEX #5D6562  RGB 93 101 98    CMYK 55 40 45 30    Texto secundario
+Alambre        HEX #9AA39F  RGB 154 163 159  CMYK 35 24 30 5     Líneas de alambre, filetes
+Pasto          HEX #4F7F2A  RGB 79 127 42    CMYK 70 28 100 20   Éxito (solo estados)
+Tapita         HEX #C8432B  RGB 200 67 43    CMYK 10 85 90 5     Error, stock bajo (solo estados)

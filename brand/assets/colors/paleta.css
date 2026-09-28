@@ -1,0 +1,11 @@
+:root {
+  --rv-grafito: #1D2120; /* Texto, botones, la varilla */
+  --rv-blanco: #FFFFFF; /* Fondo principal */
+  --rv-celeste: #74ACDF; /* Franja de la bandera, marca, selección */
+  --rv-hormigon: #EEF0EC; /* Fondo alterno */
+  --rv-celeste-hondo: #1F5E96; /* Links, foco, información */
+  --rv-gris: #5D6562; /* Texto secundario */
+  --rv-alambre: #9AA39F; /* Líneas de alambre, filetes */
+  --rv-pasto: #4F7F2A; /* Éxito (solo estados) */
+  --rv-tapita: #C8432B; /* Error, stock bajo (solo estados) */
+}
