@@ -1933,6 +1933,45 @@ alter table orders add column if not exists varillas_entregadas integer
 
 create index if not exists orders_tipo_idx on orders (tipo);
 
+-- ---------------------------------------------------------------------------
+-- Redes
+-- ---------------------------------------------------------------------------
+
+/*
+  El calendario de Instagram: qué sale cada día y con qué texto.
+
+  Guarda los datos de la pieza y no la imagen. La imagen se arma en el
+  navegador con las plantillas del manual de marca cada vez que se la pide, así
+  que corregir una coma no obliga a volver a diseñar nada, y el día que cambie
+  el manual las piezas que todavía no salieron toman el diseño nuevo solas.
+
+  `campos` va en jsonb porque cada plantilla pide cosas distintas —la reseña
+  lleva cita y nombre, el proceso lleva número de paso— y una columna por
+  campo dejaría media tabla en null. Qué campos lleva cada una está en
+  `src/erp/redes/plantillas.js`.
+
+  `formatos` dice si sale en el feed, en historias o en los dos. El posteo se
+  sube a mano: `publicado` lo marca quien lo subió, para que el calendario
+  muestre qué salió y qué falta.
+*/
+create table if not exists social_posts (
+  id           uuid primary key default gen_random_uuid(),
+  fecha        date not null,
+  plantilla    text not null
+               check (plantilla in ('producto', 'aplicaciones', 'educacion', 'marca', 'proceso', 'pruebas')),
+  formatos     text[] not null default array['cuadrado', 'historia']
+               check (cardinality(formatos) > 0 and formatos <@ array['cuadrado', 'historia']),
+  campos       jsonb not null default '{}'::jsonb,
+  caption      text not null default '' check (char_length(caption) <= 2200),
+  hashtags     text not null default '',
+  estado       text not null default 'borrador' check (estado in ('borrador', 'listo', 'publicado')),
+  publicado_at timestamptz,
+  notas        text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+create index if not exists social_posts_fecha_idx on social_posts (fecha);
 
 -- ---------------------------------------------------------------------------
 -- Vistas
@@ -2473,6 +2512,7 @@ alter table service_rates   enable row level security;
 alter table order_services  enable row level security;
 alter table production_costs enable row level security;
 alter table production_setup enable row level security;
+alter table social_posts    enable row level security;
 
 /*
   Supabase ya suele dar estos permisos sola al crear tablas nuevas, pero
@@ -2543,7 +2583,8 @@ begin
     'expenses', 'expense_types', 'expense_type_payers',
     'profit_shares', 'profit_payouts',
     'service_rates', 'order_services',
-    'production_costs', 'production_setup'
+    'production_costs', 'production_setup',
+    'social_posts'
   ] loop
     execute format('drop policy if exists "equipo" on %I', tabla);
     execute format(
@@ -2609,6 +2650,26 @@ create policy "el simulador deja leads" on leads
     and (cantidad is null or cantidad between 1 and 1000000)
     and (notas is null or char_length(notas) <= 500)
   );
+
+/*
+  Las fotos de los posteos.
+
+  El bucket es público a propósito: lo que se sube acá es para publicar en
+  Instagram, y así la pieza se arma con la URL directa, sin firmar enlaces que
+  vencen. Ver una foto no pide sesión; subirla y borrarla, sí. No guardar acá
+  nada que no se vaya a mostrar.
+*/
+insert into storage.buckets (id, name, public)
+values ('redes', 'redes', true)
+on conflict (id) do nothing;
+
+drop policy if exists "el equipo sube fotos de redes" on storage.objects;
+create policy "el equipo sube fotos de redes" on storage.objects
+  for insert to authenticated with check (bucket_id = 'redes');
+
+drop policy if exists "el equipo borra fotos de redes" on storage.objects;
+create policy "el equipo borra fotos de redes" on storage.objects
+  for delete to authenticated using (bucket_id = 'redes');
 
 -- ---------------------------------------------------------------------------
 -- Datos iniciales

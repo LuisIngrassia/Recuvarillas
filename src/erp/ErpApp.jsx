@@ -44,6 +44,8 @@ const Documents = lazy(() => import('./pages/Documents'))
 const DocPriceList = lazy(() => import('./pages/DocPriceList'))
 const DocBrochure = lazy(() => import('./pages/DocBrochure'))
 const DocDatasheet = lazy(() => import('./pages/DocDatasheet'))
+const Social = lazy(() => import('./pages/Social'))
+const SocialPost = lazy(() => import('./pages/SocialPost'))
 
 /*
   El menú va partido en dos porque las pantallas se usan con frecuencias muy
@@ -72,6 +74,7 @@ const SECTIONS = [
   { to: '/erp/costos', label: 'Costos' },
   { to: '/erp/rentabilidad', label: 'Rentabilidad' },
   { to: '/erp/documentos', label: 'Documentos' },
+  { to: '/erp/redes', label: 'Redes' },
 ]
 
 const SETTINGS = [
@@ -239,7 +242,9 @@ function Gate() {
           <Route path="documentos/lista-de-precios" element={<DocPriceList />} />
           <Route path="documentos/folleto" element={<DocBrochure />} />
           <Route path="documentos/ficha-tecnica" element={<DocDatasheet />} />
-          <Route path="*" element={<p className="text-sm text-steel-500">No existe esa pantalla.</p>} />
+          <Route path="redes" element={<Social />} />
+          <Route path="redes/:id" element={<SocialPost />} />
+          <Route path="*"element={<p className="text-sm text-steel-500">No existe esa pantalla.</p>} />
         </Routes>
       </Suspense>
     </Shell>

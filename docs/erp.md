@@ -17,6 +17,7 @@ El día a día:
 | **Costos**       | Lo que sale, y de la parte de quién sale cada cosa.                     |
 | **Rentabilidad** | El resultado del mes y la cuenta de cada socio.                         |
 | **Documentos**   | La lista de precios, el folleto y la ficha técnica, con el contacto de cada vendedor. |
+| **Redes**        | El calendario de Instagram: qué sale cada día, las piezas armadas con el manual y listas para bajar. |
 
 Y lo que se toca de vez en cuando, bajo **Ajustes**:
 
@@ -899,6 +900,42 @@ cada uno. Tres cosas cambian:
 
 El presupuesto no está en esta pantalla porque no es un papel general: sale de
 cada pedido. También lleva al pie el contacto de su vendedor.
+
+### Redes
+
+El calendario de Instagram. Cada posteo guarda **los datos de la pieza, no la
+imagen**: la plantilla, los textos, la foto y el texto del posteo. La imagen la
+arma el navegador en el momento con las seis plantillas del manual de marca
+(`brand/`), así que corregir una coma no obliga a rediseñar nada.
+
+El circuito de todas las semanas:
+
+1. **Qué postear.** La columna de la derecha propone posteos casi listos: las
+   reseñas de la web, los seis pasos del proceso, los usos y preguntas del
+   manual, y tres que salen del ERP (el precio de lista de hoy, las localidades
+   de las últimas entregas y las varillas entregadas en el mes). "Agendar" lo
+   pone en el calendario; las que ya se usaron se esconden.
+2. **Revisar.** El editor muestra la pieza en feed (1080 × 1080) y en historia
+   (1080 × 1920) tal cual va a salir. Abajo aparecen los avisos del manual:
+   palabras que no usamos, falta un número o la acción de WhatsApp, cantidad de
+   hashtags, primera línea demasiado larga. Si un titular no entra, se achica
+   solo hasta un 70%; si ni así entra, lo avisa.
+3. **Bajar y subir.** Desde la compu, "Descargar" baja los PNG y "Copiar
+   texto", el epígrafe con los hashtags. Desde el teléfono, "Preparar para
+   Instagram" y después "Compartir": abre Instagram con la imagen puesta y el
+   texto queda copiado para pegar. En el calendario, "Descargar lo que falta
+   subir" baja el mes entero en un .zip, con un `textos.txt` que dice qué va
+   cada día.
+4. **Marcar publicado.** Lo marca quien lo subió. Lo que tenía fecha y no se
+   marcó aparece arriba de todo, en "Para subir".
+
+Las fotos propias se suben desde el editor al bucket `redes` de Supabase, que
+**es público**: es lo que se va a publicar igual. No subir ahí nada que no se
+vaya a mostrar.
+
+Las plantillas del ERP (`src/erp/redes/`) son una copia de las de
+`brand/assets/templates/`. Si el manual cambia una medida, hay que cambiarla en
+los dos lados.
 
 ### Vendedores y comisiones
 
