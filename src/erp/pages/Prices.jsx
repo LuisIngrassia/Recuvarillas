@@ -307,7 +307,7 @@ export default function Prices() {
             <select
               value={elegido?.id ?? ''}
               onChange={(event) => setProductId(event.target.value)}
-              className="rounded-md border border-steel-200 bg-white px-3 py-2 text-sm text-steel-700"
+              className="rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm text-grafito-700"
             >
               {(products.data ?? []).map((item) => (
                 <option key={item.id} value={item.id}>
@@ -333,7 +333,7 @@ export default function Prices() {
       )}
 
       {elegido && !elegido.en_web && (
-        <div className="mb-4 rounded-md border border-steel-200 bg-steel-50 px-4 py-3 text-xs leading-relaxed text-steel-600">
+        <div className="mb-4 rounded-md border border-grafito-200 bg-grafito-50 px-4 py-3 text-xs leading-relaxed text-grafito-600">
           Estos son los precios de <strong>{elegido.nombre}</strong>. El simulador
           de la web no cotiza este producto — cotiza el que esté marcado en{' '}
           <Link to="/erp/productos" className="font-semibold underline underline-offset-2">
@@ -364,7 +364,7 @@ export default function Prices() {
 
               return (
                 <Card key={kind} title={titulo}>
-                  <p className="border-b border-steel-100 px-4 py-2 text-xs text-steel-400">
+                  <p className="border-b border-grafito-100 px-4 py-2 text-xs text-grafito-400">
                     {detalle}
                   </p>
 
@@ -384,24 +384,24 @@ export default function Prices() {
                       }
                     >
                       {propios.map((tier) => (
-                        <tr key={tier.id} className="hover:bg-steel-50">
-                          <Td className="whitespace-nowrap font-medium text-steel-700">
+                        <tr key={tier.id} className="hover:bg-grafito-50">
+                          <Td className="whitespace-nowrap font-medium text-grafito-700">
                             {formatNumber(tier.min_qty)}
                             {tier.max_qty === null
                               ? ' o más'
                               : ` a ${formatNumber(tier.max_qty)}`}
                           </Td>
-                          <Td align="right" className="tabular-nums text-steel-700">
+                          <Td align="right" className="tabular-nums text-grafito-700">
                             {formatPesos(Number(tier.plain_price))}
                           </Td>
-                          <Td align="right" className="tabular-nums text-steel-700">
+                          <Td align="right" className="tabular-nums text-grafito-700">
                             {formatPesos(Number(tier.drilled_price))}
                           </Td>
-                          <Td align="right" className="tabular-nums text-xs text-steel-400">
+                          <Td align="right" className="tabular-nums text-xs text-grafito-400">
                             {/* El recargo por agujereado, que es lo que se revisa al cambiar precios. */}
                             +{formatPesos(Number(tier.drilled_price) - Number(tier.plain_price))}
                           </Td>
-                          <Td className="whitespace-nowrap text-xs text-steel-400">
+                          <Td className="whitespace-nowrap text-xs text-grafito-400">
                             {formatDateTime(tier.updated_at)}
                           </Td>
                           <Td align="right">
@@ -448,7 +448,7 @@ export default function Prices() {
           </Button>
         }
       >
-        <p className="border-b border-steel-100 px-4 py-2 text-xs text-steel-400">
+        <p className="border-b border-grafito-100 px-4 py-2 text-xs text-grafito-400">
           Lo que se le factura a una empresa que trae su plástico a reciclar. No
           se cobra mercadería —la materia prima es de ella— sino las horas que
           llevó el trabajo.
@@ -467,16 +467,16 @@ export default function Prices() {
               }
             >
               {lista.map((rate) => (
-                <tr key={rate.id} className="hover:bg-steel-50">
-                  <Td className="font-medium text-steel-700">{rate.nombre}</Td>
-                  <Td align="right" className="tabular-nums text-steel-700">
+                <tr key={rate.id} className="hover:bg-grafito-50">
+                  <Td className="font-medium text-grafito-700">{rate.nombre}</Td>
+                  <Td align="right" className="tabular-nums text-grafito-700">
                     {Number(rate.precio_hora) > 0 ? (
                       formatPesos(Number(rate.precio_hora))
                     ) : (
                       <span className="text-amber-600">sin cargar</span>
                     )}
                   </Td>
-                  <Td className="whitespace-nowrap text-xs text-steel-400">
+                  <Td className="whitespace-nowrap text-xs text-grafito-400">
                     {formatDateTime(rate.updated_at)}
                   </Td>
                   <Td align="right">
@@ -504,7 +504,7 @@ export default function Prices() {
         </Async>
       </Card>
 
-      <div className="mt-4 space-y-2 text-xs text-steel-400">
+      <div className="mt-4 space-y-2 text-xs text-grafito-400">
         <p>
           La minorista tiene que cubrir toda la escala sin huecos: el escalón que
           arranca en 1 y el último sin tope. La mayorista puede arrancar donde
@@ -512,7 +512,7 @@ export default function Prices() {
           aplica igual su primer escalón.
         </p>
         <p>
-          <code className="rounded bg-steel-100 px-1">src/data/pricing.js</code>{' '}
+          <code className="rounded bg-grafito-100 px-1">src/data/pricing.js</code>{' '}
           guarda una copia de esta lista que se usa si la base no responde.
           Conviene actualizarla cuando el cambio de precios es grande.
         </p>

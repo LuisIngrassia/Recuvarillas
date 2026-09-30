@@ -233,29 +233,29 @@ function StockCard({ row }) {
   const aAgujerear = row.comprometido_agujereadas ?? 0
 
   const tono =
-    disponible < 0 ? 'text-red-600' : disponible === 0 ? 'text-amber-600' : 'text-steel-800'
+    disponible < 0 ? 'text-tapita-600' : disponible === 0 ? 'text-amber-600' : 'text-grafito-800'
 
   return (
-    <div className="rounded-xl border border-steel-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-steel-400">
+    <div className="rounded-xl border border-grafito-200 bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-grafito-400">
         {row.nombre}
       </p>
 
       <p className={`mt-2 text-3xl font-bold tabular-nums ${tono}`}>
         {formatNumber(disponible)}
       </p>
-      <p className="text-xs text-steel-400">
+      <p className="text-xs text-grafito-400">
         {disponible === 1 ? 'varilla disponible' : 'varillas disponibles'}
       </p>
 
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-steel-100 pt-3 text-xs">
-        <span className="text-steel-500">
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-grafito-100 pt-3 text-xs">
+        <span className="text-grafito-500">
           En depósito{' '}
-          <span className="font-semibold tabular-nums text-steel-700">
+          <span className="font-semibold tabular-nums text-grafito-700">
             {formatNumber(row.stock)}
           </span>
         </span>
-        <span className={reservadas > 0 ? 'text-amber-700' : 'text-steel-400'}>
+        <span className={reservadas > 0 ? 'text-amber-700' : 'text-grafito-400'}>
           Reservadas{' '}
           <span className="font-semibold tabular-nums">{formatNumber(reservadas)}</span>
         </span>
@@ -266,9 +266,9 @@ function StockCard({ row }) {
           aparte es lo que hacía creer que faltaba mercadería.
         */}
         {aAgujerear > 0 && (
-          <span className="text-steel-500">
+          <span className="text-grafito-500">
             A agujerear{' '}
-            <span className="font-semibold tabular-nums text-steel-700">
+            <span className="font-semibold tabular-nums text-grafito-700">
               {formatNumber(aAgujerear)}
             </span>
           </span>
@@ -276,7 +276,7 @@ function StockCard({ row }) {
       </div>
 
       {disponible < 0 && (
-        <p className="mt-2 text-xs font-semibold text-red-600">
+        <p className="mt-2 text-xs font-semibold text-tapita-600">
           Hay más comprometido que fabricado: falta producir {formatNumber(-disponible)}.
         </p>
       )}
@@ -340,7 +340,7 @@ export default function Stock() {
                 <StockCard key={row.product_id} row={row} />
               ))}
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-steel-400">
+            <p className="mt-3 text-xs leading-relaxed text-grafito-400">
               Reservadas son las de los pedidos confirmados y en producción, que
               todavía están en el depósito pero ya tienen dueño. Un presupuesto
               no reserva nada: reservar es confirmar el pedido.
@@ -392,11 +392,11 @@ export default function Stock() {
               }
             >
               {rows.map((movement) => (
-                <tr key={movement.id} className="hover:bg-steel-50">
-                  <Td className="whitespace-nowrap text-steel-600">
+                <tr key={movement.id} className="hover:bg-grafito-50">
+                  <Td className="whitespace-nowrap text-grafito-600">
                     {formatDate(movement.fecha)}
                   </Td>
-                  <Td className="text-steel-700">{movement.product?.nombre}</Td>
+                  <Td className="text-grafito-700">{movement.product?.nombre}</Td>
                   <Td>
                     <Badge tone={MOVEMENT_TONES[movement.tipo]}>
                       {MOVEMENT_LABELS[movement.tipo]}
@@ -405,13 +405,13 @@ export default function Stock() {
                   <Td
                     align="right"
                     className={`tabular-nums font-medium ${
-                      movement.cantidad > 0 ? 'text-secondary-600' : 'text-red-600'
+                      movement.cantidad > 0 ? 'text-pasto-600' : 'text-tapita-600'
                     }`}
                   >
                     {movement.cantidad > 0 ? '+' : ''}
                     {formatNumber(movement.cantidad)}
                   </Td>
-                  <Td className="text-xs text-steel-400">
+                  <Td className="text-xs text-grafito-400">
                     {movement.order ? (
                       <>Pedido #{movement.order.numero}</>
                     ) : (
@@ -423,7 +423,7 @@ export default function Stock() {
                         Rentabilidad. */}
                     {movement.tipo === 'produccion' &&
                       (movement.costo_unitario ? (
-                        <span className="block text-steel-500">
+                        <span className="block text-grafito-500">
                           Costó {formatPesos(movement.cantidad * Number(movement.costo_unitario))}
                         </span>
                       ) : (
@@ -437,7 +437,7 @@ export default function Stock() {
                       <button
                         type="button"
                         onClick={() => remove(movement)}
-                        className="text-xs font-semibold text-red-600 hover:underline"
+                        className="text-xs font-semibold text-tapita-600 hover:underline"
                       >
                         Borrar
                       </button>
@@ -450,7 +450,7 @@ export default function Stock() {
         </Async>
       </Card>
 
-      <p className="mt-4 text-xs text-steel-400">
+      <p className="mt-4 text-xs text-grafito-400">
         Las salidas por venta las genera el sistema al marcar un pedido como
         entregado, y vuelven solas si el pedido se saca de ese estado. Por eso no
         se borran desde acá:{' '}

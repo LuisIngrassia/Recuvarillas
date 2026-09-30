@@ -121,14 +121,14 @@ export default function Cash() {
                 }
               >
                 {rows.map((payment) => (
-                  <tr key={payment.id} className="hover:bg-steel-50">
-                    <Td className="whitespace-nowrap text-steel-600">
+                  <tr key={payment.id} className="hover:bg-grafito-50">
+                    <Td className="whitespace-nowrap text-grafito-600">
                       {formatDate(payment.fecha)}
                     </Td>
                     <Td className="whitespace-nowrap">
                       <Link
                         to={`/erp/pedidos/${payment.order_id}`}
-                        className="font-semibold text-secondary-500 hover:underline"
+                        className="font-semibold text-celeste-700 hover:underline"
                       >
                         #{payment.order?.numero}
                       </Link>
@@ -143,11 +143,11 @@ export default function Cash() {
                         </span>
                       )}
                     </Td>
-                    <Td className="text-steel-700">{payment.order?.customer?.nombre}</Td>
+                    <Td className="text-grafito-700">{payment.order?.customer?.nombre}</Td>
                     <Td>
                       <Badge>{PAYMENT_METHOD_LABELS[payment.metodo]}</Badge>
                     </Td>
-                    <Td className="text-xs text-steel-400">{payment.nota}</Td>
+                    <Td className="text-xs text-grafito-400">{payment.nota}</Td>
                     <Td align="right" className="font-medium">
                       <Money value={payment.monto} />
                     </Td>
@@ -159,7 +159,7 @@ export default function Cash() {
         </Card>
       </div>
 
-      <p className="mt-4 text-xs text-steel-400">
+      <p className="mt-4 text-xs text-grafito-400">
         Los cobros se registran desde la pantalla del pedido, para que bajen el
         saldo de esa cuenta.
       </p>

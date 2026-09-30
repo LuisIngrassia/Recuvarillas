@@ -83,6 +83,7 @@ python brand/herramientas/generar_logo.py       # assets/logo (el PNG se exporta
 python brand/herramientas/generar_producto.py   # assets/producto
 python brand/herramientas/generar_iconos.py     # iconos, técnicos, sello, motion (usa el logo)
 python brand/herramientas/generar_qr.py         # assets/qr
+node brand/herramientas/generar_varilla_glb.mjs # public/varilla.glb: punta, agujeros y etiqueta del 3D de la web
 ```
 
 - Los scripts leen las fuentes de `assets/fonts/` y convierten el texto en trazos con HarfBuzz, respetando el kerning. Por eso los SVG se ven igual en cualquier máquina.

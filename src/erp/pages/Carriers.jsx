@@ -85,7 +85,7 @@ function Probador() {
 
   return (
     <Card title="¿Quién llega y a cuánto?">
-      <div className="grid gap-3 border-b border-steel-100 px-4 py-4 sm:grid-cols-[1fr_1fr_2fr] sm:items-end">
+      <div className="grid gap-3 border-b border-grafito-100 px-4 py-4 sm:grid-cols-[1fr_1fr_2fr] sm:items-end">
         <Field label="Código postal">
           <Input
             placeholder="2000"
@@ -104,7 +104,7 @@ function Probador() {
             onChange={(event) => setCantidad(event.target.value)}
           />
         </Field>
-        <p className="text-xs text-steel-400 sm:pb-2">
+        <p className="text-xs text-grafito-400 sm:pb-2">
           Sirve tanto el código de cuatro dígitos como el largo con letras:
           «2000» y «S2000ABC» son lo mismo.
         </p>
@@ -134,9 +134,9 @@ function Probador() {
                   key={opcion.carrier_id}
                   /* El primero es el más barato: la consulta ya viene ordenada
                      por precio, así que no hace falta buscarlo. */
-                  className={indice === 0 ? 'bg-secondary-50' : 'hover:bg-steel-50'}
+                  className={indice === 0 ? 'bg-pasto-50' : 'hover:bg-grafito-50'}
                 >
-                  <Td className="font-medium text-steel-700">
+                  <Td className="font-medium text-grafito-700">
                     {opcion.nombre}
                     <span className="ml-2">
                       <Badge tone={CARRIER_TYPE_TONES[opcion.tipo]}>
@@ -144,22 +144,22 @@ function Probador() {
                       </Badge>
                     </span>
                     {indice === 0 && (
-                      <span className="ml-2 text-xs font-semibold text-secondary-600">
+                      <span className="ml-2 text-xs font-semibold text-pasto-600">
                         el más barato
                       </span>
                     )}
                   </Td>
-                  <Td className="text-steel-500">{opcion.zona}</Td>
-                  <Td align="right" className="whitespace-nowrap text-steel-500">
+                  <Td className="text-grafito-500">{opcion.zona}</Td>
+                  <Td align="right" className="whitespace-nowrap text-grafito-500">
                     {opcion.plazo_dias === null ? '' : `${opcion.plazo_dias} días`}
                   </Td>
                   <Td align="right">
-                    <Money value={opcion.precio} className="font-semibold text-steel-800" />
+                    <Money value={opcion.precio} className="font-semibold text-grafito-800" />
                   </Td>
                   <Td align="right">
                     <Money
                       value={Number(opcion.precio) / unidades}
-                      className="text-xs text-steel-400"
+                      className="text-xs text-grafito-400"
                     />
                   </Td>
                 </tr>
@@ -383,25 +383,25 @@ function PlacesModal({ zone, onClose, onSaved }) {
         {padron.error && <ErrorNote>No se pudo cargar el padrón de localidades.</ErrorNote>}
 
         {termino.trim().length >= 2 && (
-          <div className="max-h-48 overflow-y-auto rounded-md border border-steel-200">
+          <div className="max-h-48 overflow-y-auto rounded-md border border-grafito-200">
             {!data ? (
-              <p className="px-3 py-2 text-xs text-steel-400">Cargando el padrón…</p>
+              <p className="px-3 py-2 text-xs text-grafito-400">Cargando el padrón…</p>
             ) : disponibles.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-steel-400">
+              <p className="px-3 py-2 text-xs text-grafito-400">
                 {resultados.length > 0
                   ? 'Todo lo que coincide ya está en la zona.'
                   : 'Ninguna localidad coincide.'}
               </p>
             ) : (
-              <ul className="divide-y divide-steel-100">
+              <ul className="divide-y divide-grafito-100">
                 {disponibles.map((lugar) => (
                   <li
                     key={`${lugar.clave}`}
                     className="flex items-center justify-between gap-3 px-3 py-2"
                   >
-                    <span className="text-sm text-steel-700">
+                    <span className="text-sm text-grafito-700">
                       {lugar.name}
-                      <span className="block text-xs text-steel-400">
+                      <span className="block text-xs text-grafito-400">
                         {lugar.province} ·{' '}
                         {lugar.codes.length === 1
                           ? `CP ${lugar.codes[0]}`
@@ -423,7 +423,7 @@ function PlacesModal({ zone, onClose, onSaved }) {
           </div>
         )}
 
-        <div className="flex flex-wrap items-end gap-2 border-t border-steel-100 pt-4">
+        <div className="flex flex-wrap items-end gap-2 border-t border-grafito-100 pt-4">
           <div className="min-w-[12rem] flex-1">
             <Field label="O una provincia entera">
               <Select
@@ -451,8 +451,8 @@ function PlacesModal({ zone, onClose, onSaved }) {
 
         <ErrorNote>{error}</ErrorNote>
 
-        <div className="border-t border-steel-100 pt-4">
-          <p className="mb-2 text-xs font-semibold text-steel-600">
+        <div className="border-t border-grafito-100 pt-4">
+          <p className="mb-2 text-xs font-semibold text-grafito-600">
             Llega a {ciudades.length === 0 ? 'ninguna ciudad todavía' : null}
             {ciudades.length > 0 &&
               `${formatNumber(ciudades.length)} ${
@@ -461,7 +461,7 @@ function PlacesModal({ zone, onClose, onSaved }) {
           </p>
 
           {ciudades.length === 0 ? (
-            <p className="rounded-md bg-steel-50 px-3 py-2 text-xs text-steel-500">
+            <p className="rounded-md bg-grafito-50 px-3 py-2 text-xs text-grafito-500">
               Sin ciudades cargadas esta zona no cotiza a ningún lado
               {esPorRango(zone) ? ', salvo por su rango viejo' : ''}.
             </p>
@@ -470,11 +470,11 @@ function PlacesModal({ zone, onClose, onSaved }) {
               {ciudades.map((ciudad) => (
                 <li
                   key={ciudad.clave}
-                  className="flex items-center justify-between gap-3 rounded-md bg-steel-50 px-3 py-1.5"
+                  className="flex items-center justify-between gap-3 rounded-md bg-grafito-50 px-3 py-1.5"
                 >
-                  <span className="text-sm text-steel-700">
+                  <span className="text-sm text-grafito-700">
                     {ciudad.localidad}
-                    <span className="text-xs text-steel-400">
+                    <span className="text-xs text-grafito-400">
                       {ciudad.provincia ? ` · ${ciudad.provincia}` : ''}
                       {ciudad.codes.length === 1
                         ? ` · CP ${ciudad.codes[0]}`
@@ -485,7 +485,7 @@ function PlacesModal({ zone, onClose, onSaved }) {
                     type="button"
                     disabled={guardando}
                     onClick={() => quitar(ciudad)}
-                    className="text-xs text-steel-400 underline-offset-2 hover:text-red-600 hover:underline"
+                    className="text-xs text-grafito-400 underline-offset-2 hover:text-tapita-600 hover:underline"
                   >
                     quitar
                   </button>
@@ -563,7 +563,7 @@ function ZoneModal({ zone, carrierId, onClose, onSaved }) {
 
         <ErrorNote>{error}</ErrorNote>
 
-        <p className="rounded-md bg-steel-50 px-3 py-2 text-xs leading-relaxed text-steel-500">
+        <p className="rounded-md bg-grafito-50 px-3 py-2 text-xs leading-relaxed text-grafito-500">
           {zone
             ? 'A qué ciudades llega se carga con el botón «Ciudades», sobre la zona.'
             : 'Después de guardarla hay que decirle a qué ciudades llega: hasta entonces no cotiza a ningún lado.'}{' '}
@@ -689,7 +689,7 @@ function RateModal({ rate, zoneId, onClose, onSaved }) {
 
         <ErrorNote>{error}</ErrorNote>
 
-        <p className="rounded-md bg-steel-50 px-3 py-2 text-xs text-steel-500">
+        <p className="rounded-md bg-grafito-50 px-3 py-2 text-xs text-grafito-500">
           Los dos se suman: <strong>fijo + por varilla × cantidad</strong>. Uno
           de los dos en blanco cubre el caso simple; los dos cargados sirven para
           el «mínimo más excedente».
@@ -822,10 +822,10 @@ function CarrierCard({ carrier, onEdit, onChanged, onError }) {
         }
       >
         {(carrier.contacto || carrier.telefono || carrier.email || carrier.notas) && (
-          <p className="border-b border-steel-100 px-4 py-2 text-xs text-steel-500">
+          <p className="border-b border-grafito-100 px-4 py-2 text-xs text-grafito-500">
             {[carrier.contacto, carrier.telefono, carrier.email].filter(Boolean).join(' · ')}
             {carrier.notas && (
-              <span className="block text-steel-400">{carrier.notas}</span>
+              <span className="block text-grafito-400">{carrier.notas}</span>
             )}
           </p>
         )}
@@ -833,13 +833,13 @@ function CarrierCard({ carrier, onEdit, onChanged, onError }) {
         {carrier.zones.length === 0 ? (
           <Empty>Sin zonas cargadas: todavía no cotiza a ningún lado.</Empty>
         ) : (
-          <div className="divide-y divide-steel-100">
+          <div className="divide-y divide-grafito-100">
             {carrier.zones.map((zone) => (
               <div key={zone.id} className="px-4 py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-sm font-semibold text-steel-700">
+                  <p className="text-sm font-semibold text-grafito-700">
                     {zone.nombre}
-                    <span className="ml-2 font-normal text-xs text-steel-400">
+                    <span className="ml-2 font-normal text-xs text-grafito-400">
                       {/* A dónde llega, que es lo que define la zona. Una que
                           todavía va por rango se marca: sigue cotizando, pero
                           cotiza de más. */}
@@ -848,7 +848,7 @@ function CarrierCard({ carrier, onEdit, onChanged, onError }) {
                           por rango CP {zone.cp_desde}–{zone.cp_hasta}
                         </span>
                       ) : ciudadesDe(zone).length === 0 ? (
-                        <span className="text-red-600">sin ciudades</span>
+                        <span className="text-tapita-600">sin ciudades</span>
                       ) : (
                         `${formatNumber(ciudadesDe(zone).length)} ${
                           ciudadesDe(zone).length === 1 ? 'ciudad' : 'ciudades'
@@ -910,7 +910,7 @@ function CarrierCard({ carrier, onEdit, onChanged, onError }) {
                 )}
 
                 {zone.rates.length === 0 ? (
-                  <p className="mt-2 text-xs text-steel-400">
+                  <p className="mt-2 text-xs text-grafito-400">
                     Sin tarifas: esta zona no cotiza hasta que tenga al menos una.
                   </p>
                 ) : (
@@ -918,9 +918,9 @@ function CarrierCard({ carrier, onEdit, onChanged, onError }) {
                     {zone.rates.map((rate) => (
                       <li
                         key={rate.id}
-                        className="flex flex-wrap items-baseline justify-between gap-2 rounded-md bg-steel-50 px-3 py-1.5 text-sm"
+                        className="flex flex-wrap items-baseline justify-between gap-2 rounded-md bg-grafito-50 px-3 py-1.5 text-sm"
                       >
-                        <span className="tabular-nums text-steel-600">
+                        <span className="tabular-nums text-grafito-600">
                           {formatNumber(rate.min_qty)}
                           {rate.max_qty === null
                             ? ' o más'
@@ -928,19 +928,19 @@ function CarrierCard({ carrier, onEdit, onChanged, onError }) {
                           varillas
                         </span>
                         <span className="flex items-baseline gap-3">
-                          <span className="tabular-nums font-medium text-steel-800">
+                          <span className="tabular-nums font-medium text-grafito-800">
                             {precioTexto(rate)}
                           </span>
                           <button
                             type="button"
-                            className="text-xs font-semibold text-steel-400 underline-offset-2 hover:text-steel-600 hover:underline"
+                            className="text-xs font-semibold text-grafito-400 underline-offset-2 hover:text-grafito-600 hover:underline"
                             onClick={() => setTarifaEditando({ zoneId: zone.id, rate })}
                           >
                             editar
                           </button>
                           <button
                             type="button"
-                            className="text-xs font-semibold text-red-400 underline-offset-2 hover:text-red-600 hover:underline"
+                            className="text-xs font-semibold text-tapita-400 underline-offset-2 hover:text-tapita-600 hover:underline"
                             onClick={() => {
                               if (!confirm('¿Borrar esta tarifa?')) return
                               guard(() => deleteRate(rate.id))
@@ -1037,7 +1037,7 @@ export default function Carriers() {
         )}
       </Async>
 
-      <p className="mt-4 text-xs text-steel-400">
+      <p className="mt-4 text-xs text-grafito-400">
         El camión propio se carga como un transporte más, con tipo «camión
         propio». Sale plata igual —combustible, chofer, tiempo—, así que ponerle
         su tarifa es lo que permite comparar de verdad cuándo conviene mandarlo.

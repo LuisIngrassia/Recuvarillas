@@ -289,8 +289,8 @@ export default function ProductionCost() {
                       cost.base === 'unidad' ? monto : faltaRitmo ? null : monto / porHora
 
                     return (
-                      <tr key={cost.id} className="hover:bg-steel-50">
-                        <Td className="font-medium text-steel-700">
+                      <tr key={cost.id} className="hover:bg-grafito-50">
+                        <Td className="font-medium text-grafito-700">
                           {cost.nombre}
                           {!cost.activo && (
                             <span className="ml-2">
@@ -303,21 +303,21 @@ export default function ProductionCost() {
                             {COST_BASE_LABELS[cost.base]}
                           </Badge>
                         </Td>
-                        <Td align="right" className="tabular-nums text-steel-700">
+                        <Td align="right" className="tabular-nums text-grafito-700">
                           {monto > 0 ? (
                             fino(monto)
                           ) : (
                             <span className="text-amber-600">sin cargar</span>
                           )}
                         </Td>
-                        <Td align="right" className="tabular-nums font-semibold text-steel-800">
+                        <Td align="right" className="tabular-nums font-semibold text-grafito-800">
                           {porVarilla === null ? (
-                            <span className="text-steel-300">—</span>
+                            <span className="text-grafito-300">—</span>
                           ) : (
                             fino(porVarilla)
                           )}
                         </Td>
-                        <Td className="whitespace-nowrap text-xs text-steel-400">
+                        <Td className="whitespace-nowrap text-xs text-grafito-400">
                           {formatDateTime(cost.updated_at)}
                         </Td>
                         <Td align="right">
@@ -342,11 +342,11 @@ export default function ProductionCost() {
                     )
                   })}
 
-                  <tr className="bg-steel-50">
-                    <Td className="font-semibold text-steel-700">Cuesta cada varilla</Td>
+                  <tr className="bg-grafito-50">
+                    <Td className="font-semibold text-grafito-700">Cuesta cada varilla</Td>
                     <Td />
                     <Td />
-                    <Td align="right" className="tabular-nums text-lg font-bold text-steel-900">
+                    <Td align="right" className="tabular-nums text-lg font-bold text-grafito-900">
                       {faltaRitmo ? '—' : fino(unitario)}
                     </Td>
                     <Td />
@@ -355,7 +355,7 @@ export default function ProductionCost() {
                 </Table>
               </Card>
 
-              <p className="mt-4 text-xs leading-relaxed text-steel-400">
+              <p className="mt-4 text-xs leading-relaxed text-grafito-400">
                 Cada producción que cargues en Stock guarda este costo en el
                 movimiento, y es el que le resta a la ganancia del mes en
                 Rentabilidad. Se guarda el número del día y no se recalcula: si

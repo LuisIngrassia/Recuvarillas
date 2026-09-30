@@ -37,8 +37,8 @@ import { useAsync } from '../lib/useAsync'
 function Dato({ label, children }) {
   return (
     <div>
-      <dt className="text-xs font-semibold text-steel-500">{label}</dt>
-      <dd className="text-sm text-steel-800">{children ?? '—'}</dd>
+      <dt className="text-xs font-semibold text-grafito-500">{label}</dt>
+      <dd className="text-sm text-grafito-800">{children ?? '—'}</dd>
     </div>
   )
 }
@@ -56,11 +56,11 @@ function Evento({ evento }) {
     <li className="relative pl-6">
       <span
         className={`absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full ${
-          esCambio ? 'bg-secondary-500' : 'bg-steel-300'
+          esCambio ? 'bg-grafito-900' : 'bg-grafito-300'
         }`}
       />
 
-      <p className="text-sm text-steel-800">
+      <p className="text-sm text-grafito-800">
         {esCambio ? (
           <>
             {evento.from_status ? (
@@ -77,9 +77,9 @@ function Evento({ evento }) {
         )}
       </p>
 
-      {evento.note && <p className="text-sm text-steel-600">{evento.note}</p>}
+      {evento.note && <p className="text-sm text-grafito-600">{evento.note}</p>}
 
-      <p className="text-xs text-steel-400">
+      <p className="text-xs text-grafito-400">
         {formatDateTime(evento.created_at)}
         {evento.actor && evento.actor !== 'system' ? ` · ${evento.actor}` : ' · automático'}
       </p>
@@ -114,7 +114,7 @@ function Anotar({ leadId, onSaved }) {
   }
 
   return (
-    <div className="space-y-3 border-t border-steel-100 px-4 py-4">
+    <div className="space-y-3 border-t border-grafito-100 px-4 py-4">
       <Field label="Anotar">
         <Select value={type} onChange={(event) => setType(event.target.value)}>
           {LEAD_EVENT_TYPES.map((value) => (
@@ -189,18 +189,18 @@ export default function LeadDetail() {
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusBadge status={l.status} />
                         {l.status === 'lost' && l.lost_reason && (
-                          <span className="text-sm text-steel-500">
+                          <span className="text-sm text-grafito-500">
                             {LOST_REASON_LABELS[l.lost_reason]}
                           </span>
                         )}
                         {l.reactivation_count > 0 && (
-                          <span className="text-xs text-steel-400">
+                          <span className="text-xs text-grafito-400">
                             {l.reactivation_count} recontacto(s)
                           </span>
                         )}
                       </div>
 
-                      {l.lost_notes && <p className="text-sm text-steel-600">{l.lost_notes}</p>}
+                      {l.lost_notes && <p className="text-sm text-grafito-600">{l.lost_notes}</p>}
 
                       <TransitionButtons lead={l} onDone={recargar} />
                     </div>
@@ -232,7 +232,7 @@ export default function LeadDetail() {
                         {l.customer ? (
                           <Link
                             to={`/erp/clientes/${l.customer.id}`}
-                            className="font-semibold text-secondary-600 hover:underline"
+                            className="font-semibold text-celeste-700 hover:underline"
                           >
                             {l.customer.nombre}
                           </Link>
@@ -246,7 +246,7 @@ export default function LeadDetail() {
                 <Card title="Historial">
                   <Async query={eventos} empty="Sin movimientos.">
                     {(lista) => (
-                      <ol className="space-y-4 border-l border-steel-200 px-4 py-4 ml-4">
+                      <ol className="space-y-4 border-l border-grafito-200 px-4 py-4 ml-4">
                         {lista.map((evento) => (
                           <Evento key={evento.id} evento={evento} />
                         ))}

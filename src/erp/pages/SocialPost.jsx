@@ -89,11 +89,11 @@ function FotoPicker({ campos, onChange }) {
   }
 
   const miniatura = (activa) =>
-    `h-16 w-16 rounded-md object-cover ring-offset-1 ${activa ? 'ring-2 ring-secondary-500' : 'opacity-80 hover:opacity-100'}`
+    `h-16 w-16 rounded-md object-cover ring-offset-1 ${activa ? 'ring-2 ring-celeste-600' : 'opacity-80 hover:opacity-100'}`
 
   return (
     <div>
-      <span className="block text-xs font-semibold text-steel-600">Foto</span>
+      <span className="block text-xs font-semibold text-grafito-600">Foto</span>
       <div className="mt-1 flex flex-wrap gap-2">
         {FOTOS_MARCA.map((foto) => (
           <button
@@ -109,7 +109,7 @@ function FotoPicker({ campos, onChange }) {
           <img src={subida} alt="Foto subida" className={miniatura(true)} />
         )}
         <label
-          className={`flex h-16 w-16 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-steel-300 text-center text-[11px] font-semibold leading-tight text-steel-500 hover:border-secondary-500 hover:text-secondary-600 ${
+          className={`flex h-16 w-16 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-grafito-300 text-center text-[11px] font-semibold leading-tight text-grafito-500 hover:border-celeste-600 hover:text-celeste-800 ${
             subiendo ? 'pointer-events-none opacity-60' : ''
           }`}
         >
@@ -118,7 +118,7 @@ function FotoPicker({ campos, onChange }) {
           <input type="file" accept="image/*" className="sr-only" onChange={subir} />
         </label>
       </div>
-      <p className="mt-1 text-xs text-steel-400">
+      <p className="mt-1 text-xs text-grafito-400">
         Las del manual, o una propia. Desde el teléfono, "Subir" deja sacarla en el momento.
       </p>
       <ErrorNote>{error}</ErrorNote>
@@ -131,7 +131,7 @@ function FotoPicker({ campos, onChange }) {
             max="100"
             value={foco.x}
             onChange={(e) => onChange({ foco: { ...foco, x: Number(e.target.value) } })}
-            className="w-full accent-secondary-500"
+            className="w-full accent-grafito-900"
           />
         </Field>
         <Field label={`Encuadre vertical · ${foco.y}%`}>
@@ -141,7 +141,7 @@ function FotoPicker({ campos, onChange }) {
             max="100"
             value={foco.y}
             onChange={(e) => onChange({ foco: { ...foco, y: Number(e.target.value) } })}
-            className="w-full accent-secondary-500"
+            className="w-full accent-grafito-900"
           />
         </Field>
       </div>
@@ -210,7 +210,7 @@ function Campo({ def, campos, onChange }) {
 function Avisos({ avisos }) {
   if (!avisos.length) {
     return (
-      <p className="rounded-md bg-secondary-50 px-3 py-2 text-sm text-secondary-700">
+      <p className="rounded-md bg-celeste-50 px-3 py-2 text-sm text-celeste-800">
         Cumple con el manual. Mirá la foto y la primera línea, que eso no lo revisa nadie más que vos.
       </p>
     )
@@ -222,7 +222,7 @@ function Avisos({ avisos }) {
         <li
           key={aviso.texto}
           className={`rounded-md px-3 py-2 text-sm ${
-            aviso.nivel === 'error' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-800'
+            aviso.nivel === 'error' ? 'bg-tapita-50 text-tapita-700' : 'bg-amber-50 text-amber-800'
           }`}
         >
           {aviso.texto}
@@ -309,7 +309,7 @@ function Exportar({ post, onPublicado }) {
               </div>
             )}
             {listas && texto && (
-              <p className="text-xs text-steel-500">
+              <p className="text-xs text-grafito-500">
                 Al compartir, el texto queda copiado: en Instagram, mantené apretado el
                 campo del texto y pegalo.
               </p>
@@ -334,14 +334,14 @@ function Exportar({ post, onPublicado }) {
             </Button>
           )}
         </div>
-        <p className="text-xs text-steel-400">
+        <p className="text-xs text-grafito-400">
           PNG de {post.formatos.map((f) => FORMATOS[f].medida).join(' y ')}, como pide Instagram.
         </p>
 
         <ErrorNote>{error}</ErrorNote>
 
         {post.estado !== 'publicado' && (
-          <div className="border-t border-steel-100 pt-3">
+          <div className="border-t border-grafito-100 pt-3">
             <Button variant="soft" onClick={onPublicado}>
               Ya lo subí: marcar como publicado
             </Button>
@@ -461,7 +461,7 @@ function Editor({ inicial }) {
           <>
             <Link
               to="/erp/redes"
-              className="rounded-md border border-steel-200 bg-white px-3 py-2 text-sm font-semibold text-steel-600 hover:border-steel-300"
+              className="rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm font-semibold text-grafito-600 hover:border-grafito-300"
             >
               Volver al calendario
             </Link>
@@ -480,15 +480,15 @@ function Editor({ inicial }) {
             onClick={() => cambiarEstado(key)}
             className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
               post.estado === key
-                ? 'border-secondary-500 bg-secondary-500 text-white'
-                : 'border-steel-200 bg-white text-steel-600 hover:border-steel-300'
+                ? 'border-grafito-900 bg-grafito-900 text-white'
+                : 'border-grafito-200 bg-white text-grafito-600 hover:border-grafito-300'
             }`}
           >
             {estado.label}
           </button>
         ))}
         {post.publicado_at && (
-          <span className="text-xs text-steel-500">Subido el {formatDateTime(post.publicado_at)}</span>
+          <span className="text-xs text-grafito-500">Subido el {formatDateTime(post.publicado_at)}</span>
         )}
         <span className="ml-auto">
           <Badge tone={estadoGuardado.tone}>{estadoGuardado.texto}</Badge>
@@ -517,17 +517,17 @@ function Editor({ inicial }) {
               </div>
 
               <div>
-                <span className="block text-xs font-semibold text-steel-600">Sale en</span>
+                <span className="block text-xs font-semibold text-grafito-600">Sale en</span>
                 <div className="mt-1 flex gap-4">
                   {Object.entries(FORMATOS).map(([key, formato]) => (
-                    <label key={key} className="flex items-center gap-2 text-sm text-steel-700">
+                    <label key={key} className="flex items-center gap-2 text-sm text-grafito-700">
                       <input
                         type="checkbox"
                         checked={post.formatos.includes(key)}
                         onChange={() => alternarFormato(key)}
-                        className="accent-secondary-500"
+                        className="accent-grafito-900"
                       />
-                      {formato.nombre} <span className="text-xs text-steel-400">{formato.medida}</span>
+                      {formato.nombre} <span className="text-xs text-grafito-400">{formato.medida}</span>
                     </label>
                   ))}
                 </div>
@@ -585,7 +585,7 @@ function Editor({ inicial }) {
                         )
                       }
                     />
-                    <figcaption className="mt-1 text-xs text-steel-500">
+                    <figcaption className="mt-1 text-xs text-grafito-500">
                       {FORMATOS[formato].nombre} · {FORMATOS[formato].medida}
                     </figcaption>
                   </figure>

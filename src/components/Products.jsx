@@ -30,7 +30,7 @@ function ProductCard({ product }) {
     <>
       <div
         onClick={onCardClick}
-        className="flex cursor-zoom-in gap-5 rounded-xl border border-steel-200 bg-white p-4 sm:gap-6 sm:p-5 hover:shadow-lg transition-shadow"
+        className="flex cursor-zoom-in gap-5 rounded-md bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:gap-6 sm:p-5"
       >
         <ProductCarousel
           media={product.media}
@@ -42,15 +42,13 @@ function ProductCard({ product }) {
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <h3 className="text-base sm:text-lg font-bold text-steel-800">{product.name}</h3>
-          <p className="mt-1.5 text-sm text-steel-500 leading-relaxed">{product.description}</p>
+          <h3 className="font-display text-2xl text-grafito-900 sm:text-3xl">{product.name}</h3>
+          <p className="mt-2 text-sm leading-relaxed text-grafito-500">{product.description}</p>
 
-          <ul className="mt-3 space-y-1.5 text-sm text-steel-600">
+          {/* La viñeta es la perforación de la varilla, como en todo el sistema. */}
+          <ul className="lista-agujero mt-3 space-y-1.5 text-sm text-grafito-700">
             {product.specs.map((spec) => (
-              <li key={spec} className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 shrink-0 rounded-full bg-primary-400" />
-                {spec}
-              </li>
+              <li key={spec}>{spec}</li>
             ))}
           </ul>
 
@@ -65,7 +63,7 @@ function ProductCard({ product }) {
               <a
                 href={`/${product.datasheet}`}
                 download={`Ficha técnica - ${product.name}.pdf`}
-                className="inline-flex items-center gap-1.5 rounded-md bg-secondary-500 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-secondary-600"
+                className="btn-principal min-h-10 px-3.5 py-2 text-sm"
               >
                 <svg
                   className="w-3.5 h-3.5"
@@ -85,7 +83,7 @@ function ProductCard({ product }) {
             )}
             <a
               href="#contacto"
-              className="inline-flex items-center text-xs sm:text-sm font-semibold text-secondary-500 hover:text-secondary-600"
+              className="link-marca text-sm"
             >
               Consultar disponibilidad →
             </a>
@@ -113,18 +111,15 @@ function ProductCard({ product }) {
 
 function Products() {
   return (
-    <section id="productos" className="bg-steel-100 py-16">
+    <section id="productos" className="bg-grafito-100 py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
-          <span className="text-sm font-semibold uppercase tracking-wide text-secondary-500">
-            Productos
-          </span>
-          <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-steel-800">
-            Varillas para cada necesidad del campo
+          <h2 className="font-display text-4xl text-grafito-900 sm:text-5xl lg:text-6xl">
+            Lisa o agujereada a la medida de tu alambrado.
           </h2>
-          <p className="mt-3 text-sm sm:text-base text-steel-500">
-            Todos nuestros productos parten de material recuperado y pasan por
-            control de calidad antes de salir de planta.
+          <p className="mt-5 text-lg text-grafito-500">
+            3 × 3 × 120 cm, de plástico recuperado. Cortamos, perforamos y
+            adaptamos la varilla según lo que necesite el establecimiento.
           </p>
         </div>
 

@@ -12,7 +12,7 @@ function Arrow({ direction, onClick }) {
       type="button"
       onClick={onClick}
       aria-label={back ? 'Anterior' : 'Siguiente'}
-      className={`absolute top-1/2 -translate-y-1/2 ${back ? 'left-1.5' : 'right-1.5'} inline-flex items-center justify-center rounded-full bg-white/85 p-1 text-steel-700 shadow-sm transition-colors hover:bg-white focus:outline-none focus:ring-2 focus:ring-secondary-500/40`}
+      className={`absolute top-1/2 -translate-y-1/2 ${back ? 'left-1.5' : 'right-1.5'} inline-flex items-center justify-center rounded-full bg-white/85 p-1 text-grafito-700 shadow-sm transition-colors hover:bg-white focus:outline-none focus:ring-2 focus:ring-celeste-700/40`}
     >
       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
         <path
@@ -124,7 +124,7 @@ function ProductCarousel({
   }
 
   return (
-    <div className={`relative overflow-hidden rounded-lg bg-steel-100 ${className}`}>
+    <div className={`relative overflow-hidden rounded-lg bg-grafito-100 ${className}`}>
       <div
         ref={setTrack}
         onScroll={onScroll}
@@ -177,7 +177,7 @@ function ProductCarousel({
           type="button"
           onClick={() => onExpand(index)}
           aria-label={`Ampliar fotos de ${alt}`}
-          className="absolute right-1.5 top-1.5 inline-flex items-center justify-center rounded-full bg-white/85 p-1 text-steel-700 shadow-sm transition-colors hover:bg-white focus:outline-none focus:ring-2 focus:ring-secondary-500/40"
+          className="absolute right-1.5 top-1.5 inline-flex items-center justify-center rounded-full bg-white/85 p-1 text-grafito-700 shadow-sm transition-colors hover:bg-white focus:outline-none focus:ring-2 focus:ring-celeste-700/40"
         >
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path

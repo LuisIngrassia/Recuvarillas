@@ -17,9 +17,10 @@
  * qué cotización se convirtió, porque es lo que hace falta para volver a sacar
  * el mismo PDF y para saber qué se prometió cuando el cliente conteste.
  *
- * La marca es la del documento original —el verde, la serif, la tipografía del
- * encabezado— y no la del ERP, porque esto lo mira el cliente y tiene que
- * seguir pareciéndose a lo que ya venía recibiendo.
+ * La hoja es la del manual de marca, igual que la lista de precios y el
+ * folleto: logo principal arriba, el cliente en Archivo condensada, importes
+ * en Chivo Mono y la varilla cerrando el pie. Lo mira el cliente, y tiene que
+ * parecerse a todo lo demás que recibe de Recuvarilla.
  */
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -27,6 +28,7 @@ import { getOrder, updateOrder } from '../api/orders'
 import { listSellers } from '../api/sellers'
 import { useAsync } from '../lib/useAsync'
 import { formatDate } from '../lib/format'
+import { QUOTE_VALID_DAYS } from '../../data/pricing'
 import { nombreDeItem } from '../lib/items'
 import { contactoDe } from '../lib/documentos'
 import {
@@ -38,19 +40,23 @@ import {
   redondear,
 } from '../lib/cotizacion'
 import { Async, Button, ErrorNote } from '../components/ui'
+import { LogoHoja } from '../components/DocSheet'
 
 const IVA = 0.21
 
 /* Los controles de arriba son de pantalla, no del papel: se ven todos igual. */
 const CONTROL =
-  'rounded-md border border-steel-200 bg-white px-3 py-2 text-sm text-steel-800 focus:border-secondary-500 focus:outline-none'
+  'rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm text-grafito-800 focus:border-celeste-700 focus:outline-none'
 
-/** Los 15 días de validez, contados desde la fecha del pedido. */
+/**
+ * La validez, contada desde la fecha del pedido. Son los mismos días que
+ * promete la web y la lista de precios: salen de `QUOTE_VALID_DAYS`.
+ */
 function validoHasta(fecha) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(fecha ?? ''))
   if (!match) return null
   const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
-  date.setDate(date.getDate() + 15)
+  date.setDate(date.getDate() + QUOTE_VALID_DAYS)
   return date
 }
 
@@ -77,89 +83,77 @@ function nombreArchivo(order) {
 }
 
 const ESTILOS = `
-  .presupuesto {
-    --verde: #33502e;
-    --tierra: #8a5a34;
-    --gris: #4a4a44;
-    --linea: #d8d3c4;
-    font-family: Georgia, 'Times New Roman', serif;
-    color: var(--gris);
-  }
-  .presupuesto .hoja {
-    max-width: 800px;
-    margin: 0 auto;
-    background: #fff;
-    padding: 45px 50px;
-    border: 1px solid var(--linea);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  }
+  /*
+    El presupuesto del manual de marca: la base es la de todos los papeles
+    (\`documentos.css\`, clase \`hm\`), y acá va lo propio de este documento.
+  */
+  .presupuesto .hoja { max-width: 800px; }
   .presupuesto .encabezado {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 24px;
-    border-bottom: 3px solid var(--verde);
-    padding-bottom: 18px;
-    margin-bottom: 28px;
+    padding-bottom: 22px;
+    margin-bottom: 26px;
+    border-bottom: 1.5px solid var(--grafito);
   }
-  .presupuesto .marca h1 {
-    margin: 0;
-    font-size: 30px;
-    letter-spacing: 1px;
-    color: var(--verde);
-    font-family: 'Trebuchet MS', sans-serif;
-    font-weight: 800;
-  }
-  .presupuesto .marca p {
-    margin: 4px 0 0;
-    font-size: 13px;
-    color: var(--tierra);
-    font-style: italic;
-  }
-  .presupuesto .doc-info { text-align: right; font-size: 13px; white-space: nowrap; }
+  .presupuesto .marca p { margin: 10px 0 0; font-size: 13px; color: var(--gris); }
+  .presupuesto .doc-info { text-align: right; white-space: nowrap; margin: 0; }
   .presupuesto .doc-info .tag {
     display: inline-block;
-    background: var(--verde);
+    font-family: "Chivo Mono", monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     color: #fff;
-    font-family: 'Trebuchet MS', sans-serif;
-    font-size: 12px;
-    letter-spacing: 2px;
-    padding: 4px 10px;
-    margin-bottom: 8px;
+    background: var(--grafito);
+    padding: 4px 9px;
+    border-radius: 3px;
+    margin-bottom: 4px;
   }
-  .presupuesto .doc-info dt {
-    font-size: 11px;
-    color: var(--tierra);
+  .presupuesto .doc-info dt,
+  .presupuesto .cliente dt,
+  .presupuesto .notas h2 {
+    font-family: "Chivo Mono", monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-top: 6px;
+    color: var(--gris);
   }
-  .presupuesto .doc-info dd { margin: 0; font-size: 15px; }
-  .presupuesto .cliente { margin-bottom: 26px; }
-  .presupuesto .cliente dt {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--tierra);
-    margin-bottom: 3px;
+  .presupuesto .doc-info dt { margin-top: 6px; }
+  .presupuesto .doc-info dd { margin: 1px 0 0; font-family: "Chivo Mono", monospace; font-size: 14px; font-weight: 500; }
+  .presupuesto .cliente { margin: 0 0 24px; }
+  .presupuesto .cliente dt { margin-bottom: 3px; }
+  .presupuesto .cliente dd {
+    margin: 0;
+    font-weight: 800;
+    font-stretch: 75%;
+    font-size: 30px;
+    line-height: 1;
+    color: var(--grafito);
   }
-  .presupuesto .cliente dd { margin: 0; font-size: 19px; color: var(--verde); font-weight: bold; }
-  .presupuesto .cliente .destino { font-size: 13px; color: var(--gris); font-weight: normal; }
-  .presupuesto table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .presupuesto .cliente .destino {
+    font-size: 15px;
+    font-weight: 400;
+    font-stretch: 100%;
+    color: var(--gris);
+  }
+  .presupuesto table { font-size: 14px; }
   .presupuesto th {
-    background: var(--verde);
-    color: #fff;
-    font-family: 'Trebuchet MS', sans-serif;
-    font-weight: normal;
-    font-size: 12px;
-    letter-spacing: 1px;
+    font-family: "Chivo Mono", monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    padding: 10px 8px;
+    color: var(--gris);
     text-align: left;
+    padding: 8px 8px 7px 0;
+    border-bottom: 1.5px solid var(--grafito);
   }
-  .presupuesto td { padding: 10px 8px; border-bottom: 1px solid var(--linea); }
-  .presupuesto td.desc { font-weight: bold; color: var(--verde); }
-  .presupuesto .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .presupuesto td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--linea); }
+  .presupuesto td.desc { font-weight: 700; }
+  .presupuesto .num { text-align: right; font-family: "Chivo Mono", monospace; font-weight: 500; white-space: nowrap; }
   .presupuesto .totales { margin: 18px 0 0 auto; width: 340px; }
   .presupuesto .fila {
     display: flex;
@@ -167,47 +161,38 @@ const ESTILOS = `
     align-items: baseline;
     gap: 12px;
     padding: 7px 0;
-    border-bottom: 1px dashed var(--linea);
+    border-bottom: 1px solid var(--linea);
     font-size: 14px;
   }
-  .presupuesto .fila .val { font-variant-numeric: tabular-nums; }
+  .presupuesto .fila .val { font-family: "Chivo Mono", monospace; font-weight: 500; white-space: nowrap; }
   .presupuesto .fila.grande {
     border-bottom: none;
-    border-top: 3px solid var(--verde);
+    border-top: 3px solid var(--grafito);
     margin-top: 6px;
     padding-top: 12px;
     font-size: 20px;
-    font-weight: bold;
-    color: var(--verde);
-    font-family: 'Trebuchet MS', sans-serif;
+    font-weight: 800;
   }
-  .presupuesto .notas {
-    margin-top: 30px;
-    font-size: 12px;
-    color: var(--tierra);
-    border-top: 1px solid var(--linea);
-    padding-top: 14px;
-  }
-  .presupuesto .notas h2 {
-    margin: 0 0 6px;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: normal;
-  }
+  .presupuesto .fila.grande .val { font-size: 22px; font-weight: 600; }
+  .presupuesto .notas { margin-top: 30px; font-size: 12.5px; }
+  .presupuesto .notas h2 { margin: 0 0 6px; }
   .presupuesto .notas .cuerpo {
-    color: var(--gris);
+    color: var(--grafito);
     line-height: 1.6;
     outline-offset: 3px;
   }
-  .presupuesto .notas .cuerpo:focus { outline: 1px dashed var(--tierra); }
+  .presupuesto .notas .cuerpo:focus { outline: 1px dashed var(--alambre); }
   .presupuesto .notas .contacto {
-    margin: 12px 0 0;
-    padding-top: 10px;
-    border-top: 1px solid var(--linea);
-    color: var(--verde);
-    font-size: 13px;
+    margin: 16px 0 0;
+    padding-top: 12px;
+    border-top: 0;
+    font-family: "Chivo Mono", monospace;
+    font-size: 12.5px;
+    color: var(--grafito);
   }
+  .presupuesto .notas .contacto strong { font-family: "Archivo Variable", Arial, sans-serif; }
+  .presupuesto .notas .varilla-pie { display: block; width: 100%; max-width: 360px; aspect-ratio: 40 / 1; margin-top: 16px;
+    background: url("../../../brand/assets/sistema/varilla-separador.svg") left center / contain no-repeat; }
 
   @media print {
     /*
@@ -222,14 +207,14 @@ const ESTILOS = `
       max-width: 100%;
       padding: 10px 20px;
     }
-    .presupuesto th {
+    .presupuesto .hoja, .presupuesto .hoja * {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
   }
 `
 
-const CONDICIONES_BASE = 'Presupuesto válido por 15 días.'
+const CONDICIONES_BASE = `Presupuesto válido por ${QUOTE_VALID_DAYS} días.`
 
 export default function QuotePrint() {
   const { id } = useParams()
@@ -393,13 +378,13 @@ export default function QuotePrint() {
                 */}
                 <Link
                   to={`/erp/pedidos/${pedido.id}`}
-                  className="mt-5 inline-flex items-center rounded-md border border-steel-200 bg-white px-3 py-2 text-sm font-semibold text-steel-600 hover:border-steel-300"
+                  className="mt-5 inline-flex items-center rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm font-semibold text-grafito-600 hover:border-grafito-300"
                 >
                   Volver al pedido
                 </Link>
 
                 <label className="block">
-                  <span className="block text-xs font-semibold text-steel-600">
+                  <span className="block text-xs font-semibold text-grafito-600">
                     Descuento (%)
                   </span>
                   <input
@@ -415,7 +400,7 @@ export default function QuotePrint() {
                 </label>
 
                 <label className="block">
-                  <span className="block text-xs font-semibold text-steel-600">Moneda</span>
+                  <span className="block text-xs font-semibold text-grafito-600">Moneda</span>
                   <select
                     value={moneda}
                     onChange={(event) => setMoneda(event.target.value)}
@@ -432,7 +417,7 @@ export default function QuotePrint() {
                 {moneda === 'USD' && (
                   <div>
                     <label className="block">
-                      <span className="block text-xs font-semibold text-steel-600">
+                      <span className="block text-xs font-semibold text-grafito-600">
                         Cotización (pesos por dólar)
                       </span>
                       <input
@@ -450,7 +435,7 @@ export default function QuotePrint() {
                       La del día, a un clic, sin que deje de ser un campo que se
                       escribe: el dólar con el que se cotiza suele ser el propio.
                     */}
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-steel-400">
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-grafito-400">
                       {cotizaciones.data?.length ? (
                         <>
                           <span>Hoy:</span>
@@ -459,7 +444,7 @@ export default function QuotePrint() {
                               key={item.casa}
                               type="button"
                               onClick={() => setCotizacion(String(item.valor))}
-                              className="rounded border border-steel-200 px-1.5 py-0.5 font-semibold text-steel-600 hover:border-secondary-500 hover:text-secondary-600"
+                              className="rounded border border-grafito-200 px-1.5 py-0.5 font-semibold text-grafito-600 hover:border-celeste-600 hover:text-celeste-800"
                             >
                               {item.nombre} {formatMoneda(item.valor)}
                             </button>
@@ -474,7 +459,7 @@ export default function QuotePrint() {
                   </div>
                 )}
 
-                <label className="mt-5 flex items-center gap-2 py-2 text-sm text-steel-600">
+                <label className="mt-5 flex items-center gap-2 py-2 text-sm text-grafito-600">
                   <input
                     type="checkbox"
                     checked={conIva}
@@ -527,14 +512,11 @@ export default function QuotePrint() {
             )}
 
             <div className="presupuesto">
-              <div className="hoja">
+              <div className="hoja hm">
                 <div className="encabezado">
                   <div className="marca">
-                    <h1>RECUVARILLA</h1>
-                    <p>
-                      Varillas plásticas para alambrado · resistentes al agua,
-                      insectos y sol
-                    </p>
+                    <LogoHoja />
+                    <p>Varillas de plástico recuperado para alambrados · Luján</p>
                   </div>
                   <dl className="doc-info">
                     <span className="tag">PRESUPUESTO</span>
@@ -582,7 +564,7 @@ export default function QuotePrint() {
                   <tbody>
                     {lineas.length === 0 ? (
                       <tr>
-                        <td colSpan={4} style={{ textAlign: 'center', color: '#8a5a34' }}>
+                        <td colSpan={4} style={{ textAlign: 'center', color: 'var(--gris)' }}>
                           Este pedido todavía no tiene mercadería cargada.
                         </td>
                       </tr>
@@ -666,15 +648,16 @@ export default function QuotePrint() {
                       .join(' ')}
                   </p>
 
+                  <span className="varilla-pie" aria-hidden="true" />
                   <p className="contacto">
-                    <strong>{contacto.nombre}</strong> · {contacto.telefono} ·{' '}
+                    <strong>{contacto.nombre}</strong> · WhatsApp {contacto.telefono} ·{' '}
                     {contacto.email}
                   </p>
                 </div>
               </div>
             </div>
 
-            <p className="mx-auto mt-4 max-w-[800px] text-xs text-steel-400 print:hidden">
+            <p className="mx-auto mt-4 max-w-[800px] text-xs text-grafito-400 print:hidden">
               Las condiciones se pueden retocar haciendo clic sobre ellas, pero
               ese cambio no queda guardado: vale para el PDF que estés por
               exportar.

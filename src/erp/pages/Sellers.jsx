@@ -176,7 +176,7 @@ function Liquidacion() {
           type="month"
           value={mes}
           onChange={(event) => setMes(event.target.value)}
-          className="rounded-md border border-steel-200 bg-white px-2 py-1 text-sm text-steel-700"
+          className="rounded-md border border-grafito-200 bg-white px-2 py-1 text-sm text-grafito-700"
         />
       }
     >
@@ -198,33 +198,33 @@ function Liquidacion() {
                 }
               >
                 {porVendedor.map((item) => (
-                  <tr key={item.seller_id} className="hover:bg-steel-50">
-                    <Td className="font-medium text-steel-700">{item.vendedor}</Td>
-                    <Td align="right" className="tabular-nums text-steel-500">
+                  <tr key={item.seller_id} className="hover:bg-grafito-50">
+                    <Td className="font-medium text-grafito-700">{item.vendedor}</Td>
+                    <Td align="right" className="tabular-nums text-grafito-500">
                       {item.pedidos}
                     </Td>
                     <Td align="right">
-                      <Money value={item.mercaderia} className="text-steel-500" />
+                      <Money value={item.mercaderia} className="text-grafito-500" />
                     </Td>
                     <Td align="right">
-                      <Money value={item.comision} className="font-semibold text-steel-800" />
+                      <Money value={item.comision} className="font-semibold text-grafito-800" />
                     </Td>
                   </tr>
                 ))}
-                <tr className="bg-steel-50">
-                  <Td className="font-semibold text-steel-700" />
+                <tr className="bg-grafito-50">
+                  <Td className="font-semibold text-grafito-700" />
                   <Td />
-                  <Td align="right" className="text-xs font-semibold uppercase text-steel-400">
+                  <Td align="right" className="text-xs font-semibold uppercase text-grafito-400">
                     Total
                   </Td>
                   <Td align="right">
-                    <Money value={total} className="font-bold text-steel-900" />
+                    <Money value={total} className="font-bold text-grafito-900" />
                   </Td>
                 </tr>
               </Table>
 
-              <details className="border-t border-steel-100">
-                <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-steel-500 hover:bg-steel-50">
+              <details className="border-t border-grafito-100">
+                <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-grafito-500 hover:bg-grafito-50">
                   Ver los {rows.length} pedidos que la componen
                 </summary>
                 <Table
@@ -242,26 +242,26 @@ function Liquidacion() {
                   }
                 >
                   {rows.map((row) => (
-                    <tr key={row.id} className="hover:bg-steel-50">
-                      <Td className="whitespace-nowrap font-medium text-steel-700">
+                    <tr key={row.id} className="hover:bg-grafito-50">
+                      <Td className="whitespace-nowrap font-medium text-grafito-700">
                         #{row.numero}
                       </Td>
-                      <Td className="whitespace-nowrap text-steel-500">
+                      <Td className="whitespace-nowrap text-grafito-500">
                         {formatDate(row.fecha)}
                       </Td>
-                      <Td className="text-steel-600">{row.cliente_nombre}</Td>
-                      <Td className="text-steel-500">{row.vendedor}</Td>
+                      <Td className="text-grafito-600">{row.cliente_nombre}</Td>
+                      <Td className="text-grafito-500">{row.vendedor}</Td>
                       <Td align="right">
-                        <Money value={row.mercaderia} className="text-steel-500" />
+                        <Money value={row.mercaderia} className="text-grafito-500" />
                       </Td>
                       <Td align="right">
-                        <Money value={row.pagado} className="text-steel-500" />
+                        <Money value={row.pagado} className="text-grafito-500" />
                       </Td>
-                      <Td align="right" className="tabular-nums text-steel-500">
+                      <Td align="right" className="tabular-nums text-grafito-500">
                         {Number(row.comision_pct ?? 0)}%
                       </Td>
                       <Td align="right">
-                        <Money value={row.comision} className="font-semibold text-steel-800" />
+                        <Money value={row.comision} className="font-semibold text-grafito-800" />
                       </Td>
                     </tr>
                   ))}
@@ -330,22 +330,22 @@ export default function Sellers() {
               }
             >
               {sellers.map((seller) => (
-                <tr key={seller.id} className="hover:bg-steel-50">
-                  <Td className="font-medium text-steel-700">
+                <tr key={seller.id} className="hover:bg-grafito-50">
+                  <Td className="font-medium text-grafito-700">
                     {seller.nombre}
                     {seller.notas && (
-                      <span className="block text-xs font-normal text-steel-400">
+                      <span className="block text-xs font-normal text-grafito-400">
                         {seller.notas}
                       </span>
                     )}
                   </Td>
-                  <Td className="text-xs text-steel-500">
+                  <Td className="text-xs text-grafito-500">
                     {[seller.telefono, seller.email].filter(Boolean).join(' · ')}
                     {seller.localidad && (
-                      <span className="block text-steel-400">{seller.localidad}</span>
+                      <span className="block text-grafito-400">{seller.localidad}</span>
                     )}
                   </Td>
-                  <Td align="right" className="tabular-nums text-steel-700">
+                  <Td align="right" className="tabular-nums text-grafito-700">
                     {Number(seller.comision_pct)}%
                   </Td>
                   <Td>
@@ -389,7 +389,7 @@ export default function Sellers() {
         <Liquidacion />
       </div>
 
-      <p className="mt-4 text-xs text-steel-400">
+      <p className="mt-4 text-xs text-grafito-400">
         La comisión se devenga a medida que el cliente paga, no cuando se
         entrega, y se calcula sobre la mercadería sola: el flete es plata que
         pasa hacia el transporte. Un pedido anulado no devenga nada.

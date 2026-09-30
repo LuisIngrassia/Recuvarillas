@@ -78,20 +78,20 @@ function Chip({ post }) {
     <Link
       to={`/erp/redes/${post.id}`}
       title={`${plantilla.nombre} · ${estado.label}`}
-      className={`flex items-center gap-1.5 rounded border px-1.5 py-1 text-xs font-medium hover:border-secondary-500 ${
+      className={`flex items-center gap-1.5 rounded border px-1.5 py-1 text-xs font-medium hover:border-celeste-600 ${
         post.estado === 'publicado'
-          ? 'border-secondary-100 bg-secondary-50 text-secondary-700'
+          ? 'border-celeste-200 bg-celeste-50 text-celeste-800'
           : post.estado === 'listo'
-            ? 'border-primary-100 bg-primary-50 text-primary-700'
-            : 'border-steel-200 bg-white text-steel-600'
+            ? 'border-celeste-100 bg-celeste-50 text-celeste-700'
+            : 'border-grafito-200 bg-white text-grafito-600'
       }`}
     >
       <span
-        className="h-2.5 w-2.5 shrink-0 rounded-sm border border-steel-300"
+        className="h-2.5 w-2.5 shrink-0 rounded-sm border border-grafito-300"
         style={{ background: FONDOS[plantilla.fondo].muestra }}
       />
       <span className="truncate">{plantilla.nombre}</span>
-      <span className="ml-auto shrink-0 text-[10px] text-steel-400">{formatos}</span>
+      <span className="ml-auto shrink-0 text-[10px] text-grafito-400">{formatos}</span>
     </Link>
   )
 }
@@ -129,7 +129,7 @@ function NuevoPost({ inicial, onClose }) {
 
         {!inicial.idea && (
           <div>
-            <p className="text-xs font-semibold text-steel-600">Plantilla</p>
+            <p className="text-xs font-semibold text-grafito-600">Plantilla</p>
             <div className="mt-1 grid gap-2 sm:grid-cols-2">
               {PLANTILLA_KEYS.map((key) => (
                 <button
@@ -138,18 +138,18 @@ function NuevoPost({ inicial, onClose }) {
                   onClick={() => setPlantilla(key)}
                   className={`rounded-md border px-3 py-2 text-left transition-colors ${
                     plantilla === key
-                      ? 'border-secondary-500 bg-secondary-50'
-                      : 'border-steel-200 hover:border-steel-300'
+                      ? 'border-celeste-600 bg-celeste-50'
+                      : 'border-grafito-200 hover:border-grafito-300'
                   }`}
                 >
-                  <span className="flex items-center gap-2 text-sm font-semibold text-steel-800">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-grafito-800">
                     <span
-                      className="h-3 w-3 rounded-sm border border-steel-300"
+                      className="h-3 w-3 rounded-sm border border-grafito-300"
                       style={{ background: FONDOS[PLANTILLAS[key].fondo].muestra }}
                     />
                     {PLANTILLAS[key].nombre}
                   </span>
-                  <span className="mt-0.5 block text-xs text-steel-500">{PLANTILLAS[key].para}</span>
+                  <span className="mt-0.5 block text-xs text-grafito-500">{PLANTILLAS[key].para}</span>
                 </button>
               ))}
             </div>
@@ -196,28 +196,28 @@ function Ideas({ posts, onUsar }) {
           <button
             type="button"
             onClick={() => setVerUsadas((v) => !v)}
-            className="text-xs font-semibold text-steel-500 hover:text-steel-700"
+            className="text-xs font-semibold text-grafito-500 hover:text-grafito-700"
           >
             {verUsadas ? 'Ocultar las usadas' : `Ver las usadas (${usadas})`}
           </button>
         )
       }
     >
-      <div className="divide-y divide-steel-100">
+      <div className="divide-y divide-grafito-100">
         {grupos.map((grupo) => (
           <div key={grupo} className="px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-steel-400">{grupo}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-grafito-400">{grupo}</p>
             <ul className="mt-2 space-y-2">
               {visibles
                 .filter((idea) => idea.grupo === grupo)
                 .map((idea) => (
                   <li key={idea.origen} className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className={`text-sm font-medium ${idea.usada ? 'text-steel-400' : 'text-steel-800'}`}>
+                      <p className={`text-sm font-medium ${idea.usada ? 'text-grafito-400' : 'text-grafito-800'}`}>
                         {idea.titulo}
                         {idea.usada && <span className="ml-1.5 text-xs font-normal">· ya agendada</span>}
                       </p>
-                      <p className="text-xs text-steel-500">
+                      <p className="text-xs text-grafito-500">
                         {PLANTILLAS[idea.post.plantilla].nombre}
                         {idea.nota && ` · ${idea.nota}`}
                       </p>
@@ -231,7 +231,7 @@ function Ideas({ posts, onUsar }) {
           </div>
         ))}
         {grupos.length === 0 && (
-          <p className="px-4 py-6 text-center text-sm text-steel-400">
+          <p className="px-4 py-6 text-center text-sm text-grafito-400">
             Ya están agendadas todas. Cargá reseñas nuevas en la web o armá uno de cero.
           </p>
         )}
@@ -300,17 +300,17 @@ export default function Social() {
 
       {pendientes.length > 0 && (
         <Card title="Para subir" className="mb-6">
-          <ul className="divide-y divide-steel-100">
+          <ul className="divide-y divide-grafito-100">
             {pendientes.map((post) => (
               <li key={post.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-steel-800">
+                  <p className="text-sm font-medium text-grafito-800">
                     {PLANTILLAS[post.plantilla].nombre}
                     {post.campos?.titular && (
-                      <span className="font-normal text-steel-500"> · {post.campos.titular}</span>
+                      <span className="font-normal text-grafito-500"> · {post.campos.titular}</span>
                     )}
                   </p>
-                  <p className={`text-xs ${post.fecha < hoy ? 'text-amber-700' : 'text-steel-500'}`}>
+                  <p className={`text-xs ${post.fecha < hoy ? 'text-amber-700' : 'text-grafito-500'}`}>
                     {post.fecha === hoy ? 'Hoy' : `Atrasado: era para el ${fechaLarga(post.fecha)}`}
                     {' · '}
                     {post.formatos.map((f) => (f === 'cuadrado' ? 'feed' : 'historia')).join(' y ')}
@@ -320,7 +320,7 @@ export default function Social() {
                   <Badge tone={ESTADOS[post.estado].tone}>{ESTADOS[post.estado].label}</Badge>
                   <Link
                     to={`/erp/redes/${post.id}`}
-                    className="rounded-md bg-secondary-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-secondary-600"
+                    className="rounded-md bg-grafito-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-grafito-700"
                   >
                     Abrir
                   </Link>
@@ -357,7 +357,7 @@ export default function Social() {
 
             {/* La grilla del mes, desde tablet. En el teléfono no entran siete columnas. */}
             <div className="hidden sm:block">
-              <div className="grid grid-cols-7 border-b border-steel-100 bg-steel-50 text-center text-xs font-semibold uppercase tracking-wide text-steel-500">
+              <div className="grid grid-cols-7 border-b border-grafito-100 bg-grafito-50 text-center text-xs font-semibold uppercase tracking-wide text-grafito-500">
                 {DIAS.map((dia) => (
                   <div key={dia} className="py-2">
                     {dia}
@@ -365,12 +365,12 @@ export default function Social() {
                 ))}
               </div>
               {semanasDe(mes).map((semana, i) => (
-                <div key={i} className="grid grid-cols-7 border-b border-steel-100 last:border-b-0">
+                <div key={i} className="grid grid-cols-7 border-b border-grafito-100 last:border-b-0">
                   {semana.map((dia, j) => (
                     <div
                       key={dia ?? `v${j}`}
-                      className={`group min-h-24 border-r border-steel-100 p-1.5 last:border-r-0 ${
-                        dia ? '' : 'bg-steel-50/60'
+                      className={`group min-h-24 border-r border-grafito-100 p-1.5 last:border-r-0 ${
+                        dia ? '' : 'bg-grafito-50/60'
                       }`}
                     >
                       {dia && (
@@ -379,8 +379,8 @@ export default function Social() {
                             <span
                               className={`text-xs font-semibold ${
                                 dia === hoy
-                                  ? 'rounded-full bg-secondary-500 px-1.5 text-white'
-                                  : 'text-steel-400'
+                                  ? 'rounded-full bg-grafito-900 px-1.5 text-white'
+                                  : 'text-grafito-400'
                               }`}
                             >
                               {Number(dia.slice(8))}
@@ -388,7 +388,7 @@ export default function Social() {
                             <button
                               type="button"
                               onClick={() => setNuevo({ fecha: dia })}
-                              className="rounded px-1 text-sm leading-none text-steel-300 opacity-0 hover:bg-steel-100 hover:text-steel-600 focus:opacity-100 group-hover:opacity-100"
+                              className="rounded px-1 text-sm leading-none text-grafito-300 opacity-0 hover:bg-grafito-100 hover:text-grafito-600 focus:opacity-100 group-hover:opacity-100"
                               aria-label={`Nuevo posteo el ${fechaLarga(dia)}`}
                             >
                               +
@@ -408,24 +408,24 @@ export default function Social() {
             </div>
 
             {/* En el teléfono, la lista del mes. */}
-            <ul className="divide-y divide-steel-100 sm:hidden">
+            <ul className="divide-y divide-grafito-100 sm:hidden">
               {(delMes.data ?? []).map((post) => (
                 <li key={post.id} className="px-4 py-2.5">
-                  <p className="mb-1 text-xs font-semibold capitalize text-steel-500">{fechaLarga(post.fecha)}</p>
+                  <p className="mb-1 text-xs font-semibold capitalize text-grafito-500">{fechaLarga(post.fecha)}</p>
                   <Chip post={post} />
                 </li>
               ))}
               {delMes.data?.length === 0 && (
-                <li className="px-4 py-6 text-center text-sm text-steel-400">Nada agendado este mes.</li>
+                <li className="px-4 py-6 text-center text-sm text-grafito-400">Nada agendado este mes.</li>
               )}
             </ul>
           </Card>
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3 text-xs text-steel-500">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-grafito-500">
               {Object.entries(FONDOS).map(([key, fondo]) => (
                 <span key={key} className="flex items-center gap-1">
-                  <span className="h-2.5 w-2.5 rounded-sm border border-steel-300" style={{ background: fondo.muestra }} />
+                  <span className="h-2.5 w-2.5 rounded-sm border border-grafito-300" style={{ background: fondo.muestra }} />
                   {fondo.nombre}
                 </span>
               ))}
@@ -434,7 +434,7 @@ export default function Social() {
 
             <div className="flex items-center gap-2">
               {zip?.total && !zip.error && (
-                <span className="text-xs text-steel-500">
+                <span className="text-xs text-grafito-500">
                   Armando {zip.hechos} de {zip.total}…
                 </span>
               )}

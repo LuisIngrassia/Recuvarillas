@@ -53,9 +53,10 @@ const NARROW_WIDTH = 1024
 const NARROW_RAISE = 0.17
 
 /**
- * El modelo no trae perforaciones: es una barra maciza. Pasamos los alambres
- * por el plano central de las varillas, así quedan tapados justo en el cruce y
- * reaparecen del otro lado. Se ve igual que si atravesaran un agujero.
+ * Las alturas de los alambres, desde el centro de la varilla. Pasan por las
+ * perforaciones del modelo, que están en estas mismas alturas: si se cambia
+ * una, hay que regenerar `public/varilla.glb` con
+ * `brand/herramientas/generar_varilla_glb.mjs` (constante AGUJEROS).
  */
 const WIRE_HEIGHTS = [-0.36, 0, 0.36]
 const WIRE_LENGTH = 5.5

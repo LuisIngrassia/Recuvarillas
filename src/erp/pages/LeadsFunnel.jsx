@@ -59,18 +59,18 @@ function Barra({ label, valor, maximo, detalle }) {
 
   return (
     <div className="grid grid-cols-[9rem_1fr_auto] items-center gap-3">
-      <span className="truncate text-xs text-steel-600">{label}</span>
+      <span className="truncate text-xs text-grafito-600">{label}</span>
 
-      <span className="h-2.5 rounded-full bg-steel-100">
+      <span className="h-2.5 rounded-full bg-grafito-100">
         <span
-          className="block h-2.5 rounded-full bg-secondary-500"
+          className="block h-2.5 rounded-full bg-grafito-900"
           style={{ width: `${ancho}%` }}
         />
       </span>
 
-      <span className="tabular-nums text-right text-xs font-semibold text-steel-700">
+      <span className="tabular-nums text-right text-xs font-semibold text-grafito-700">
         {valor}
-        {detalle && <span className="ml-1 font-normal text-steel-400">{detalle}</span>}
+        {detalle && <span className="ml-1 font-normal text-grafito-400">{detalle}</span>}
       </span>
     </div>
   )
@@ -157,7 +157,7 @@ export default function LeadsFunnel() {
             <>
               {/* Los filtros van en una fila arriba de todo, no repartidos por sección. */}
               <div className="flex flex-wrap items-end gap-3">
-                <label className="text-xs font-semibold text-steel-600">
+                <label className="text-xs font-semibold text-grafito-600">
                   Desde
                   <Input
                     type="month"
@@ -166,7 +166,7 @@ export default function LeadsFunnel() {
                     className="mt-1 w-auto"
                   />
                 </label>
-                <label className="text-xs font-semibold text-steel-600">
+                <label className="text-xs font-semibold text-grafito-600">
                   Hasta
                   <Input
                     type="month"
@@ -175,7 +175,7 @@ export default function LeadsFunnel() {
                     className="mt-1 w-auto"
                   />
                 </label>
-                <p className="pb-2 text-xs text-steel-400">
+                <p className="pb-2 text-xs text-grafito-400">
                   El rango afecta a los resultados y a los motivos de pérdida. El embudo y los
                   tiempos son de todo el historial.
                 </p>
@@ -222,7 +222,7 @@ export default function LeadsFunnel() {
                       detalle: c.conversion === null ? '' : `· ${porcentaje(c.conversion)} sigue`,
                     }))}
                   />
-                  <p className="border-t border-steel-100 px-4 py-3 text-xs text-steel-400">
+                  <p className="border-t border-grafito-100 px-4 py-3 text-xs text-grafito-400">
                     El porcentaje es cuántos de los que llegaron a esa etapa avanzaron a la
                     siguiente. Donde cae fuerte, ahí se traba el embudo.
                   </p>
@@ -243,7 +243,7 @@ export default function LeadsFunnel() {
 
                 <Card title="Por qué se pierden">
                   <Barras filas={motivos} />
-                  <p className="border-t border-steel-100 px-4 py-3 text-xs text-steel-400">
+                  <p className="border-t border-grafito-100 px-4 py-3 text-xs text-grafito-400">
                     Es el dato que dice si el problema es el precio, el flete o el producto —y
                     cuál de los tres conviene atacar primero.
                   </p>

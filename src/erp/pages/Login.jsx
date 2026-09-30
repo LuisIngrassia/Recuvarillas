@@ -9,6 +9,7 @@
 import { useState } from 'react'
 import { signIn } from '../lib/session'
 import { Button, ErrorNote, Field, Input } from '../components/ui'
+import { LOGO } from '../../lib/marca'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -33,17 +34,20 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-steel-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-grafito-900 px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-xl border border-steel-200 bg-white p-6 shadow-sm"
+        className="w-full max-w-sm rounded-md bg-white p-6 shadow-sm"
       >
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="" className="h-10 w-auto" />
-          <div>
-            <h1 className="text-lg font-bold leading-tight text-steel-800">Recuvarilla</h1>
-            <p className="text-xs text-steel-400">Sistema de gestión</p>
-          </div>
+        <div>
+          <img
+            src={LOGO.principal.color}
+            alt="Recuvarilla"
+            width={LOGO.principal.width}
+            height={LOGO.principal.height}
+            className="h-auto w-48"
+          />
+          <h1 className="rotulo mt-4 text-grafito-500">Sistema de gestión</h1>
         </div>
 
         <div className="mt-6 space-y-4">
@@ -78,7 +82,7 @@ export default function Login() {
           {sending ? 'Entrando…' : 'Entrar'}
         </Button>
 
-        <p className="mt-4 text-center text-xs text-steel-400">
+        <p className="mt-4 text-center text-xs text-grafito-400">
           Las cuentas las crea el administrador desde Supabase.
         </p>
       </form>

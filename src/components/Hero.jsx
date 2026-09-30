@@ -18,10 +18,12 @@ function Hero() {
         de arriba: sobre pantalla angosta no hay lugar para ponerlos uno al lado
         del otro, y superpuestos el texto lo tapa entero.
       */
-      className="relative isolate flex min-h-[40rem] items-end overflow-hidden bg-steel-50 lg:min-h-[46rem] lg:items-center"
+      /*
+        Fondo blanco liso: el manual pide el mayor contraste posible entre la
+        varilla negra y el fondo, y nada de halos de color detrás.
+      */
+      className="relative isolate flex min-h-[40rem] items-end overflow-hidden bg-white lg:min-h-[46rem] lg:items-center"
     >
-      {/* Apenas de color de marca detrás de las varillas, para que el claro no quede lavado. */}
-      <div className="absolute inset-0 [background:radial-gradient(58%_55%_at_64%_45%,rgba(108,172,228,0.14),transparent_70%)]" />
 
       {/* Las varillas ocupan el hero entero y quedan detrás del texto. */}
       <div className="absolute inset-0">
@@ -39,7 +41,7 @@ function Hero() {
         cubierto por un velo casi opaco y las varillas se ven blancas. Acá ya
         está transparente al 62%, pasando apenas el ancho del texto.
       */}
-      <div className="pointer-events-none absolute inset-0 [background:linear-gradient(to_top,rgb(245,246,247)_0%,rgb(245,246,247)_34%,rgba(245,246,247,0.72)_50%,rgba(245,246,247,0.22)_62%,transparent_72%)] lg:[background:linear-gradient(to_right,rgb(245,246,247)_0%,rgb(245,246,247)_20%,rgba(245,246,247,0.68)_34%,rgba(245,246,247,0.2)_50%,transparent_62%)]" />
+      <div className="pointer-events-none absolute inset-0 [background:linear-gradient(to_top,rgb(255,255,255)_0%,rgb(255,255,255)_34%,rgba(255,255,255,0.72)_50%,rgba(255,255,255,0.22)_62%,transparent_72%)] lg:[background:linear-gradient(to_right,rgb(255,255,255)_0%,rgb(255,255,255)_20%,rgba(255,255,255,0.68)_34%,rgba(255,255,255,0.2)_50%,transparent_62%)]" />
 
       {/*
         El texto no captura el puntero para que se puedan agarrar las varillas
@@ -47,26 +49,25 @@ function Hero() {
       */}
       <div className="pointer-events-none relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-24">
         <div className="max-w-xl">
-          <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-steel-900 sm:text-5xl lg:text-6xl">
-            Varillas resistentes para el campo, con material recuperado
+          <h1 className="font-display text-5xl text-grafito-900 sm:text-6xl lg:text-[5.5rem]">
+            Varillas de plástico recuperado, para tu campo.
           </h1>
-          <p className="mt-5 max-w-lg text-lg text-steel-500">
-            En {company.name} producimos y comercializamos varillas de plástico
-            recuperado para alambrados y cercos rurales: no se oxidan ni se
-            pudren, cuestan menos y le dan una segunda vida al material.
+          <p className="mt-6 max-w-lg text-lg text-grafito-500">
+            Botellas y tapitas que otros tiraron, fundidas en varillas de
+            3&nbsp;×&nbsp;3 para tu alambrado. No se pudren, no se oxidan y
+            vienen agujereadas a la medida de cada hilo.
           </p>
-          <div className="mt-8 flex flex-wrap gap-4">
-            <a
-              href="#presupuesto"
-              className="pointer-events-auto inline-flex items-center rounded-md bg-secondary-500 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-secondary-600"
-            >
-              Solicitar presupuesto
+          <div className="mt-8 flex flex-wrap gap-3">
+            <a href="#presupuesto" className="btn-principal pointer-events-auto">
+              Calcular mi presupuesto
             </a>
             <a
-              href="#productos"
-              className="pointer-events-auto inline-flex items-center rounded-md border border-steel-300 px-6 py-3 text-sm font-semibold text-steel-700 transition-colors hover:bg-steel-100"
+              href={`https://wa.me/${company.whatsapp}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-contorno pointer-events-auto bg-white/70"
             >
-              Ver productos
+              Escribir por WhatsApp
             </a>
           </div>
         </div>
@@ -77,9 +78,12 @@ function Hero() {
         gesto no aplica, porque en táctil el arrastre queda reservado para
         scrollear la página.
       */}
-      <span className="pointer-events-none absolute inset-x-0 bottom-4 hidden text-center text-xs text-steel-400 lg:block">
+      <span className="pointer-events-none absolute inset-x-0 bottom-7 hidden text-center text-xs text-grafito-400 lg:block">
         Arrastrá para ver una varilla en detalle · doble clic para volver al alambrado
       </span>
+
+      {/* La franja cierra el hero: la marca de origen, una sola vez en la página. */}
+      <div className="franja absolute inset-x-0 bottom-0 h-3" aria-hidden="true" />
     </section>
   )
 }

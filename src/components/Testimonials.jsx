@@ -33,7 +33,7 @@ function Stars({ rating }) {
           key={star}
           aria-hidden="true"
           viewBox="0 0 20 20"
-          className={`h-4 w-4 ${star <= value ? 'fill-amber-400' : 'fill-steel-200'}`}
+          className={`h-4 w-4 ${star <= value ? 'fill-amber-400' : 'fill-grafito-200'}`}
         >
           <path d="M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L1.5 7.7l5.9-.9z" />
         </svg>
@@ -56,7 +56,7 @@ function Avatar({ name, photo }) {
 
   if (!photo || broken) {
     return (
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-100 text-sm font-semibold text-secondary-600">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-grafito-100 text-sm font-semibold text-grafito-800">
         {initial}
       </div>
     )
@@ -75,13 +75,13 @@ function Avatar({ name, photo }) {
 
 function TestimonialCard({ testimonial }) {
   return (
-    <blockquote className="flex flex-col rounded-xl border border-steel-200 bg-white p-8">
+    <blockquote className="flex flex-col rounded-md bg-white p-8">
       <div className="flex items-center gap-3">
         <Avatar name={testimonial.author} photo={testimonial.photo} />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-steel-800">{testimonial.author}</p>
+          <p className="truncate text-sm font-semibold text-grafito-800">{testimonial.author}</p>
           {testimonial.place || testimonial.when ? (
-            <p className="truncate text-xs text-steel-400">
+            <p className="truncate text-xs text-grafito-400">
               {[testimonial.place, testimonial.when].filter(Boolean).join(' · ')}
             </p>
           ) : null}
@@ -94,14 +94,15 @@ function TestimonialCard({ testimonial }) {
         </div>
       ) : null}
 
-      <p className="mt-3 text-steel-600 leading-relaxed">“{testimonial.text}”</p>
+      {/* La reseña va tal cual la escribieron, sin retocar (manual, 09 · Aplicaciones). */}
+      <p className="mt-4 font-display text-2xl text-grafito-900 sm:text-3xl">“{testimonial.text}”</p>
 
       {testimonial.url ? (
         <a
           href={testimonial.url}
           target="_blank"
           rel="noopener noreferrer nofollow"
-          className="mt-4 self-start text-sm font-semibold text-secondary-500 hover:text-secondary-600"
+          className="link-marca mt-4 self-start text-sm"
         >
           Ver en Google
         </a>
@@ -120,10 +121,10 @@ function TestimonialCard({ testimonial }) {
 function GoogleBadge({ summary }) {
   const content = (
     <>
-      <span className="text-2xl font-bold text-steel-800">{summary.rating.toFixed(1)}</span>
+      <span className="font-mono text-2xl font-semibold text-grafito-900">{summary.rating.toFixed(1)}</span>
       <span>
         <Stars rating={summary.rating} />
-        <span className="mt-1 block text-xs text-steel-500">
+        <span className="mt-1 block text-xs text-grafito-500">
           {summary.total} reseñas en Google
         </span>
       </span>
@@ -131,7 +132,7 @@ function GoogleBadge({ summary }) {
   )
 
   const className =
-    'flex items-center gap-3 rounded-xl border border-steel-200 bg-white px-5 py-3'
+    'flex items-center gap-3 rounded-md bg-white px-5 py-3'
 
   if (!summary.url) return <div className={className}>{content}</div>
 
@@ -140,7 +141,7 @@ function GoogleBadge({ summary }) {
       href={summary.url}
       target="_blank"
       rel="noopener noreferrer nofollow"
-      className={`${className} transition-colors hover:border-steel-300`}
+      className={`${className} transition-colors hover:border-grafito-300`}
     >
       {content}
     </a>
@@ -167,7 +168,7 @@ function NavArrow({ direction, onClick }) {
       type="button"
       onClick={onClick}
       aria-label={back ? 'Reseñas anteriores' : 'Reseñas siguientes'}
-      className="inline-flex items-center justify-center rounded-full border border-steel-200 bg-white p-2 text-steel-500 transition-colors hover:border-steel-300 hover:text-steel-800 focus:outline-none focus:ring-2 focus:ring-secondary-500/40"
+      className="inline-flex items-center justify-center rounded-full border border-grafito-200 bg-white p-2 text-grafito-500 transition-colors hover:border-grafito-300 hover:text-grafito-800 focus:outline-none focus:ring-2 focus:ring-celeste-700/40"
     >
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
         <path
@@ -277,7 +278,7 @@ function ReviewsCarousel({ pages }) {
               aria-label={`Ver reseñas ${i * PER_PAGE + 1} a ${i * PER_PAGE + page.length}`}
               aria-current={i === index}
               className={`h-2 w-2 rounded-full transition-colors ${
-                i === index ? 'bg-secondary-500' : 'bg-steel-300 hover:bg-steel-400'
+                i === index ? 'bg-grafito-900' : 'bg-grafito-300 hover:bg-grafito-400'
               }`}
             />
           ))}
@@ -305,21 +306,21 @@ function ReviewInvite() {
       href={reviewsSummary.url}
       target="_blank"
       rel="noopener noreferrer nofollow"
-      className="font-semibold text-secondary-500 hover:text-secondary-600"
+      className="link-marca"
     >
       Ver todas las reseñas en Google
     </a>
   ) : null
 
   if (!reviewLink) {
-    return verTodas ? <p className="mt-8 text-sm text-steel-500">{verTodas}</p> : null
+    return verTodas ? <p className="mt-8 text-sm text-grafito-500">{verTodas}</p> : null
   }
 
   return (
-    <div className="mt-12 flex flex-wrap items-center justify-between gap-6 rounded-xl border border-steel-200 bg-white p-8">
+    <div className="mt-12 flex flex-wrap items-center justify-between gap-6 rounded-md bg-white p-8">
       <div className="max-w-xl">
-        <p className="text-lg font-semibold text-steel-800">¿Ya usás nuestras varillas?</p>
-        <p className="mt-1 text-sm text-steel-500 leading-relaxed">
+        <p className="text-lg font-semibold text-grafito-800">¿Ya usás nuestras varillas?</p>
+        <p className="mt-1 text-sm text-grafito-500 leading-relaxed">
           Contanos cómo te fue. Una reseña tuya ayuda a que otros productores nos
           encuentren, y a nosotros nos dice qué mejorar.
         </p>
@@ -330,7 +331,7 @@ function ReviewInvite() {
         href={reviewLink}
         target="_blank"
         rel="noopener noreferrer nofollow"
-        className="inline-flex items-center rounded-md bg-secondary-500 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-secondary-600"
+        className="btn-principal"
       >
         Dejar una reseña en Google
       </a>
@@ -343,18 +344,15 @@ const pages = paginate(testimonials)
 function Testimonials() {
   return (
     // El fondo gris la separa de "Nosotros", que viene justo antes en blanco.
-    <section className="bg-steel-100 py-20">
+    <section className="bg-grafito-100 py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-2xl">
-            <span className="text-sm font-semibold uppercase tracking-wide text-secondary-500">
-              Testimonios
-            </span>
-            <h2 className="mt-2 text-3xl sm:text-4xl font-bold text-steel-800">
-              Lo que dicen nuestros clientes
+            <h2 className="font-display text-4xl text-grafito-900 sm:text-5xl lg:text-6xl">
+              Lo dicen los que ya alambraron.
             </h2>
             {reviewsSummary ? (
-              <p className="mt-3 text-sm text-steel-500">
+              <p className="mt-3 text-sm text-grafito-500">
                 Reseñas publicadas en nuestro perfil de Google.
               </p>
             ) : null}

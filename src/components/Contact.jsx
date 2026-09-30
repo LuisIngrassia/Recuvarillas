@@ -20,46 +20,43 @@ function Contact() {
   }
 
   return (
-    <section id="contacto" className="border-t border-steel-200 bg-steel-50 py-20">
+    <section id="contacto" className="border-t border-grafito-200 bg-white py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12">
         <div>
-          <span className="text-sm font-semibold uppercase tracking-wide text-secondary-500">
-            Contacto
-          </span>
-          <h2 className="mt-2 text-3xl sm:text-4xl font-bold text-steel-800">
-            Pedí tu presupuesto sin cargo
+          <h2 className="font-display text-4xl text-grafito-900 sm:text-5xl lg:text-6xl">
+            Escribinos. Te contestamos en el día.
           </h2>
-          <p className="mt-4 text-steel-500 leading-relaxed">
+          <p className="mt-5 text-lg leading-relaxed text-grafito-500">
             Contanos qué necesitás y te respondemos a la brevedad con precio y
             disponibilidad.
           </p>
 
-          <dl className="mt-8 space-y-4 text-sm">
+          <dl className="mt-8 space-y-4 border-t-2 border-grafito-900 pt-6 text-[0.9375rem]">
             <div>
-              <dt className="font-semibold text-steel-800">Teléfono / WhatsApp</dt>
-              <dd className="text-steel-500">{company.phone}</dd>
+              <dt className="font-semibold text-grafito-800">Teléfono / WhatsApp</dt>
+              <dd className="font-mono text-grafito-700">{company.phone}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-steel-800">Email</dt>
-              <dd className="text-steel-500">{company.email}</dd>
+              <dt className="font-semibold text-grafito-800">Email</dt>
+              <dd className="text-grafito-500">{company.email}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-steel-800">Dirección</dt>
-              <dd className="text-steel-500">{company.address}</dd>
+              <dt className="font-semibold text-grafito-800">Dirección</dt>
+              <dd className="text-grafito-500">{company.address}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-steel-800">Horario</dt>
-              <dd className="text-steel-500">{company.hours}</dd>
+              <dt className="font-semibold text-grafito-800">Horario</dt>
+              <dd className="text-grafito-500">{company.hours}</dd>
             </div>
           </dl>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl border border-steel-200 bg-white p-6 sm:p-8 space-y-5"
+          className="space-y-5 rounded-md bg-grafito-100 p-6 sm:p-8"
         >
           <div>
-            <label htmlFor="name" className="block text-sm font-semibold text-steel-800">
+            <label htmlFor="name" className="block text-sm font-semibold text-grafito-800">
               Nombre
             </label>
             <input
@@ -69,13 +66,13 @@ function Contact() {
               required
               value={form.name}
               onChange={handleChange}
-              className="mt-1.5 w-full rounded-md border border-steel-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+              className="mt-1.5 min-h-11 w-full rounded-md border-[1.5px] border-alambre bg-white px-3 py-2 text-base text-grafito-900 focus:border-celeste-700 focus:outline-none focus:ring-2 focus:ring-celeste-700/20"
               placeholder="Tu nombre"
             />
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-sm font-semibold text-steel-800">
+            <label htmlFor="phone" className="block text-sm font-semibold text-grafito-800">
               Teléfono
             </label>
             <input
@@ -85,13 +82,13 @@ function Contact() {
               required
               value={form.phone}
               onChange={handleChange}
-              className="mt-1.5 w-full rounded-md border border-steel-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+              className="mt-1.5 min-h-11 w-full rounded-md border-[1.5px] border-alambre bg-white px-3 py-2 text-base text-grafito-900 focus:border-celeste-700 focus:outline-none focus:ring-2 focus:ring-celeste-700/20"
               placeholder="Tu teléfono de contacto"
             />
           </div>
 
           <div>
-            <label htmlFor="message" className="block text-sm font-semibold text-steel-800">
+            <label htmlFor="message" className="block text-sm font-semibold text-grafito-800">
               Mensaje
             </label>
             <textarea
@@ -101,14 +98,14 @@ function Contact() {
               required
               value={form.message}
               onChange={handleChange}
-              className="mt-1.5 w-full rounded-md border border-steel-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+              className="mt-1.5 min-h-11 w-full rounded-md border-[1.5px] border-alambre bg-white px-3 py-2 text-base text-grafito-900 focus:border-celeste-700 focus:outline-none focus:ring-2 focus:ring-celeste-700/20"
               placeholder="Contanos qué necesitás: tipo de varilla, cantidad, ubicación..."
             />
           </div>
 
           <button
             type="submit"
-            className="w-full inline-flex items-center justify-center rounded-md bg-secondary-500 px-6 py-3 text-sm font-semibold text-white hover:bg-secondary-600 transition-colors"
+            className="btn-principal w-full"
           >
             Enviar consulta por WhatsApp
           </button>

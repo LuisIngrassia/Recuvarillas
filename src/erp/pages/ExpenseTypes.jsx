@@ -153,31 +153,31 @@ function TypeModal({ tipo, shares, tipos, onClose, onSaved }) {
             label={paga === 'pozo' ? 'Y si el pozo no alcanza, lo ponen' : 'Lo bancan'}
             hint="En mitades iguales entre los marcados, sin mirar sus porcentajes del reparto."
           >
-            <div className="space-y-1.5 rounded-md border border-steel-200 px-3 py-2">
+            <div className="space-y-1.5 rounded-md border border-grafito-200 px-3 py-2">
               {socios.length === 0 && (
-                <p className="text-xs text-steel-400">
+                <p className="text-xs text-grafito-400">
                   No hay socios cargados en el reparto.
                 </p>
               )}
               {socios.map((socio) => (
                 <label
                   key={socio.id}
-                  className="flex cursor-pointer items-center gap-2 text-sm text-steel-700"
+                  className="flex cursor-pointer items-center gap-2 text-sm text-grafito-700"
                 >
                   <input
                     type="checkbox"
                     checked={pagadores.has(socio.id)}
                     onChange={() => alternar(socio.id)}
-                    className="h-4 w-4 rounded border-steel-300"
+                    className="h-4 w-4 rounded border-grafito-300"
                   />
                   {socio.nombre}
-                  <span className="text-xs text-steel-400">
+                  <span className="text-xs text-grafito-400">
                     {Number(socio.porcentaje)}% del reparto
                   </span>
                 </label>
               ))}
               {pagadores.size > 0 && (
-                <p className="border-t border-steel-100 pt-1.5 text-xs text-steel-400">
+                <p className="border-t border-grafito-100 pt-1.5 text-xs text-grafito-400">
                   Le toca {(100 / pagadores.size).toFixed(pagadores.size === 3 ? 1 : 0)}% a
                   cada uno.
                 </p>
@@ -261,39 +261,39 @@ export default function ExpenseTypes() {
                     return (
                       <tr
                         key={tipo.id}
-                        className={`hover:bg-steel-50 ${tipo.activo ? '' : 'opacity-60'}`}
+                        className={`hover:bg-grafito-50 ${tipo.activo ? '' : 'opacity-60'}`}
                       >
-                        <Td className="font-medium text-steel-700">
+                        <Td className="font-medium text-grafito-700">
                           {tipo.nombre}
                           <span className="ml-2">
                             {!tipo.activo && <Badge>retirado</Badge>}
                             {tipo.interno && <Badge tone="info">lo calcula el sistema</Badge>}
                           </span>
-                          <span className="block text-xs font-normal text-steel-400">
+                          <span className="block text-xs font-normal text-grafito-400">
                             {tipo.clave}
                           </span>
                         </Td>
                         <Td>
                           <Badge tone={PAGA_TONES[tipo.paga]}>{PAGA_LABELS[tipo.paga]}</Badge>
                         </Td>
-                        <Td className="text-sm text-steel-600">
+                        <Td className="text-sm text-grafito-600">
                           {tipo.paga === 'cliente' ? (
-                            <span className="text-steel-400">
+                            <span className="text-grafito-400">
                               Nadie de adentro: se le cobra y se le paga al
                               proveedor
                             </span>
                           ) : tipo.paga === 'proporcional' ? (
-                            <span className="text-steel-400">
+                            <span className="text-grafito-400">
                               Todas las partes, en proporción
                             </span>
                           ) : huerfano ? (
-                            <span className="font-semibold text-red-600">
+                            <span className="font-semibold text-tapita-600">
                               Nadie — esos gastos quedan sin dueño
                             </span>
                           ) : (
                             <>
                               {tipo.pagadores.map(nombreDe).join(' y ')}
-                              <span className="block text-xs text-steel-400">
+                              <span className="block text-xs text-grafito-400">
                                 {(100 / tipo.pagadores.length).toFixed(
                                   tipo.pagadores.length === 3 ? 1 : 0,
                                 )}
@@ -330,7 +330,7 @@ export default function ExpenseTypes() {
                   })}
                 </Table>
 
-                <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
+                <p className="border-t border-grafito-100 px-4 py-3 text-xs leading-relaxed text-grafito-400">
                   Un tipo no se borra, se retira: deja de ofrecerse al cargar un
                   gasto pero los que ya estaban se siguen contando y pagando
                   igual. Borrarlo dejaría plata sin dueño en un mes ya liquidado.
@@ -338,19 +338,19 @@ export default function ExpenseTypes() {
               </Card>
 
               <Card title="Las tres reglas" className="mt-6">
-                <dl className="divide-y divide-steel-100">
+                <dl className="divide-y divide-grafito-100">
                   {PAGA.map((regla) => (
                     <div key={regla} className="px-4 py-3">
-                      <dt className="text-sm font-semibold text-steel-700">
+                      <dt className="text-sm font-semibold text-grafito-700">
                         {PAGA_LABELS[regla]}
                       </dt>
-                      <dd className="mt-1 text-xs leading-relaxed text-steel-500">
+                      <dd className="mt-1 text-xs leading-relaxed text-grafito-500">
                         {PAGA_HINTS[regla]}
                       </dd>
                     </div>
                   ))}
                 </dl>
-                <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
+                <p className="border-t border-grafito-100 px-4 py-3 text-xs leading-relaxed text-grafito-400">
                   La comisión del vendedor no es un tipo de gasto pero sigue la
                   regla proporcional: se descuenta antes de repartir. El flete es
                   el pasamanos por excelencia —se cotiza del tarifario, se le

@@ -400,7 +400,7 @@ function LeadModal({ lead, onClose, onSaved }) {
           />
         </Field>
 
-        <p className="text-xs text-steel-400">Entró el {formatDateTime(lead.created_at)}.</p>
+        <p className="text-xs text-grafito-400">Entró el {formatDateTime(lead.created_at)}.</p>
 
         <ErrorNote>{error}</ErrorNote>
 
@@ -593,8 +593,8 @@ function ElegirCliente({ modo, onModo, customerId, onCustomerId, customers }) {
             key={valor}
             className={`flex cursor-pointer gap-3 rounded-md border p-3 ${
               modo === valor
-                ? 'border-secondary-500 bg-secondary-50'
-                : 'border-steel-200 hover:border-steel-300'
+                ? 'border-celeste-600 bg-celeste-50'
+                : 'border-grafito-200 hover:border-grafito-300'
             }`}
           >
             <input
@@ -605,8 +605,8 @@ function ElegirCliente({ modo, onModo, customerId, onCustomerId, customers }) {
               className="mt-0.5"
             />
             <span>
-              <span className="block text-sm font-semibold text-steel-700">{titulo}</span>
-              <span className="block text-xs text-steel-500">{detalle}</span>
+              <span className="block text-sm font-semibold text-grafito-700">{titulo}</span>
+              <span className="block text-xs text-grafito-500">{detalle}</span>
             </span>
           </label>
         ))}
@@ -837,7 +837,7 @@ function QuoteModal({ lead, onClose, onDone }) {
   return (
     <Modal title={`Presupuesto para ${lead.nombre}`} onClose={onClose}>
       <div className="space-y-4">
-        <div className="rounded-md bg-steel-50 p-3 text-xs text-steel-600">
+        <div className="rounded-md bg-grafito-50 p-3 text-xs text-grafito-600">
           <p className="mt-1">
             {lead.entrega === 'envio'
               ? `Envío a ${lead.localidad ?? '—'} (${lead.codigo_postal ?? '—'}). El flete queda a cotizar.`
@@ -885,8 +885,8 @@ function QuoteModal({ lead, onClose, onDone }) {
         ) : (
           <>
             {fijo ? (
-              <p className="text-sm text-steel-600">
-                Va a la ficha de <strong className="text-steel-800">{fijo.nombre}</strong>,
+              <p className="text-sm text-grafito-600">
+                Va a la ficha de <strong className="text-grafito-800">{fijo.nombre}</strong>,
                 a la que este lead ya está enganchado.
               </p>
             ) : (
@@ -901,7 +901,7 @@ function QuoteModal({ lead, onClose, onDone }) {
 
             {distinto && (
               <div className="space-y-2">
-                <span className="block text-xs font-semibold text-steel-600">
+                <span className="block text-xs font-semibold text-grafito-600">
                   ¿A qué precio?
                 </span>
                 {[
@@ -920,8 +920,8 @@ function QuoteModal({ lead, onClose, onDone }) {
                     key={valor}
                     className={`flex cursor-pointer gap-3 rounded-md border p-3 ${
                       precioModo === valor
-                        ? 'border-secondary-500 bg-secondary-50'
-                        : 'border-steel-200 hover:border-steel-300'
+                        ? 'border-celeste-600 bg-celeste-50'
+                        : 'border-grafito-200 hover:border-grafito-300'
                     }`}
                   >
                     <input
@@ -932,24 +932,24 @@ function QuoteModal({ lead, onClose, onDone }) {
                       className="mt-0.5"
                     />
                     <span>
-                      <span className="block text-sm font-semibold text-steel-700">
+                      <span className="block text-sm font-semibold text-grafito-700">
                         {titulo}
                       </span>
-                      <span className="block text-xs text-steel-500">{detalle}</span>
+                      <span className="block text-xs text-grafito-500">{detalle}</span>
                     </span>
                   </label>
                 ))}
               </div>
             )}
 
-            <div className="rounded-md border border-steel-200 px-3 py-2 text-sm text-steel-600">
+            <div className="rounded-md border border-grafito-200 px-3 py-2 text-sm text-grafito-600">
               <span className="flex items-baseline justify-between gap-3">
                 <span>
                   {formatNumber(cantidadUsada)} × {formatPesos(precioUsado)}
                 </span>
                 <Money value={precioUsado * cantidadUsada} className="font-semibold" />
               </span>
-              <span className="mt-1 block text-xs text-steel-400">
+              <span className="mt-1 block text-xs text-grafito-400">
                 Sin IVA. El presupuesto se abre para completar flete y vendedor.
               </span>
             </div>
@@ -1105,20 +1105,20 @@ export default function Leads() {
                 const wa = whatsappLink(lead.telefono, saludo(lead))
 
                 return (
-                  <tr key={lead.id} className="hover:bg-steel-50">
+                  <tr key={lead.id} className="hover:bg-grafito-50">
                     <Td>
                       <Link
                         to={`/erp/leads/${lead.id}`}
-                        className="text-left font-medium text-steel-700 hover:text-secondary-500"
+                        className="text-left font-medium text-grafito-700 hover:text-celeste-700"
                       >
                         {lead.nombre}
                       </Link>
-                      <span className="block text-xs text-steel-400">
+                      <span className="block text-xs text-grafito-400">
                         {lead.telefono}
                         {lead.email ? ` · ${lead.email}` : ''}
                       </span>
                       {lead.notas && (
-                        <span className="mt-1 block max-w-xs truncate text-xs italic text-steel-400">
+                        <span className="mt-1 block max-w-xs truncate text-xs italic text-grafito-400">
                           {lead.notas}
                         </span>
                       )}
@@ -1130,13 +1130,13 @@ export default function Leads() {
                     </Td>
                     {/* Un lead cargado a mano no cotizó nada: mostrar 0 haría
                         creer que pidió cero varillas por cero pesos. */}
-                    <Td align="right" className="tabular-nums text-steel-700">
+                    <Td align="right" className="tabular-nums text-grafito-700">
                       {lead.cantidad === null ? (
-                        <span className="text-steel-300">—</span>
+                        <span className="text-grafito-300">—</span>
                       ) : (
                         <>
                           {formatNumber(lead.cantidad)}
-                          <span className="block text-xs text-steel-400">
+                          <span className="block text-xs text-grafito-400">
                             {lead.agujereada === null
                           ? 'sin definir'
                           : lead.agujereada
@@ -1148,19 +1148,19 @@ export default function Leads() {
                     </Td>
                     <Td align="right">
                       {lead.mercaderia === null ? (
-                        <span className="text-steel-300">—</span>
+                        <span className="text-grafito-300">—</span>
                       ) : (
                         <Money value={lead.mercaderia} />
                       )}
                     </Td>
-                    <Td className="text-xs text-steel-500">
+                    <Td className="text-xs text-grafito-500">
                       {lead.entrega === 'envio'
                         ? `${lead.localidad ?? '—'} · ${formatNumber(lead.kilometros ?? 0)} km`
                         : (lead.localidad ?? 'Retira')}
                       {/* La provincia, para que filtrar por ella deje una lista
                           en la que se ve por qué está cada uno. */}
                       {lead.provincia && (
-                        <span className="block text-xs text-steel-400">
+                        <span className="block text-xs text-grafito-400">
                           {lead.provincia}
                           {lead.codigo_postal ? ` · ${lead.codigo_postal}` : ''}
                         </span>
@@ -1169,12 +1169,12 @@ export default function Leads() {
                     <Td>
                       <StatusBadge status={lead.status} />
                       {lead.next_action_at && (
-                        <span className="mt-1 block text-xs text-steel-400">
+                        <span className="mt-1 block text-xs text-grafito-400">
                           {formatDate(lead.next_action_at)}
                         </span>
                       )}
                     </Td>
-                    <Td className="whitespace-nowrap text-xs text-steel-400">
+                    <Td className="whitespace-nowrap text-xs text-grafito-400">
                       {formatDateTime(lead.created_at)}
                     </Td>
                     <Td align="right">
@@ -1184,7 +1184,7 @@ export default function Leads() {
                             href={wa}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-md bg-secondary-500 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-secondary-600"
+                            className="rounded-md bg-grafito-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-grafito-700"
                           >
                             WhatsApp
                           </a>
