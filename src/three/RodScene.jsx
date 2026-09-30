@@ -714,8 +714,8 @@ function RodScene({ progressRef }) {
       dpr={[1, 1.8]}
       gl={{ antialias: true }}
     >
-      <color attach="background" args={['#101f30']} />
-      <fog attach="fog" args={['#101f30', 16, 34]} />
+      <color attach="background" args={['#1d2120']} />
+      <fog attach="fog" args={['#1d2120', 16, 34]} />
 
       <ambientLight intensity={0.65} />
       <directionalLight position={[5, 8, 6]} intensity={1.5} />

@@ -30,10 +30,10 @@ function Detail({ label, value }) {
 
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-steel-400">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-grafito-400">
         {label}
       </dt>
-      <dd className="mt-0.5 text-sm text-steel-700">{value}</dd>
+      <dd className="mt-0.5 text-sm text-grafito-700">{value}</dd>
     </div>
   )
 }
@@ -107,7 +107,7 @@ export default function CustomerDetail() {
                 <>
                   <Link
                     to="/erp/clientes"
-                    className="inline-flex items-center rounded-md border border-steel-200 bg-white px-3 py-2 text-sm font-semibold text-steel-600 hover:border-steel-300"
+                    className="inline-flex items-center rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm font-semibold text-grafito-600 hover:border-grafito-300"
                   >
                     Volver
                   </Link>
@@ -116,7 +116,7 @@ export default function CustomerDetail() {
                       href={wa}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center rounded-md bg-steel-100 px-3 py-2 text-sm font-semibold text-steel-700 hover:bg-steel-200"
+                      className="inline-flex items-center rounded-md bg-grafito-100 px-3 py-2 text-sm font-semibold text-grafito-700 hover:bg-grafito-200"
                     >
                       WhatsApp
                     </a>
@@ -174,7 +174,7 @@ export default function CustomerDetail() {
                   <Detail label="Notas" value={customer.notas} />
                   <Detail label="Cliente desde" value={formatDate(customer.created_at)} />
                 </dl>
-                <div className="border-t border-steel-100 px-4 py-3">
+                <div className="border-t border-grafito-100 px-4 py-3">
                   <Button
                     variant="danger"
                     className="w-full"
@@ -203,11 +203,11 @@ export default function CustomerDetail() {
                       }
                     >
                       {customer.orders.map((order) => (
-                        <tr key={order.id} className="hover:bg-steel-50">
+                        <tr key={order.id} className="hover:bg-grafito-50">
                           <Td>
                             <Link
                               to={`/erp/pedidos/${order.id}`}
-                              className="font-semibold text-secondary-500 hover:underline"
+                              className="font-semibold text-celeste-700 hover:underline"
                             >
                               #{order.numero}
                             </Link>
@@ -217,10 +217,10 @@ export default function CustomerDetail() {
                               {ORDER_STATE_LABELS[order.estado]}
                             </Badge>
                           </Td>
-                          <Td className="whitespace-nowrap text-xs text-steel-400">
+                          <Td className="whitespace-nowrap text-xs text-grafito-400">
                             {formatDate(order.fecha)}
                           </Td>
-                          <Td align="right" className="tabular-nums text-steel-600">
+                          <Td align="right" className="tabular-nums text-grafito-600">
                             {formatNumber(order.unidades)}
                           </Td>
                           <Td align="right">
@@ -232,7 +232,7 @@ export default function CustomerDetail() {
                               className={
                                 Number(order.saldo) > 0
                                   ? 'font-semibold text-amber-600'
-                                  : 'text-steel-400'
+                                  : 'text-grafito-400'
                               }
                             />
                           </Td>
@@ -257,13 +257,13 @@ export default function CustomerDetail() {
                     >
                       {customer.leads.map((lead) => (
                         <tr key={lead.id}>
-                          <Td className="whitespace-nowrap text-xs text-steel-400">
+                          <Td className="whitespace-nowrap text-xs text-grafito-400">
                             {formatDateTime(lead.created_at)}
                           </Td>
-                          <Td align="right" className="tabular-nums text-steel-600">
+                          <Td align="right" className="tabular-nums text-grafito-600">
                             {formatNumber(lead.cantidad)}
                           </Td>
-                          <Td className="text-xs text-steel-500">
+                          <Td className="text-xs text-grafito-500">
                             {lead.agujereada === null
                               ? 'Sin definir'
                               : lead.agujereada

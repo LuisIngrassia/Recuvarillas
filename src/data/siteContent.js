@@ -7,9 +7,9 @@ export const company = {
   whatsapp: '5491123958302',
   email: 'recuvarilla@gmail.com',
   address: 'Luján, Buenos Aires, Argentina',
-  hours: 'Lunes a sabado de 8 a 18 hs',
+  hours: 'Lunes a sábado de 8 a 18 hs',
   social: {
-    instagram: '#recuvarilla',
+    instagram: 'https://www.instagram.com/recuvarilla/',
     facebook: '#recuvarilla',
     tiktok: '#recuvarilla',
     youtube: '#recuvarilla',
@@ -39,10 +39,12 @@ export const products = [
       { type: 'video', src: 'videos/comun-vid.mp4', poster: 'videos/comun-vid-poster.jpg' },
       { type: 'image', src: 'stock.png' },
     ],
-    datasheet: 'fichas/varilla-estandar.pdf',
+    // La ficha es la misma que emite el ERP (Documentos → Ficha técnica),
+    // exportada con el contacto de la empresa.
+    datasheet: 'fichas/ficha-tecnica-varilla.pdf',
   },
   {
-    name: 'Varilla estandar perforada a medida',
+    name: 'Varilla estándar perforada a medida',
     description:
       'Cortamos, perforamos y adaptamos la varilla según las necesidades del establecimiento.',
     specs: ['Largo: 120 cm', 'Dimensiones: 3 x 3 cm ', 'Perforaciones a pedido', 'Uso: alambrados y cercos eléctricos'],
@@ -56,7 +58,7 @@ export const products = [
       { type: 'image', src: 'agujereada-cerca.jpg' },
       { type: 'image', src: 'stock.png' },
     ],
-    datasheet: 'fichas/varilla-perforada.pdf',
+    datasheet: 'fichas/ficha-tecnica-varilla.pdf',
   },
   {
     name: 'Alambre 17 / 15 galvanizado para alambrado rural',
@@ -65,9 +67,9 @@ export const products = [
     specs: ['Largo: 1000 mts', "Dimensiones: 17 / 15", 'Uso: alambrados y cercos eléctricos'],
     media: [
       { type: 'image', src: 'alambre.jpg' },
-      { type: 'image', src: 'alambre2.jpg' },
+      // La foto de stock con postes de madera (alambre2.jpg) se sacó: es el
+      // ejemplo de "no" del manual de marca (06 · Fotografía).
     ],
-    datasheet: 'fichas/varilla-perforada.pdf',
   },
 ]
 

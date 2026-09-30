@@ -81,17 +81,17 @@ function Linea({ label, value, signo, strong, hint }) {
   return (
     <div
       className={`flex items-baseline justify-between gap-4 px-4 py-2 ${
-        strong ? 'border-t border-steel-200 bg-steel-50' : ''
+        strong ? 'border-t border-grafito-200 bg-grafito-50' : ''
       }`}
     >
-      <span className={strong ? 'font-semibold text-steel-800' : 'text-sm text-steel-500'}>
-        {signo && <span className="mr-1 text-steel-300">{signo}</span>}
+      <span className={strong ? 'font-semibold text-grafito-800' : 'text-sm text-grafito-500'}>
+        {signo && <span className="mr-1 text-grafito-300">{signo}</span>}
         {label}
-        {hint && <span className="block text-xs text-steel-400">{hint}</span>}
+        {hint && <span className="block text-xs text-grafito-400">{hint}</span>}
       </span>
       <Money
         value={value}
-        className={strong ? 'text-lg font-bold text-steel-900' : 'text-sm text-steel-700'}
+        className={strong ? 'text-lg font-bold text-grafito-900' : 'text-sm text-grafito-700'}
       />
     </div>
   )
@@ -119,7 +119,7 @@ function Liquidacion({ leToca, pagos, onLiquidar, onAbrir }) {
   /* Nada que liquidar no es lo mismo que pendiente: un mes sin ganancia no le
      debe nada a nadie y ofrecer el botón sería invitar a registrar un cero. */
   if (Math.abs(Number(leToca)) < 0.01 && pagos.length === 0) {
-    return <span className="text-xs text-steel-300">—</span>
+    return <span className="text-xs text-grafito-300">—</span>
   }
 
   return (
@@ -127,12 +127,12 @@ function Liquidacion({ leToca, pagos, onLiquidar, onAbrir }) {
       {pagos.length > 0 && (
         <span className="whitespace-nowrap text-xs">
           {saldado ? (
-            <span className="font-semibold text-secondary-600">Pagado</span>
+            <span className="font-semibold text-pasto-600">Pagado</span>
           ) : (
             <>
-              <span className="text-steel-500">Pagado </span>
-              <span className="font-semibold text-steel-700">{formatPesos(pagado)}</span>
-              <span className="text-steel-400"> · falta {formatPesos(falta)}</span>
+              <span className="text-grafito-500">Pagado </span>
+              <span className="font-semibold text-grafito-700">{formatPesos(pagado)}</span>
+              <span className="text-grafito-400"> · falta {formatPesos(falta)}</span>
             </>
           )}
         </span>
@@ -151,7 +151,7 @@ function Liquidacion({ leToca, pagos, onLiquidar, onAbrir }) {
         <button
           type="button"
           onClick={onAbrir}
-          className="text-xs text-steel-400 underline-offset-2 hover:text-steel-600 hover:underline"
+          className="text-xs text-grafito-400 underline-offset-2 hover:text-grafito-600 hover:underline"
         >
           {saldado ? 'ver' : 'parte'}
         </button>
@@ -208,24 +208,24 @@ function PayoutModal({ parte, leToca, pagos, onClose, onRegistrar, onBorrar }) {
   return (
     <Modal title={`Liquidar a ${parte.nombre}`} onClose={onClose}>
       <div className="space-y-4">
-        <dl className="grid grid-cols-3 gap-2 rounded-md bg-steel-50 px-3 py-2 text-xs">
+        <dl className="grid grid-cols-3 gap-2 rounded-md bg-grafito-50 px-3 py-2 text-xs">
           <div>
-            <dt className="text-steel-400">Le toca</dt>
-            <dd className="tabular-nums font-semibold text-steel-700">
+            <dt className="text-grafito-400">Le toca</dt>
+            <dd className="tabular-nums font-semibold text-grafito-700">
               {formatPesos(leToca)}
             </dd>
           </div>
           <div>
-            <dt className="text-steel-400">Pagado</dt>
-            <dd className="tabular-nums font-semibold text-steel-700">
+            <dt className="text-grafito-400">Pagado</dt>
+            <dd className="tabular-nums font-semibold text-grafito-700">
               {formatPesos(pagado)}
             </dd>
           </div>
           <div>
-            <dt className="text-steel-400">Falta</dt>
+            <dt className="text-grafito-400">Falta</dt>
             <dd
               className={`tabular-nums font-semibold ${
-                Math.abs(falta) < 0.01 ? 'text-secondary-600' : 'text-amber-600'
+                Math.abs(falta) < 0.01 ? 'text-pasto-600' : 'text-amber-600'
               }`}
             >
               {formatPesos(falta)}
@@ -235,25 +235,25 @@ function PayoutModal({ parte, leToca, pagos, onClose, onRegistrar, onBorrar }) {
 
         {pagos.length > 0 && (
           <div>
-            <p className="mb-1 text-xs font-semibold text-steel-600">Pagos registrados</p>
-            <ul className="divide-y divide-steel-100 rounded-md border border-steel-200">
+            <p className="mb-1 text-xs font-semibold text-grafito-600">Pagos registrados</p>
+            <ul className="divide-y divide-grafito-100 rounded-md border border-grafito-200">
               {pagos.map((pago) => (
                 <li
                   key={pago.id}
                   className="flex items-baseline justify-between gap-3 px-3 py-2 text-xs"
                 >
-                  <span className="text-steel-500">
+                  <span className="text-grafito-500">
                     {formatDate(pago.fecha)}
                     {pago.nota && (
-                      <span className="block text-steel-400">{pago.nota}</span>
+                      <span className="block text-grafito-400">{pago.nota}</span>
                     )}
                   </span>
                   <span className="flex items-baseline gap-3">
-                    <Money value={pago.monto} className="font-semibold text-steel-700" />
+                    <Money value={pago.monto} className="font-semibold text-grafito-700" />
                     <button
                       type="button"
                       onClick={() => onBorrar(pago)}
-                      className="text-steel-400 underline-offset-2 hover:text-red-600 hover:underline"
+                      className="text-grafito-400 underline-offset-2 hover:text-tapita-600 hover:underline"
                     >
                       borrar
                     </button>
@@ -264,7 +264,7 @@ function PayoutModal({ parte, leToca, pagos, onClose, onRegistrar, onBorrar }) {
           </div>
         )}
 
-        <form onSubmit={registrar} className="space-y-4 border-t border-steel-100 pt-4">
+        <form onSubmit={registrar} className="space-y-4 border-t border-grafito-100 pt-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label="Cuánto se le paga"
@@ -469,7 +469,7 @@ export default function Profit() {
             type="month"
             value={mes}
             onChange={(event) => setMes(event.target.value)}
-            className="rounded-md border border-steel-200 bg-white px-3 py-2 text-sm text-steel-700"
+            className="rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm text-grafito-700"
           />
         }
       />
@@ -612,7 +612,7 @@ export default function Profit() {
               )}
 
               {reparto.sinDueno > 0.01 && (
-                <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-800">
+                <div className="mb-6 rounded-md border border-tapita-200 bg-tapita-50 px-4 py-3 text-sm leading-relaxed text-tapita-800">
                   <strong>
                     Hay {formatPesos(reparto.sinDueno)} de gastos sin dueño este
                     mes.
@@ -634,7 +634,7 @@ export default function Profit() {
                   común es que los pedidos sigan en presupuesto, que no cuentan
                   como venta. Decirlo evita salir a buscar el error a otro lado. */}
               {!fila && (
-                <div className="mb-6 rounded-md border border-steel-200 bg-steel-50 px-4 py-3 text-sm leading-relaxed text-steel-600">
+                <div className="mb-6 rounded-md border border-grafito-200 bg-grafito-50 px-4 py-3 text-sm leading-relaxed text-grafito-600">
                   No hay nada registrado en {formatMonth(mes)}: ni ventas ni gastos.
                   Si cargaste pedidos este mes y no aparecen, fijate que estén{' '}
                   <strong>confirmados</strong> — un presupuesto todavía no es una
@@ -711,7 +711,7 @@ export default function Profit() {
 
                     {directos.length > 0 && (
                       <>
-                        <p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-steel-400">
+                        <p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-grafito-400">
                           Lo bancan socios puntuales
                         </p>
                         {directos.map((tipo) => (
@@ -732,7 +732,7 @@ export default function Profit() {
 
                     {delPozo.length > 0 && (
                       <>
-                        <p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-steel-400">
+                        <p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-grafito-400">
                           Los paga el pozo
                         </p>
                         {delPozo.map((tipo) => (
@@ -758,7 +758,7 @@ export default function Profit() {
                       strong
                     />
                   </div>
-                  <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
+                  <p className="border-t border-grafito-100 px-4 py-3 text-xs leading-relaxed text-grafito-400">
                     Cuenta como venta todo pedido confirmado en adelante, por su
                     fecha; los presupuestos y los anulados no entran. El flete no
                     entra en la base porque no lo paga ninguno de ustedes: se
@@ -814,8 +814,8 @@ export default function Profit() {
                     }
                   >
                     {reparto.partes.map((parte) => (
-                      <tr key={parte.id} className="align-top hover:bg-steel-50">
-                        <Td className="font-medium text-steel-700">
+                      <tr key={parte.id} className="align-top hover:bg-grafito-50">
+                        <Td className="font-medium text-grafito-700">
                           {parte.nombre}
                           {parte.es_reinversion && (
                             <span className="ml-2">
@@ -823,21 +823,21 @@ export default function Profit() {
                             </span>
                           )}
                         </Td>
-                        <Td align="right" className="tabular-nums text-steel-500">
+                        <Td align="right" className="tabular-nums text-grafito-500">
                           {parte.porcentaje}%
                         </Td>
                         <Td align="right">
                           <Money
                             value={parte.monto}
                             className={`font-semibold ${
-                              parte.monto < 0 ? 'text-red-600' : 'text-steel-800'
+                              parte.monto < 0 ? 'text-tapita-600' : 'text-grafito-800'
                             }`}
                           />
                           {/* De dónde salió ese número. Sin esto, un socio ve
                               un monto más chico que su porcentaje y no tiene
                               cómo saber qué se le descontó. */}
                           {parte.cargos.length > 0 && (
-                            <span className="mt-1 block space-y-0.5 text-xs font-normal text-steel-400">
+                            <span className="mt-1 block space-y-0.5 text-xs font-normal text-grafito-400">
                               <span className="block">
                                 {formatPesos(parte.bruto)} de su {parte.porcentaje}%
                               </span>
@@ -854,7 +854,7 @@ export default function Profit() {
                           {/* La reinversión no se le paga a nadie: su parte es
                               el pozo, y el pozo ya está invertido. */}
                           {parte.es_reinversion ? (
-                            <span className="text-xs text-steel-300">va al pozo</span>
+                            <span className="text-xs text-grafito-300">va al pozo</span>
                           ) : (
                             <Liquidacion
                               leToca={parte.monto}
@@ -905,19 +905,19 @@ export default function Profit() {
                     const saldado = Math.abs(aPagar - pagado) < 0.01 && aPagar !== 0
 
                     return (
-                      <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-steel-100 px-4 py-2.5 text-xs">
-                        <span className="text-steel-500">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-grafito-100 px-4 py-2.5 text-xs">
+                        <span className="text-grafito-500">
                           Liquidado de este mes
                           {saldado && (
-                            <span className="ml-2 font-semibold text-secondary-600">
+                            <span className="ml-2 font-semibold text-pasto-600">
                               todo pagado
                             </span>
                           )}
                         </span>
                         <span className="tabular-nums">
-                          <Money value={pagado} className="font-semibold text-steel-800" />
-                          <span className="text-steel-400"> de </span>
-                          <Money value={aPagar} className="text-steel-500" />
+                          <Money value={pagado} className="font-semibold text-grafito-800" />
+                          <span className="text-grafito-400"> de </span>
+                          <Money value={aPagar} className="text-grafito-500" />
                         </span>
                       </div>
                     )
@@ -925,32 +925,32 @@ export default function Profit() {
 
                   {/* El pozo. No es plata guardada esperando el mes que viene:
                       es plata que ya está invertida y se acumula. */}
-                  <div className="border-t border-steel-200 bg-steel-50 px-4 py-3">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-steel-500">
+                  <div className="border-t border-grafito-200 bg-grafito-50 px-4 py-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-grafito-500">
                       El pozo de reinversión
                     </p>
                     <dl className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
                       <div className="flex justify-between gap-3">
-                        <dt className="text-steel-500">Venía acumulado</dt>
-                        <dd className="tabular-nums text-steel-700">
+                        <dt className="text-grafito-500">Venía acumulado</dt>
+                        <dd className="tabular-nums text-grafito-700">
                           {formatPesos(pozo.entrante)}
                         </dd>
                       </div>
                       <div className="flex justify-between gap-3">
-                        <dt className="text-steel-500">Aporte del mes ({pozo.tasa}%)</dt>
-                        <dd className="tabular-nums text-steel-700">
+                        <dt className="text-grafito-500">Aporte del mes ({pozo.tasa}%)</dt>
+                        <dd className="tabular-nums text-grafito-700">
                           {formatPesos(pozo.aporte)}
                         </dd>
                       </div>
                       <div className="flex justify-between gap-3">
-                        <dt className="text-steel-500">Invertido este mes</dt>
-                        <dd className="tabular-nums text-steel-700">
+                        <dt className="text-grafito-500">Invertido este mes</dt>
+                        <dd className="tabular-nums text-grafito-700">
                           −{formatPesos(pozo.cubierto)}
                         </dd>
                       </div>
                       <div className="flex justify-between gap-3 font-semibold">
-                        <dt className="text-steel-600">Queda en el pozo</dt>
-                        <dd className="tabular-nums text-steel-800">
+                        <dt className="text-grafito-600">Queda en el pozo</dt>
+                        <dd className="tabular-nums text-grafito-800">
                           {formatPesos(pozo.saliente)}
                         </dd>
                       </div>
@@ -973,7 +973,7 @@ export default function Profit() {
                     </div>
                   )}
 
-                  <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
+                  <p className="border-t border-grafito-100 px-4 py-3 text-xs leading-relaxed text-grafito-400">
                     Cada uno cobra su porcentaje sobre el valor del producto
                     vendido, y de ahí se le descuentan sólo los costos que él
                     banca. El pozo no se le paga a nadie y no vence: es plata que
@@ -993,9 +993,9 @@ export default function Profit() {
                 className="mt-6"
                 actions={
                   Number(datos.costo_pauta) > 0 && (
-                    <span className="text-xs text-steel-500">
+                    <span className="text-xs text-grafito-500">
                       Pauta del mes:{' '}
-                      <span className="font-semibold text-steel-700">
+                      <span className="font-semibold text-grafito-700">
                         {formatPesos(datos.costo_pauta)}
                       </span>
                     </span>
@@ -1021,11 +1021,11 @@ export default function Profit() {
                         const cierre = fila.leads > 0 ? (fila.ganados / fila.leads) * 100 : null
 
                         return (
-                          <tr key={fila.origen} className="hover:bg-steel-50">
-                            <Td className="font-medium text-steel-700">
+                          <tr key={fila.origen} className="hover:bg-grafito-50">
+                            <Td className="font-medium text-grafito-700">
                               {LEAD_SOURCE_LABELS[fila.origen] ?? fila.origen}
                             </Td>
-                            <Td align="right" className="tabular-nums text-steel-600">
+                            <Td align="right" className="tabular-nums text-grafito-600">
                               {formatNumber(fila.leads)}
                               {fila.sin_contactar > 0 && (
                                 <span className="block text-xs text-amber-600">
@@ -1033,16 +1033,16 @@ export default function Profit() {
                                 </span>
                               )}
                             </Td>
-                            <Td align="right" className="tabular-nums text-steel-600">
+                            <Td align="right" className="tabular-nums text-grafito-600">
                               {formatNumber(fila.ganados)}
                             </Td>
-                            <Td align="right" className="tabular-nums text-steel-500">
+                            <Td align="right" className="tabular-nums text-grafito-500">
                               {cierre === null ? '—' : `${cierre.toFixed(0)}%`}
                             </Td>
                             <Td align="right">
                               <Money
                                 value={fila.facturado}
-                                className="font-semibold text-steel-800"
+                                className="font-semibold text-grafito-800"
                               />
                             </Td>
                           </tr>
@@ -1052,7 +1052,7 @@ export default function Profit() {
                   )}
                 </Async>
 
-                <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
+                <p className="border-t border-grafito-100 px-4 py-3 text-xs leading-relaxed text-grafito-400">
                   La venta se cuenta en el mes del contacto y no en el del
                   pedido: lo que se mide es la captación, y al que preguntó en
                   septiembre lo trajo la plata gastada en septiembre. A cada
@@ -1088,30 +1088,30 @@ export default function Profit() {
                         const saldado = Math.abs(saldo) < 0.01
 
                         return (
-                          <tr key={cuenta.id} className="hover:bg-steel-50">
-                            <Td className="font-medium text-steel-700">
+                          <tr key={cuenta.id} className="hover:bg-grafito-50">
+                            <Td className="font-medium text-grafito-700">
                               {cuenta.nombre}
-                              <span className="block text-xs font-normal text-steel-400">
+                              <span className="block text-xs font-normal text-grafito-400">
                                 {cuenta.meses.length}{' '}
                                 {cuenta.meses.length === 1 ? 'mes' : 'meses'}
                               </span>
                             </Td>
                             <Td align="right">
-                              <Money value={cuenta.leToca} className="text-steel-600" />
+                              <Money value={cuenta.leToca} className="text-grafito-600" />
                             </Td>
                             <Td align="right">
-                              <Money value={cuenta.pagado} className="text-steel-600" />
+                              <Money value={cuenta.pagado} className="text-grafito-600" />
                             </Td>
                             <Td align="right">
                               {saldado ? (
-                                <span className="text-xs font-semibold text-secondary-600">
+                                <span className="text-xs font-semibold text-pasto-600">
                                   al día
                                 </span>
                               ) : (
                                 <Money
                                   value={saldo}
                                   className={`font-semibold ${
-                                    saldo > 0 ? 'text-amber-600' : 'text-red-600'
+                                    saldo > 0 ? 'text-amber-600' : 'text-tapita-600'
                                   }`}
                                 />
                               )}
@@ -1121,8 +1121,8 @@ export default function Profit() {
                       })}
                     </Table>
 
-                    <details className="border-t border-steel-100">
-                      <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-steel-500 hover:bg-steel-50">
+                    <details className="border-t border-grafito-100">
+                      <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-grafito-500 hover:bg-grafito-50">
                         Ver mes por mes
                       </summary>
                       <Table
@@ -1156,23 +1156,23 @@ export default function Profit() {
                               <tr
                                 key={`${fila.cuenta.id}-${fila.mes}`}
                                 onClick={() => setMes(fila.mes)}
-                                className={`cursor-pointer hover:bg-steel-50 ${
-                                  fila.mes === mes ? 'bg-secondary-50' : ''
+                                className={`cursor-pointer hover:bg-grafito-50 ${
+                                  fila.mes === mes ? 'bg-celeste-50' : ''
                                 }`}
                               >
-                                <Td className="whitespace-nowrap capitalize text-steel-600">
+                                <Td className="whitespace-nowrap capitalize text-grafito-600">
                                   {formatMonth(fila.mes)}
                                 </Td>
-                                <Td className="text-steel-700">{fila.cuenta.nombre}</Td>
+                                <Td className="text-grafito-700">{fila.cuenta.nombre}</Td>
                                 <Td align="right">
-                                  <Money value={fila.monto} className="text-steel-600" />
+                                  <Money value={fila.monto} className="text-grafito-600" />
                                 </Td>
                                 <Td align="right">
                                   <Money
                                     value={cobrado}
                                     className={
                                       Math.abs(cobrado - fila.monto) < 0.01
-                                        ? 'text-secondary-600'
+                                        ? 'text-pasto-600'
                                         : 'font-semibold text-amber-600'
                                     }
                                   />
@@ -1186,7 +1186,7 @@ export default function Profit() {
                 )}
 
                 {montoPozoViejo > 0 && (
-                  <div className="border-t border-steel-200 bg-steel-50 px-4 py-3 text-xs leading-relaxed text-steel-500">
+                  <div className="border-t border-grafito-200 bg-grafito-50 px-4 py-3 text-xs leading-relaxed text-grafito-500">
                     En «cobró» hay {formatPesos(montoPozoViejo)} de liquidaciones
                     del pozo hechas bajo la regla vieja, cuando lo que no se usaba
                     en dos meses vencía y volvía al socio minoritario. Esa regla ya
@@ -1195,7 +1195,7 @@ export default function Profit() {
                   </div>
                 )}
 
-                <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
+                <p className="border-t border-grafito-100 px-4 py-3 text-xs leading-relaxed text-grafito-400">
                   «Le tocó» se recalcula siempre con los datos de hoy; «cobró» es
                   lo que quedó registrado al pagar. Si un saldo aparece donde no
                   debería, suele ser que se corrigió un gasto de un mes ya
@@ -1205,7 +1205,7 @@ export default function Profit() {
 
               <Card title="Los últimos meses" className="mt-6">
                 {meses.length === 0 ? (
-                  <p className="px-4 py-8 text-center text-sm text-steel-400">
+                  <p className="px-4 py-8 text-center text-sm text-grafito-400">
                     Todavía no hay ningún mes con ventas ni gastos.
                   </p>
                 ) : (
@@ -1227,29 +1227,29 @@ export default function Profit() {
                         <tr
                           key={row.mes}
                           onClick={() => setMes(suyo)}
-                          className={`cursor-pointer hover:bg-steel-50 ${
-                            suyo === mes ? 'bg-secondary-50' : ''
+                          className={`cursor-pointer hover:bg-grafito-50 ${
+                            suyo === mes ? 'bg-celeste-50' : ''
                           }`}
                         >
-                          <Td className="whitespace-nowrap font-medium capitalize text-steel-700">
+                          <Td className="whitespace-nowrap font-medium capitalize text-grafito-700">
                             {formatMonth(row.mes)}
                           </Td>
-                          <Td align="right" className="tabular-nums text-steel-500">
+                          <Td align="right" className="tabular-nums text-grafito-500">
                             {row.pedidos}
                           </Td>
                           <Td align="right">
-                            <Money value={row.facturado} className="text-steel-600" />
+                            <Money value={row.facturado} className="text-grafito-600" />
                           </Td>
                           <Td align="right">
-                            <Money value={row.costos} className="text-steel-500" />
+                            <Money value={row.costos} className="text-grafito-500" />
                           </Td>
                           <Td align="right">
                             <Money
                               value={row.ganancia_neta}
                               className={`font-semibold ${
                                 Number(row.ganancia_neta) >= 0
-                                  ? 'text-steel-800'
-                                  : 'text-red-600'
+                                  ? 'text-grafito-800'
+                                  : 'text-tapita-600'
                               }`}
                             />
                           </Td>
@@ -1258,7 +1258,7 @@ export default function Profit() {
                           <Td align="right">
                             <Money
                               value={cadena.get(suyo)?.pozo.saliente ?? 0}
-                              className="text-steel-500"
+                              className="text-grafito-500"
                             />
                           </Td>
                         </tr>

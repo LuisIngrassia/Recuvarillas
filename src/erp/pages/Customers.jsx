@@ -95,7 +95,7 @@ export default function Customers() {
         <select
           value={provincia}
           onChange={(event) => setProvincia(event.target.value)}
-          className="rounded-md border border-steel-200 bg-white px-3 py-2 text-sm text-steel-700"
+          className="rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm text-grafito-700"
         >
           <option value="">Todas las provincias</option>
           {provincias.map((item) => (
@@ -104,28 +104,28 @@ export default function Customers() {
             </option>
           ))}
         </select>
-        <label className="flex items-center gap-2 text-sm text-steel-600">
+        <label className="flex items-center gap-2 text-sm text-grafito-600">
           <input
             type="checkbox"
             checked={onlyDebtors}
             onChange={(event) => setOnlyDebtors(event.target.checked)}
-            className="h-4 w-4 rounded border-steel-300 text-secondary-500 focus:ring-secondary-500"
+            className="h-4 w-4 rounded border-grafito-300 text-grafito-900 focus:ring-celeste-700"
           />
           Sólo los que deben
         </label>
-        <label className="flex items-center gap-2 text-sm text-steel-600">
+        <label className="flex items-center gap-2 text-sm text-grafito-600">
           <input
             type="checkbox"
             checked={verProspectos}
             onChange={(event) => setVerProspectos(event.target.checked)}
-            className="h-4 w-4 rounded border-steel-300 text-secondary-500 focus:ring-secondary-500"
+            className="h-4 w-4 rounded border-grafito-300 text-grafito-900 focus:ring-celeste-700"
           />
           Incluir prospectos
         </label>
       </div>
 
       {ocultos > 0 && (
-        <p className="mb-4 rounded-md border border-steel-200 bg-steel-50 px-3 py-2 text-xs text-steel-600">
+        <p className="mb-4 rounded-md border border-grafito-200 bg-grafito-50 px-3 py-2 text-xs text-grafito-600">
           {ocultos === 1
             ? term
               ? 'Hay 1 prospecto que coincide con la búsqueda y queda fuera de la lista: se le armó un presupuesto pero todavía no compró.'
@@ -136,7 +136,7 @@ export default function Customers() {
           <button
             type="button"
             onClick={() => setVerProspectos(true)}
-            className="font-semibold text-secondary-500 hover:underline"
+            className="font-semibold text-celeste-700 hover:underline"
           >
             Mostrarlos
           </button>
@@ -183,17 +183,17 @@ export default function Customers() {
                 return (
                   <tr
                     key={customer.customer_id}
-                    className="cursor-pointer hover:bg-steel-50"
+                    className="cursor-pointer hover:bg-grafito-50"
                     onClick={() => navigate(`/erp/clientes/${customer.customer_id}`)}
                   >
                     <Td>
                       <Link
                         to={`/erp/clientes/${customer.customer_id}`}
-                        className="font-medium text-steel-700 hover:text-secondary-500"
+                        className="font-medium text-grafito-700 hover:text-celeste-700"
                       >
                         {customer.nombre}
                       </Link>
-                      <span className="block text-xs text-steel-400">
+                      <span className="block text-xs text-grafito-400">
                         {customer.telefono}
                       </span>
                     </Td>
@@ -212,28 +212,28 @@ export default function Customers() {
                     </Td>
                     {/* Sin esto, filtrar por provincia deja una lista en la
                         que no se ve por qué está cada uno. */}
-                    <Td className="text-xs text-steel-500">
+                    <Td className="text-xs text-grafito-500">
                       {customer.localidad || customer.provincia ? (
                         <>
                           {customer.localidad}
                           {customer.provincia && (
-                            <span className="block text-steel-400">
+                            <span className="block text-grafito-400">
                               {customer.provincia}
                               {customer.codigo_postal ? ` · ${customer.codigo_postal}` : ''}
                             </span>
                           )}
                         </>
                       ) : (
-                        <span className="text-steel-300">sin dirección</span>
+                        <span className="text-grafito-300">sin dirección</span>
                       )}
                     </Td>
-                    <Td align="right" className="tabular-nums text-steel-600">
+                    <Td align="right" className="tabular-nums text-grafito-600">
                       {formatNumber(customer.pedidos)}
                     </Td>
-                    <Td align="right" className="text-steel-600">
+                    <Td align="right" className="text-grafito-600">
                       <Money value={customer.facturado} />
                     </Td>
-                    <Td align="right" className="text-steel-600">
+                    <Td align="right" className="text-grafito-600">
                       <Money value={customer.cobrado} />
                     </Td>
                     <Td align="right">
@@ -243,8 +243,8 @@ export default function Customers() {
                           saldo > 0
                             ? 'font-semibold text-amber-600'
                             : saldo < 0
-                              ? 'font-semibold text-primary-600'
-                              : 'text-steel-400'
+                              ? 'font-semibold text-celeste-600'
+                              : 'text-grafito-400'
                         }
                       />
                     </Td>
@@ -255,7 +255,7 @@ export default function Customers() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(event) => event.stopPropagation()}
-                          className="text-xs font-semibold text-secondary-500 hover:underline"
+                          className="text-xs font-semibold text-celeste-700 hover:underline"
                         >
                           WhatsApp
                         </a>

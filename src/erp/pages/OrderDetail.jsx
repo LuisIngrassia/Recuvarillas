@@ -54,11 +54,11 @@ import {
 function TotalRow({ label, value, strong, hint }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-1.5">
-      <span className={strong ? 'font-semibold text-steel-800' : 'text-steel-500'}>
+      <span className={strong ? 'font-semibold text-grafito-800' : 'text-grafito-500'}>
         {label}
-        {hint && <span className="block text-xs text-steel-400">{hint}</span>}
+        {hint && <span className="block text-xs text-grafito-400">{hint}</span>}
       </span>
-      <span className={strong ? 'text-lg font-bold text-steel-900' : 'text-steel-700'}>
+      <span className={strong ? 'text-lg font-bold text-grafito-900' : 'text-grafito-700'}>
         {value}
       </span>
     </div>
@@ -173,7 +173,7 @@ function AddItem({ order, products, onAdded }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-steel-100 px-4 py-4">
+    <form onSubmit={handleSubmit} className="border-t border-grafito-100 px-4 py-4">
       <div className="grid gap-3 sm:grid-cols-[2fr_1.3fr_1fr_1fr_auto] sm:items-start">
         <Field label="Producto">
           <Select value={productId} onChange={(event) => setProductId(event.target.value)}>
@@ -188,7 +188,7 @@ function AddItem({ order, products, onAdded }) {
           /* Se deja la celda en lugar de sacarla, para que las columnas no se
              corran al cambiar de producto. */
           <Field label="Acabado">
-            <p className="py-2 text-sm text-steel-400">No aplica</p>
+            <p className="py-2 text-sm text-grafito-400">No aplica</p>
           </Field>
         ) : (
           <Field label="Acabado">
@@ -288,7 +288,7 @@ function AddService({ order, rates, onAdded }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-steel-100 px-4 py-4">
+    <form onSubmit={handleSubmit} className="border-t border-grafito-100 px-4 py-4">
       <div className="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-start">
         <Field label="Qué se hizo">
           <Select value={rateId} onChange={(event) => setRateId(event.target.value)}>
@@ -365,8 +365,8 @@ function ServiciosCard({ order, editable, onChanged }) {
         >
           {order.services.map((servicio) => (
             <tr key={servicio.id}>
-              <Td className="text-steel-700">{servicio.concepto}</Td>
-              <Td align="right" className="tabular-nums text-steel-600">
+              <Td className="text-grafito-700">{servicio.concepto}</Td>
+              <Td align="right" className="tabular-nums text-grafito-600">
                 {Number(servicio.horas)}
               </Td>
               <Td align="right">
@@ -380,7 +380,7 @@ function ServiciosCard({ order, editable, onChanged }) {
                   <button
                     type="button"
                     onClick={() => quitar(servicio.id)}
-                    className="text-xs font-semibold text-red-600 hover:underline print:hidden"
+                    className="text-xs font-semibold text-tapita-600 hover:underline print:hidden"
                   >
                     Quitar
                   </button>
@@ -404,7 +404,7 @@ function ServiciosCard({ order, editable, onChanged }) {
       )}
 
       {rates.data && rates.data.length === 0 && (
-        <p className="border-t border-steel-100 px-4 py-3 text-xs text-steel-400 print:hidden">
+        <p className="border-t border-grafito-100 px-4 py-3 text-xs text-grafito-400 print:hidden">
           No hay tarifas por hora cargadas. Se cargan en Ajustes → Precios.
         </p>
       )}
@@ -454,7 +454,7 @@ function AddPayment({ order, onAdded }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-steel-100 px-4 py-4">
+    <form onSubmit={handleSubmit} className="border-t border-grafito-100 px-4 py-4">
       <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-start">
         <Field
           label="Monto"
@@ -463,7 +463,7 @@ function AddPayment({ order, onAdded }) {
               <button
                 type="button"
                 onClick={() => setMonto(String(saldo))}
-                className="font-semibold text-secondary-500 hover:underline"
+                className="font-semibold text-celeste-700 hover:underline"
               >
                 Poner el saldo ({formatNumber(saldo)})
               </button>
@@ -545,18 +545,18 @@ function FleteOpciones({ cp, unidades, elegido, onElegir }) {
 
   if (!cpFinal.trim() || !Number.isFinite(unidades) || unidades < 1) {
     return (
-      <p className="rounded-md bg-steel-50 px-3 py-2 text-xs text-steel-400">
+      <p className="rounded-md bg-grafito-50 px-3 py-2 text-xs text-grafito-400">
         Cargá el código postal y la mercadería para ver quién llega y a cuánto.
       </p>
     )
   }
 
-  if (query.loading) return <p className="text-xs text-steel-400">Buscando transportes…</p>
+  if (query.loading) return <p className="text-xs text-grafito-400">Buscando transportes…</p>
   if (query.error) return <ErrorNote>{query.error}</ErrorNote>
 
   if (query.data.length === 0) {
     return (
-      <p className="rounded-md bg-steel-50 px-3 py-2 text-xs text-steel-400">
+      <p className="rounded-md bg-grafito-50 px-3 py-2 text-xs text-grafito-400">
         Ningún transporte cargado llega al CP {cpFinal.trim()} con{' '}
         {formatNumber(unidades)} varillas. Se puede poner el importe a mano.
       </p>
@@ -575,25 +575,25 @@ function FleteOpciones({ cp, unidades, elegido, onElegir }) {
               onClick={() => onElegir(opcion)}
               className={`flex w-full items-baseline justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm transition-colors ${
                 activo
-                  ? 'border-secondary-500 bg-secondary-50'
-                  : 'border-steel-200 bg-white hover:border-steel-300'
+                  ? 'border-celeste-600 bg-celeste-50'
+                  : 'border-grafito-200 bg-white hover:border-grafito-300'
               }`}
             >
               <span className="min-w-0">
-                <span className="block truncate font-medium text-steel-700">
+                <span className="block truncate font-medium text-grafito-700">
                   {opcion.nombre}
                   {indice === 0 && query.data.length > 1 && (
-                    <span className="ml-1.5 text-xs font-semibold text-secondary-600">
+                    <span className="ml-1.5 text-xs font-semibold text-pasto-600">
                       más barato
                     </span>
                   )}
                 </span>
-                <span className="block truncate text-xs text-steel-400">
+                <span className="block truncate text-xs text-grafito-400">
                   {CARRIER_TYPE_LABELS[opcion.tipo]} · {opcion.zona}
                   {opcion.plazo_dias !== null && ` · ${opcion.plazo_dias} días`}
                 </span>
               </span>
-              <Money value={opcion.precio} className="shrink-0 font-semibold text-steel-800" />
+              <Money value={opcion.precio} className="shrink-0 font-semibold text-grafito-800" />
             </button>
           </li>
         )
@@ -783,7 +783,7 @@ function OrderInfo({ order, onSaved }) {
         <Button onClick={save} disabled={saving} type="button">
           {saving ? 'Guardando…' : 'Guardar cambios'}
         </Button>
-        {saved && <span className="text-xs text-secondary-500">Guardado.</span>}
+        {saved && <span className="text-xs text-pasto-600">Guardado.</span>}
       </div>
     </div>
   )
@@ -851,8 +851,8 @@ function Comision({ order, onSaved }) {
   if (order.cliente_tipo === 'mayorista') {
     return (
       <div className="px-4 py-4">
-        <p className="text-sm font-medium text-steel-700">Sin comisión</p>
-        <p className="mt-1 text-xs leading-relaxed text-steel-400">
+        <p className="text-sm font-medium text-grafito-700">Sin comisión</p>
+        <p className="mt-1 text-xs leading-relaxed text-grafito-400">
           {order.cliente_nombre} es revendedor y ya compra con la lista
           mayorista, que es más barata justamente porque vuelve todos los meses.
           Ese descuento es lo que se resigna; sumarle comisión sería resignarlo
@@ -907,12 +907,12 @@ function Comision({ order, onSaved }) {
             />
           </Field>
 
-          <div className="rounded-md bg-steel-50 px-3 py-2">
+          <div className="rounded-md bg-grafito-50 px-3 py-2">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-xs text-steel-500">Devengado hasta hoy</span>
-              <Money value={order.comision} className="font-semibold text-steel-800" />
+              <span className="text-xs text-grafito-500">Devengado hasta hoy</span>
+              <Money value={order.comision} className="font-semibold text-grafito-800" />
             </div>
-            <p className="mt-1 text-xs text-steel-400">
+            <p className="mt-1 text-xs text-grafito-400">
               Sobre la mercadería y en proporción a lo cobrado. Se completa
               cuando el cliente termine de pagar.
             </p>
@@ -926,7 +926,7 @@ function Comision({ order, onSaved }) {
         <Button onClick={save} disabled={saving} type="button">
           {saving ? 'Guardando…' : 'Guardar'}
         </Button>
-        {saved && <span className="text-xs text-secondary-500">Guardado.</span>}
+        {saved && <span className="text-xs text-pasto-600">Guardado.</span>}
       </div>
     </div>
   )
@@ -1002,7 +1002,7 @@ export default function OrderDetail() {
                 <>
                   <Link
                     to={`/erp/clientes/${order.customer_id}`}
-                    className="font-medium text-secondary-500 hover:underline"
+                    className="font-medium text-celeste-700 hover:underline"
                   >
                     {order.cliente_nombre}
                   </Link>
@@ -1014,7 +1014,7 @@ export default function OrderDetail() {
                 <div className="flex flex-wrap gap-2 print:hidden">
                   <Link
                     to="/erp/pedidos"
-                    className="inline-flex items-center rounded-md border border-steel-200 bg-white px-3 py-2 text-sm font-semibold text-steel-600 hover:border-steel-300"
+                    className="inline-flex items-center rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm font-semibold text-grafito-600 hover:border-grafito-300"
                   >
                     Volver
                   </Link>
@@ -1023,7 +1023,7 @@ export default function OrderDetail() {
                       la copia de trabajo, con los cobros y el saldo. */}
                   <Link
                     to={`/erp/pedidos/${order.id}/presupuesto`}
-                    className="inline-flex items-center rounded-md border border-steel-200 bg-white px-3 py-2 text-sm font-semibold text-steel-600 hover:border-steel-300"
+                    className="inline-flex items-center rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm font-semibold text-grafito-600 hover:border-grafito-300"
                   >
                     Presupuesto
                   </Link>
@@ -1049,7 +1049,7 @@ export default function OrderDetail() {
                 {ORDER_STATE_LABELS[order.estado]}
               </Badge>
               {entregado && (
-                <span className="text-xs text-steel-400">
+                <span className="text-xs text-grafito-400">
                   La mercadería ya se descontó del stock.
                 </span>
               )}
@@ -1057,7 +1057,7 @@ export default function OrderDetail() {
                   siga en el depósito. Decirlo acá evita la pregunta de por qué
                   el stock disponible bajó sin que saliera nada. */}
               {(order.estado === 'confirmado' || order.estado === 'en_produccion') && (
-                <span className="text-xs text-steel-500">
+                <span className="text-xs text-grafito-500">
                   {formatNumber(order.unidades)} varillas reservadas ·{' '}
                   {order.entrega === 'retiro' ? 'retira' : 'entrega'}{' '}
                   {order.fecha_entrega ? (
@@ -1068,7 +1068,7 @@ export default function OrderDetail() {
                 </span>
               )}
               {anulado && (
-                <span className="text-xs text-steel-400">
+                <span className="text-xs text-grafito-400">
                   Anulado: no cuenta en la cuenta corriente ni en las ventas del mes.
                 </span>
               )}
@@ -1109,8 +1109,8 @@ export default function OrderDetail() {
                     >
                       {order.items.map((item) => (
                         <tr key={item.id}>
-                          <Td className="text-steel-700">{nombreDeItem(item)}</Td>
-                          <Td align="right" className="tabular-nums text-steel-600">
+                          <Td className="text-grafito-700">{nombreDeItem(item)}</Td>
+                          <Td align="right" className="tabular-nums text-grafito-600">
                             {formatNumber(item.cantidad)}
                           </Td>
                           <Td align="right">
@@ -1124,7 +1124,7 @@ export default function OrderDetail() {
                               <button
                                 type="button"
                                 onClick={() => removeItem(item.id)}
-                                className="text-xs font-semibold text-red-600 hover:underline print:hidden"
+                                className="text-xs font-semibold text-tapita-600 hover:underline print:hidden"
                               >
                                 Quitar
                               </button>
@@ -1164,13 +1164,13 @@ export default function OrderDetail() {
                     >
                       {order.payments.map((payment) => (
                         <tr key={payment.id}>
-                          <Td className="whitespace-nowrap text-steel-600">
+                          <Td className="whitespace-nowrap text-grafito-600">
                             {formatDate(payment.fecha)}
                           </Td>
-                          <Td className="text-steel-600">
+                          <Td className="text-grafito-600">
                             {PAYMENT_METHOD_LABELS[payment.metodo]}
                           </Td>
-                          <Td className="text-xs text-steel-400">{payment.nota}</Td>
+                          <Td className="text-xs text-grafito-400">{payment.nota}</Td>
                           <Td align="right" className="font-medium">
                             <Money value={payment.monto} />
                           </Td>
@@ -1178,7 +1178,7 @@ export default function OrderDetail() {
                             <button
                               type="button"
                               onClick={() => removePayment(payment.id)}
-                              className="text-xs font-semibold text-red-600 hover:underline print:hidden"
+                              className="text-xs font-semibold text-tapita-600 hover:underline print:hidden"
                             >
                               Quitar
                             </button>
@@ -1198,7 +1198,7 @@ export default function OrderDetail() {
 
               <div className="space-y-6">
                 <Card title="Totales">
-                  <div className="divide-y divide-steel-100 px-4 py-3 text-sm">
+                  <div className="divide-y divide-grafito-100 px-4 py-3 text-sm">
                     {reciclado ? (
                       <TotalRow
                         label="Horas de trabajo"
@@ -1220,7 +1220,7 @@ export default function OrderDetail() {
                         label={`Descuento (${Number(order.descuento_pct)}%)`}
                         hint="Se edita al armar el presupuesto"
                         value={
-                          <span className="text-steel-500">
+                          <span className="text-grafito-500">
                             − <Money value={order.descuento} />
                           </span>
                         }
@@ -1262,7 +1262,7 @@ export default function OrderDetail() {
                         label="Presupuestado en dólares"
                         hint="Los totales de arriba son en pesos"
                         value={
-                          <span className="text-steel-500">
+                          <span className="text-grafito-500">
                             {formatMoneda(order.cotizacion)} / USD
                           </span>
                         }
@@ -1275,7 +1275,7 @@ export default function OrderDetail() {
                         <Money
                           value={order.saldo}
                           className={
-                            Number(order.saldo) > 0 ? 'text-amber-600' : 'text-secondary-500'
+                            Number(order.saldo) > 0 ? 'text-amber-600' : 'text-pasto-600'
                           }
                         />
                       }
@@ -1297,7 +1297,7 @@ export default function OrderDetail() {
 
                 <Card title="Zona de riesgo" className="print:hidden">
                   <div className="px-4 py-4">
-                    <p className="mb-3 text-xs text-steel-400">
+                    <p className="mb-3 text-xs text-grafito-400">
                       Anular conserva el pedido y su historia. Borrar lo saca del
                       sistema junto con sus cobros, y no se puede deshacer.
                     </p>

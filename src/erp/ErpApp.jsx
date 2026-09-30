@@ -17,6 +17,7 @@ import { signOut, useSession } from './lib/session'
 import SessionProvider from './components/SessionProvider'
 import Login from './pages/Login'
 import { Loading } from './components/ui'
+import { LOGO } from '../lib/marca'
 
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const LeadsToday = lazy(() => import('./pages/LeadsToday'))
@@ -90,20 +91,20 @@ const SETTINGS = [
 function SetupNotice() {
   return (
     <div className="mx-auto max-w-xl px-4 py-20">
-      <h1 className="text-xl font-bold text-steel-800">Falta conectar la base</h1>
-      <p className="mt-3 text-sm leading-relaxed text-steel-600">
+      <h1 className="text-xl font-bold text-grafito-800">Falta conectar la base</h1>
+      <p className="mt-3 text-sm leading-relaxed text-grafito-600">
         El ERP guarda todo en Supabase y todavía no tiene las claves del
-        proyecto. Copiá <code className="rounded bg-steel-100 px-1">.env.example</code>{' '}
-        a <code className="rounded bg-steel-100 px-1">.env</code>, completá{' '}
-        <code className="rounded bg-steel-100 px-1">VITE_SUPABASE_URL</code> y{' '}
-        <code className="rounded bg-steel-100 px-1">VITE_SUPABASE_ANON_KEY</code>, y
+        proyecto. Copiá <code className="rounded bg-grafito-100 px-1">.env.example</code>{' '}
+        a <code className="rounded bg-grafito-100 px-1">.env</code>, completá{' '}
+        <code className="rounded bg-grafito-100 px-1">VITE_SUPABASE_URL</code> y{' '}
+        <code className="rounded bg-grafito-100 px-1">VITE_SUPABASE_ANON_KEY</code>, y
         volvé a levantar el servidor.
       </p>
-      <p className="mt-3 text-sm leading-relaxed text-steel-600">
+      <p className="mt-3 text-sm leading-relaxed text-grafito-600">
         El paso a paso completo, incluido el archivo SQL que crea las tablas,
-        está en <code className="rounded bg-steel-100 px-1">docs/erp.md</code>.
+        está en <code className="rounded bg-grafito-100 px-1">docs/erp.md</code>.
       </p>
-      <p className="mt-6 text-sm text-steel-400">
+      <p className="mt-6 text-sm text-grafito-400">
         Mientras tanto la landing funciona igual, con los precios del código.
       </p>
     </div>
@@ -117,10 +118,10 @@ function NavItem({ to, label, end, onNavigate }) {
       end={end}
       onClick={onNavigate}
       className={({ isActive }) =>
-        `block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+        `block rounded px-3 py-2 text-sm transition-colors ${
           isActive
-            ? 'bg-secondary-500 text-white'
-            : 'text-steel-600 hover:bg-steel-100 hover:text-steel-800'
+            ? 'bg-grafito-700 font-semibold text-white shadow-[inset_0_-2px_0_var(--color-celeste-400)]'
+            : 'font-medium text-grafito-300 hover:bg-grafito-800 hover:text-white'
         }`
       }
     >
@@ -134,34 +135,40 @@ function Shell({ email, children }) {
   const closeMenu = () => setMenuOpen(false)
 
   return (
-    <div className="min-h-screen bg-steel-50 lg:flex">
+    <div className="min-h-screen bg-grafito-100 lg:flex">
       {/* Barra de arriba: sólo en pantallas chicas, donde no entra la columna. */}
-      <header className="flex items-center justify-between border-b border-steel-200 bg-white px-4 py-3 lg:hidden print:hidden">
-        <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="" className="h-7 w-auto" />
-          <span className="text-sm font-bold text-steel-800">ERP</span>
-        </div>
+      <header className="flex items-center justify-between bg-grafito-900 px-4 py-3 lg:hidden print:hidden">
+        <img
+          src={LOGO.palabra.negativo}
+          alt="Recuvarilla"
+          width={LOGO.palabra.width}
+          height={LOGO.palabra.height}
+          className="h-5 w-auto"
+        />
         <button
           type="button"
           onClick={() => setMenuOpen((open) => !open)}
           aria-expanded={menuOpen}
-          className="rounded-md border border-steel-200 px-3 py-1.5 text-sm font-semibold text-steel-600"
+          className="rounded-md border border-grafito-600 px-3 py-1.5 text-sm font-semibold text-white"
         >
           {menuOpen ? 'Cerrar' : 'Menú'}
         </button>
       </header>
 
       <nav
-        className={`border-b border-steel-200 bg-white px-3 py-3 print:hidden lg:sticky lg:top-0 lg:block lg:h-screen lg:w-56 lg:shrink-0 lg:border-b-0 lg:border-r ${
+        className={`overflow-y-auto bg-grafito-900 px-3 py-3 print:hidden lg:sticky lg:top-0 lg:block lg:h-screen lg:w-56 lg:shrink-0 ${
           menuOpen ? 'block' : 'hidden'
         }`}
       >
-        <div className="mb-6 hidden items-center gap-2 px-2 lg:flex">
-          <img src="/logo.png" alt="" className="h-8 w-auto" />
-          <div>
-            <p className="text-sm font-bold leading-tight text-steel-800">Recuvarilla</p>
-            <p className="text-xs leading-tight text-steel-400">Gestión</p>
-          </div>
+        <div className="mb-6 hidden px-3 pt-2 lg:block">
+          <img
+            src={LOGO.palabra.negativo}
+            alt="Recuvarilla"
+            width={LOGO.palabra.width}
+            height={LOGO.palabra.height}
+            className="h-auto w-36"
+          />
+          <p className="rotulo mt-2 text-grafito-400">Gestión</p>
         </div>
 
         <div className="space-y-1">
@@ -170,8 +177,8 @@ function Shell({ email, children }) {
           ))}
         </div>
 
-        <div className="mt-5 space-y-1 border-t border-steel-100 pt-4">
-          <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-steel-400">
+        <div className="mt-5 space-y-1 border-t border-grafito-700 pt-4">
+          <p className="rotulo px-3 pb-1 text-grafito-400">
             Ajustes
           </p>
           {SETTINGS.map((section) => (
@@ -179,20 +186,20 @@ function Shell({ email, children }) {
           ))}
         </div>
 
-        <div className="mt-6 border-t border-steel-100 pt-4">
-          <p className="truncate px-3 text-xs text-steel-400" title={email}>
+        <div className="mt-6 border-t border-grafito-700 pt-4">
+          <p className="truncate px-3 text-xs text-grafito-400" title={email}>
             {email}
           </p>
           <button
             type="button"
             onClick={signOut}
-            className="mt-2 w-full rounded-md px-3 py-2 text-left text-sm font-medium text-steel-500 hover:bg-steel-100"
+            className="mt-2 w-full rounded px-3 py-2 text-left text-sm font-medium text-grafito-300 hover:bg-grafito-800 hover:text-white"
           >
             Cerrar sesión
           </button>
           <a
             href="/"
-            className="mt-1 block rounded-md px-3 py-2 text-sm font-medium text-steel-400 hover:bg-steel-100"
+            className="mt-1 block rounded px-3 py-2 text-sm font-medium text-grafito-300 hover:bg-grafito-800 hover:text-white"
           >
             Ir a la web
           </a>
@@ -244,7 +251,7 @@ function Gate() {
           <Route path="documentos/ficha-tecnica" element={<DocDatasheet />} />
           <Route path="redes" element={<Social />} />
           <Route path="redes/:id" element={<SocialPost />} />
-          <Route path="*"element={<p className="text-sm text-steel-500">No existe esa pantalla.</p>} />
+          <Route path="*"element={<p className="text-sm text-grafito-500">No existe esa pantalla.</p>} />
         </Routes>
       </Suspense>
     </Shell>

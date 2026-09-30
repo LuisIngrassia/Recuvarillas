@@ -162,19 +162,19 @@ function ProductModal({ product, productos, onClose, onSaved }) {
           </Field>
         </div>
 
-        <div className="space-y-2 rounded-md border border-steel-200 px-3 py-3">
-          <p className="text-xs font-semibold text-steel-600">Qué es este producto</p>
+        <div className="space-y-2 rounded-md border border-grafito-200 px-3 py-3">
+          <p className="text-xs font-semibold text-grafito-600">Qué es este producto</p>
           {MARCAS.map(({ campo, label, hint }) => (
             <label key={campo} className="flex cursor-pointer items-start gap-2">
               <input
                 type="checkbox"
                 checked={form[campo]}
                 onChange={set(campo)}
-                className="mt-0.5 h-4 w-4 rounded border-steel-300"
+                className="mt-0.5 h-4 w-4 rounded border-grafito-300"
               />
               <span>
-                <span className="block text-sm text-steel-700">{label}</span>
-                <span className="block text-xs leading-relaxed text-steel-400">{hint}</span>
+                <span className="block text-sm text-grafito-700">{label}</span>
+                <span className="block text-xs leading-relaxed text-grafito-400">{hint}</span>
               </span>
             </label>
           ))}
@@ -186,7 +186,7 @@ function ProductModal({ product, productos, onClose, onSaved }) {
 
         <ErrorNote>{error}</ErrorNote>
 
-        <p className="rounded-md bg-steel-50 px-3 py-2 text-xs leading-relaxed text-steel-500">
+        <p className="rounded-md bg-grafito-50 px-3 py-2 text-xs leading-relaxed text-grafito-500">
           {product
             ? 'Los precios se cargan en Ajustes › Precios, eligiendo este producto.'
             : 'Después de guardarlo hay que cargarle la lista de precios en Ajustes › Precios: hasta entonces se puede vender, pero el precio se escribe a mano en cada pedido.'}
@@ -260,20 +260,20 @@ export default function Products() {
                   {productos.map((product) => (
                     <tr
                       key={product.id}
-                      className={`hover:bg-steel-50 ${product.activo ? '' : 'opacity-60'}`}
+                      className={`hover:bg-grafito-50 ${product.activo ? '' : 'opacity-60'}`}
                     >
-                      <Td className="font-medium text-steel-700">
+                      <Td className="font-medium text-grafito-700">
                         {product.nombre}
                         {!product.activo && (
                           <span className="ml-2">
                             <Badge>retirado</Badge>
                           </span>
                         )}
-                        <span className="block text-xs font-normal text-steel-400">
+                        <span className="block text-xs font-normal text-grafito-400">
                           {product.codigo} · por {product.unidad}
                         </span>
                         {product.notas && (
-                          <span className="block text-xs font-normal italic text-steel-400">
+                          <span className="block text-xs font-normal italic text-grafito-400">
                             {product.notas}
                           </span>
                         )}
@@ -300,12 +300,12 @@ export default function Products() {
                           <button
                             type="button"
                             onClick={() => guard(() => setProductoWeb(product.id))}
-                            className="text-xs text-steel-400 underline-offset-2 hover:text-secondary-600 hover:underline"
+                            className="text-xs text-grafito-400 underline-offset-2 hover:text-celeste-800 hover:underline"
                           >
                             poner en la web
                           </button>
                         ) : (
-                          <span className="text-xs text-steel-300">—</span>
+                          <span className="text-xs text-grafito-300">—</span>
                         )}
                       </Td>
                       <Td align="right">
@@ -342,7 +342,7 @@ export default function Products() {
                 </Table>
               )}
 
-              <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
+              <p className="border-t border-grafito-100 px-4 py-3 text-xs leading-relaxed text-grafito-400">
                 Un producto que se vendió alguna vez <strong>no se puede borrar</strong>:
                 el historial de ventas no puede quedar sin saber qué se vendió. Lo
                 que corresponde ahí es retirarlo, y deja de ofrecerse al cargar un

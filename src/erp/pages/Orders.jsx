@@ -40,9 +40,9 @@ import {
   con template string daría clases que nunca se generan.
 */
 const TONO_ENTREGA = {
-  bad: 'font-semibold text-red-600',
+  bad: 'font-semibold text-tapita-600',
   warn: 'font-semibold text-amber-600',
-  neutral: 'text-steel-500',
+  neutral: 'text-grafito-500',
 }
 
 /**
@@ -184,7 +184,7 @@ function NewOrderModal({ onClose }) {
  */
 function Solapas({ vista, onVista, totales }) {
   return (
-    <div className="mb-4 flex gap-1 border-b border-steel-200">
+    <div className="mb-4 flex gap-1 border-b border-grafito-200">
       {[
         ['pedidos', 'Pedidos', totales?.pedidos],
         ['presupuestos', 'Presupuestos', totales?.presupuestos],
@@ -195,15 +195,15 @@ function Solapas({ vista, onVista, totales }) {
           onClick={() => onVista(valor)}
           className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition-colors ${
             vista === valor
-              ? 'border-secondary-500 text-secondary-600'
-              : 'border-transparent text-steel-500 hover:text-steel-700'
+              ? 'border-celeste-500 text-grafito-900'
+              : 'border-transparent text-grafito-500 hover:text-grafito-700'
           }`}
         >
           {etiqueta}
           {total !== undefined && (
             <span
               className={`ml-2 rounded-full px-2 py-0.5 text-xs tabular-nums ${
-                vista === valor ? 'bg-secondary-50 text-secondary-600' : 'bg-steel-100 text-steel-500'
+                vista === valor ? 'bg-celeste-50 text-celeste-800' : 'bg-grafito-100 text-grafito-500'
               }`}
             >
               {formatNumber(total)}
@@ -330,11 +330,11 @@ export default function Orders() {
                 const antiguedad = presupuestos ? antiguedadDe(order) : null
 
                 return (
-                <tr key={order.id} className="hover:bg-steel-50">
+                <tr key={order.id} className="hover:bg-grafito-50">
                   <Td>
                     <Link
                       to={`/erp/pedidos/${order.id}`}
-                      className="font-semibold text-secondary-500 hover:underline"
+                      className="font-semibold text-celeste-700 hover:underline"
                     >
                       #{order.numero}
                     </Link>
@@ -347,7 +347,7 @@ export default function Orders() {
                   <Td>
                     <Link
                       to={`/erp/clientes/${order.customer_id}`}
-                      className="text-steel-700 hover:text-secondary-500"
+                      className="text-grafito-700 hover:text-celeste-700"
                     >
                       {order.cliente_nombre}
                     </Link>
@@ -363,22 +363,22 @@ export default function Orders() {
                       </Badge>
                     )}
                   </Td>
-                  <Td className="whitespace-nowrap text-xs text-steel-400">
+                  <Td className="whitespace-nowrap text-xs text-grafito-400">
                     {formatDate(order.fecha)}
                   </Td>
                   <Td className="text-xs">
                     <span
                       className={`font-semibold ${
-                        salida.despacho ? 'text-primary-700' : 'text-steel-600'
+                        salida.despacho ? 'text-celeste-700' : 'text-grafito-600'
                       }`}
                     >
                       {salida.corto}
                     </span>
                     {salida.destino && (
-                      <span className="block text-steel-400">{salida.destino}</span>
+                      <span className="block text-grafito-400">{salida.destino}</span>
                     )}
                     <span
-                      className={`block ${pendiente ? TONO_ENTREGA[salida.tono] : 'text-steel-400'}`}
+                      className={`block ${pendiente ? TONO_ENTREGA[salida.tono] : 'text-grafito-400'}`}
                     >
                       {salida.cuando && pendiente
                         ? salida.cuando
@@ -390,15 +390,15 @@ export default function Orders() {
                   {/* Un trabajo de reciclado no tiene unidades vendidas: lo que
                       hay son las varillas que se le devolvieron al cliente. Un
                       cero acá se leería como "no llevó nada". */}
-                  <Td align="right" className="tabular-nums text-steel-600">
+                  <Td align="right" className="tabular-nums text-grafito-600">
                     {order.tipo === 'reciclado' ? (
                       order.varillas_entregadas ? (
                         <>
                           {formatNumber(order.varillas_entregadas)}
-                          <span className="block text-xs text-steel-400">devueltas</span>
+                          <span className="block text-xs text-grafito-400">devueltas</span>
                         </>
                       ) : (
-                        <span className="text-steel-300">—</span>
+                        <span className="text-grafito-300">—</span>
                       )
                     ) : (
                       formatNumber(order.unidades)
@@ -414,7 +414,7 @@ export default function Orders() {
                         className={
                           Number(order.saldo) > 0
                             ? 'font-semibold text-amber-600'
-                            : 'text-steel-400'
+                            : 'text-grafito-400'
                         }
                       />
                     </Td>

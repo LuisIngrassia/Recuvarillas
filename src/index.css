@@ -1,40 +1,159 @@
 @import "tailwindcss";
 
+/*
+  Tokens del manual de marca (brand/manual, secciones 03 y 04).
+
+  Los nombres son los del manual: grafito es la varilla, celeste la bandera,
+  pasto y tapita sólo para estados (bien / mal). No hay verde de marca: el
+  botón principal es grafito, del color del producto.
+
+  Las escalas se armaron alrededor de los colores del manual, que quedan en
+  pasos fijos: grafito-900 #1D2120, grafito-100 hormigón, grafito-500 gris,
+  celeste-400 celeste, celeste-700 celeste hondo, pasto-500, tapita-600.
+*/
 @theme {
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Archivo Variable", "Archivo", "Arial", sans-serif;
+  --font-mono: "Chivo Mono", ui-monospace, monospace;
 
-  --color-primary-50: #eef5fc;
-  --color-primary-100: #d7e8f8;
-  --color-primary-200: #b3d3f1;
-  --color-primary-300: #8fbeea;
-  --color-primary-400: #6cace4;
-  --color-primary-500: #4a8fd1;
-  --color-primary-600: #3a72ab;
-  --color-primary-700: #2c5581;
-  --color-primary-800: #1e3a58;
-  --color-primary-900: #101f30;
+  --color-grafito-50: #f6f7f5;
+  --color-grafito-100: #eef0ec;
+  --color-grafito-200: #dadfda;
+  --color-grafito-300: #b9c0bc;
+  --color-grafito-400: #737c79;
+  --color-grafito-500: #5d6562;
+  --color-grafito-600: #4a5250;
+  --color-grafito-700: #333938;
+  --color-grafito-800: #262b2a;
+  --color-grafito-900: #1d2120;
+  --color-grafito-950: #141716;
 
-  --color-secondary-50: #eef4e6;
-  --color-secondary-100: #d3e3bd;
-  --color-secondary-200: #aecb87;
-  --color-secondary-300: #85ad57;
-  --color-secondary-400: #57842f;
-  --color-secondary-500: #35610e;
-  --color-secondary-600: #2c520c;
-  --color-secondary-700: #23420a;
-  --color-secondary-800: #1a3107;
-  --color-secondary-900: #112105;
+  --color-celeste-50: #eef5fc;
+  --color-celeste-100: #ddeaf6;
+  --color-celeste-200: #bcd6ef;
+  --color-celeste-300: #98c1e7;
+  --color-celeste-400: #74acdf;
+  --color-celeste-500: #4f8fcb;
+  --color-celeste-600: #3576b3;
+  --color-celeste-700: #1f5e96;
+  --color-celeste-800: #184a76;
+  --color-celeste-900: #123654;
 
-  --color-steel-50: #f5f6f7;
-  --color-steel-100: #e6e8ea;
-  --color-steel-200: #ccd0d4;
-  --color-steel-300: #a6adb4;
-  --color-steel-400: #78828c;
-  --color-steel-500: #5b6570;
-  --color-steel-600: #454d56;
-  --color-steel-700: #333941;
-  --color-steel-800: #23272d;
-  --color-steel-900: #16181c;
+  --color-pasto-50: #eef4e8;
+  --color-pasto-100: #dce9cf;
+  --color-pasto-500: #4f7f2a;
+  --color-pasto-600: #416a22;
+  --color-pasto-700: #2c4a15;
+
+  --color-tapita-50: #fbeeeb;
+  --color-tapita-100: #f6deda;
+  --color-tapita-200: #eebfb5;
+  --color-tapita-300: #e29b8c;
+  --color-tapita-400: #d6705b;
+  --color-tapita-500: #cf5a40;
+  --color-tapita-600: #c8432b;
+  --color-tapita-700: #a63722;
+  --color-tapita-800: #7e2616;
+
+  --color-alambre: #9aa39f;
+
+  /*
+    Radios chicos: "que se sienta material cortado, no burbujas" (manual,
+    sección 05). Los redondeos grandes de Tailwind se bajan acá para que
+    ninguna tarjeta, del sitio o del ERP, quede inflada. rounded-full sigue
+    siendo círculo para avatares y píldoras.
+  */
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.375rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.5rem;
+}
+
+/* Titulares: Archivo condensada ExtraBold, la misma voz de la palabra del logo. */
+@utility font-display {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-stretch: 75%;
+  line-height: 0.95;
+  letter-spacing: -0.003em;
+}
+
+/* Etiquetas y rótulos chicos: Chivo Mono en mayúsculas espaciadas. */
+@utility rotulo {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/*
+  La varilla separador. Nunca se estira: va en su proporción real, 3 × 120
+  (1:40), con la punta a la derecha. Se le da ancho y el alto sale solo.
+*/
+@utility varilla {
+  display: block;
+  aspect-ratio: 40 / 1;
+  background: url("../brand/assets/sistema/varilla-separador.svg") left center / contain no-repeat;
+}
+@utility varilla-blanca {
+  display: block;
+  aspect-ratio: 40 / 1;
+  background: url("../brand/assets/sistema/varilla-separador-blanca.svg") left center / contain no-repeat;
+}
+
+/* La franja de la bandera: bordes y cierres, nunca fondo detrás de un texto. */
+@utility franja {
+  background: linear-gradient(
+    var(--color-celeste-400) 0 33.33%,
+    #fff 33.33% 66.66%,
+    var(--color-celeste-400) 66.66%
+  );
+}
+
+/* Listas con la viñeta del sistema: la perforación de la varilla. */
+@utility lista-agujero {
+  list-style: none;
+  padding-left: 0;
+  & > li {
+    position: relative;
+    padding-left: 1.6em;
+  }
+  & > li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.3em;
+    width: 0.85em;
+    height: 0.85em;
+    background: url("../brand/assets/sistema/vineta-agujero.svg") center / contain no-repeat;
+  }
+}
+
+/* El pattern alambrado, para bandas y bordes. Una vez por pieza. */
+@utility alambrado {
+  background-image: url("../brand/assets/sistema/alambrado-modulo.svg");
+  background-size: 72px 32px;
+}
+@utility alambrado-negativo {
+  background-image: url("../brand/assets/sistema/alambrado-modulo-negativo.svg");
+  background-size: 72px 32px;
+}
+
+/*
+  Los botones del manual. Uno principal por pantalla, en grafito; el segundo
+  va con contorno. Nunca dos botones iguales uno al lado del otro.
+*/
+@layer components {
+  .btn-principal {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-grafito-900 px-6 py-3 text-base font-bold text-white transition-colors duration-200 hover:bg-grafito-700 active:translate-y-px;
+  }
+  .btn-contorno {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-md border-2 border-grafito-900 bg-transparent px-6 py-3 text-base font-bold text-grafito-900 transition-colors duration-200 hover:bg-grafito-900/5 active:translate-y-px;
+  }
+  .link-marca {
+    @apply font-semibold text-celeste-700 underline-offset-2 transition-colors hover:text-celeste-800 hover:underline;
+  }
 }
 
 html {
@@ -42,5 +161,17 @@ html {
 }
 
 body {
-  @apply bg-white text-steel-800 antialiased;
+  @apply bg-white text-grafito-800 antialiased;
+}
+
+/* Los números se alinean en columna en todo el sitio: precios, stock, medidas. */
+.tabular-nums,
+.font-mono {
+  font-feature-settings: "tnum";
+}
+
+/* El foco del teclado, en celeste hondo, igual en la landing y en el ERP. */
+:focus-visible {
+  outline: 2px solid var(--color-celeste-700);
+  outline-offset: 2px;
 }

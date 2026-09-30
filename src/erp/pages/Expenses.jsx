@@ -170,10 +170,10 @@ function ExpenseModal({ expense, tipos, shares, onClose, onSaved }) {
           className={`rounded-md px-3 py-2 text-xs leading-relaxed ${
             paga.alerta
               ? 'border border-amber-200 bg-amber-50 text-amber-800'
-              : 'bg-steel-50 text-steel-600'
+              : 'bg-grafito-50 text-grafito-600'
           }`}
         >
-          <span className="text-steel-400">Lo paga: </span>
+          <span className="text-grafito-400">Lo paga: </span>
           <strong>{paga.texto}</strong>
           {paga.alerta && (
             <>
@@ -281,7 +281,7 @@ export default function Expenses() {
               type="month"
               value={mes}
               onChange={(event) => setMes(event.target.value)}
-              className="rounded-md border border-steel-200 bg-white px-3 py-2 text-sm text-steel-700"
+              className="rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm text-grafito-700"
             />
             <Button onClick={() => setEditing({})}>Nuevo gasto</Button>
           </>
@@ -347,7 +347,7 @@ export default function Expenses() {
               </div>
 
               {totales.sinPagador > 0 && (
-                <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-800">
+                <div className="mb-4 rounded-md border border-tapita-200 bg-tapita-50 px-4 py-3 text-sm leading-relaxed text-tapita-800">
                   Hay <strong>{formatPesos(totales.sinPagador)}</strong> en gastos
                   cuyo tipo no tiene ningún socio asignado. Esa plata salió de la
                   caja y no se le está descontando a nadie, así que en
@@ -389,7 +389,7 @@ export default function Expenses() {
                   <div className="flex items-center gap-2">
                     <Link
                       to="/erp/tipos-de-gasto"
-                      className="whitespace-nowrap text-xs text-steel-400 underline-offset-2 hover:text-steel-600 hover:underline"
+                      className="whitespace-nowrap text-xs text-grafito-400 underline-offset-2 hover:text-grafito-600 hover:underline"
                     >
                       Tipos de gasto
                     </Link>
@@ -400,7 +400,7 @@ export default function Expenses() {
                     <select
                       value={tipo}
                       onChange={(event) => setTipo(event.target.value)}
-                      className="rounded-md border border-steel-200 bg-white px-2 py-1 text-xs text-steel-700"
+                      className="rounded-md border border-grafito-200 bg-white px-2 py-1 text-xs text-grafito-700"
                     >
                       <option value="">Todos los tipos</option>
                       {tipos.map((item) => (
@@ -432,8 +432,8 @@ export default function Expenses() {
                         const paga = quienPaga(suyo, shares)
 
                         return (
-                          <tr key={expense.id} className="hover:bg-steel-50">
-                            <Td className="whitespace-nowrap text-steel-500">
+                          <tr key={expense.id} className="hover:bg-grafito-50">
+                            <Td className="whitespace-nowrap text-grafito-500">
                               {formatDate(expense.fecha)}
                             </Td>
                             <Td>
@@ -441,15 +441,15 @@ export default function Expenses() {
                                 {suyo?.nombre ?? expense.tipo}
                               </Badge>
                             </Td>
-                            <Td className="font-medium text-steel-700">
+                            <Td className="font-medium text-grafito-700">
                               {expense.descripcion}
                               {expense.proveedor && (
-                                <span className="block text-xs font-normal text-steel-400">
+                                <span className="block text-xs font-normal text-grafito-400">
                                   {expense.proveedor}
                                 </span>
                               )}
                               {expense.notas && (
-                                <span className="block text-xs font-normal text-steel-400">
+                                <span className="block text-xs font-normal text-grafito-400">
                                   {expense.notas}
                                 </span>
                               )}
@@ -459,19 +459,19 @@ export default function Expenses() {
                             <Td
                               className={
                                 paga.alerta
-                                  ? 'text-xs font-semibold text-red-600'
-                                  : 'text-xs text-steel-600'
+                                  ? 'text-xs font-semibold text-tapita-600'
+                                  : 'text-xs text-grafito-600'
                               }
                             >
                               {paga.texto}
                             </Td>
-                            <Td className="whitespace-nowrap text-steel-500">
+                            <Td className="whitespace-nowrap text-grafito-500">
                               {expense.pedido ? `#${expense.pedido.numero}` : ''}
                             </Td>
                             <Td align="right">
                               <Money
                                 value={expense.monto}
-                                className="font-semibold text-steel-800"
+                                className="font-semibold text-grafito-800"
                               />
                             </Td>
                             <Td align="right">
@@ -499,7 +499,7 @@ export default function Expenses() {
                   )}
                 </Async>
 
-                <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
+                <p className="border-t border-grafito-100 px-4 py-3 text-xs leading-relaxed text-grafito-400">
                   Quién paga cada tipo se configura en{' '}
                   <Link
                     to="/erp/tipos-de-gasto"

@@ -14,197 +14,29 @@
  *
  * La fecha de vigencia tampoco se escribe a mano: es la última vez que se tocó
  * un precio, que es exactamente lo que esa línea quiere decir.
+ *
+ * El diseño es la lista A4 del manual de marca (10 · Aplicaciones de marca):
+ * una sola tabla con los escalones, precios en Chivo Mono, la fecha arriba y
+ * el QR a WhatsApp abajo.
  */
 import { useState } from 'react'
 import { listTiers } from '../api/prices'
+import { listProducts, productoWeb } from '../api/products'
 import { useAsync } from '../lib/useAsync'
 import { formatDate } from '../lib/format'
+import { QUOTE_VALID_DAYS } from '../../data/pricing'
 import { documentoPorTipo, TAGLINE } from '../lib/documentos'
-import DocSheet from '../components/DocSheet'
+import DocSheet, { LogoHoja, PieContacto } from '../components/DocSheet'
 import { Async } from '../components/ui'
+import reglaUrl from '../../../brand/assets/sistema/regla-120.svg?url'
 
 const numero = new Intl.NumberFormat('es-AR')
-const pesos = (value) => `$${numero.format(Math.round(Number(value)))}`
+const pesos = (value) => `$ ${numero.format(Math.round(Number(value)))}`
 
-const ESTILOS = `
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
-
-.lista {
-  --bg: #1e211b;
-  --panel: #262a22;
-  --panel-2: #2e332a;
-  --rule: #454a3d;
-  --olive: #9fb25f;
-  --bone: #ece9dd;
-  --bone-dim: #a8a89a;
-  --steel: #7d8a93;
-  max-width: 860px;
-  margin: 0 auto;
-  background: var(--bg);
-  color: var(--bone);
-  font-family: 'Work Sans', system-ui, sans-serif;
-  padding: 34px 38px 30px;
-}
-.lista header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 28px;
-  border-bottom: 1px solid var(--rule);
-  padding-bottom: 18px;
-}
-.lista .eyebrow {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--olive);
-}
-.lista h1 {
-  font-family: 'Oswald', 'Trebuchet MS', sans-serif;
-  font-size: 42px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  margin: 6px 0 8px;
-  line-height: 1;
-}
-.lista .tagline { font-size: 13px; color: var(--bone-dim); max-width: 480px; line-height: 1.5; }
-.lista .valid-box {
-  text-align: right;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--bone-dim);
-  white-space: nowrap;
-}
-.lista .valid-date {
-  font-family: 'Oswald', sans-serif;
-  font-size: 20px;
-  letter-spacing: 0.04em;
-  color: var(--bone);
-  margin-top: 4px;
-}
-.lista .divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 24px 0 16px;
-}
-.lista .divider .cap {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--olive);
-}
-.lista .divider .rod { flex: 1; height: 2px; background: var(--rule); }
-.lista .product { display: grid; grid-template-columns: 260px 1fr; gap: 22px; align-items: start; }
-.lista .product img {
-  width: 100%;
-  height: 190px;
-  object-fit: cover;
-  border: 1px solid var(--rule);
-  display: block;
-}
-.lista .product h2 {
-  font-family: 'Oswald', sans-serif;
-  font-size: 22px;
-  font-weight: 600;
-  margin: 0 0 8px;
-}
-.lista .product p { font-size: 13.5px; line-height: 1.6; color: var(--bone-dim); margin: 0 0 12px; }
-.lista .tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.lista .tags span {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border: 1px solid var(--rule);
-  color: var(--bone-dim);
-  padding: 4px 8px;
-}
-.lista .panels { display: grid; gap: 16px; }
-.lista .panel { background: var(--panel); border: 1px solid var(--rule); }
-.lista .panel .ph {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 12px 18px;
-  background: var(--panel-2);
-  border-bottom: 1px solid var(--rule);
-}
-.lista .panel .ph h3 { font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 600; margin: 0; }
-.lista .panel .badge {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  background: var(--olive);
-  color: var(--bg);
-  padding: 3px 8px;
-  font-weight: 600;
-}
-.lista .panel.mayorista .badge { background: var(--steel); color: #fff; }
-.lista table { width: 100%; border-collapse: collapse; }
-.lista thead th {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--bone-dim);
-  text-align: left;
-  padding: 10px 18px 8px;
-  border-bottom: 1px solid var(--rule);
-  font-weight: 500;
-}
-.lista thead th.num, .lista td.num { text-align: right; }
-.lista tbody td {
-  padding: 11px 18px;
-  font-size: 13.5px;
-  border-bottom: 1px solid var(--rule);
-  color: var(--bone);
-}
-.lista tbody tr:last-child td { border-bottom: none; }
-.lista td.num { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
-.lista td.sin { color: var(--bone-dim); }
-.lista .addon {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  color: var(--olive);
-  padding: 10px 18px;
-  border-top: 1px solid var(--rule);
-}
-.lista footer {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 28px;
-  border-top: 1px solid var(--rule);
-  margin-top: 26px;
-  padding-top: 16px;
-}
-.lista footer h4 {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--olive);
-  margin: 0 0 6px;
-}
-.lista footer p { font-size: 12px; line-height: 1.65; color: var(--bone-dim); margin: 0; }
-.lista footer .quien { color: var(--bone); font-weight: 600; }
-
-@media (max-width: 720px) {
-  .lista { padding: 22px; }
-  .lista .product, .lista footer { grid-template-columns: 1fr; }
-}
-`
-
-/** El texto del escalón: "1 a 99 unidades", "5.000 unidades o más". */
+/** El texto del escalón: "1 a 99", "5.000 o más". */
 function rangoTexto(tier) {
-  if (tier.max_qty === null) return `${numero.format(tier.min_qty)} unidades o más`
-  return `${numero.format(tier.min_qty)} a ${numero.format(tier.max_qty)} unidades`
+  if (tier.max_qty === null) return `${numero.format(tier.min_qty)} o más`
+  return `${numero.format(tier.min_qty)} a ${numero.format(tier.max_qty)}`
 }
 
 /**
@@ -227,45 +59,51 @@ function recargoTexto(tiers) {
   return tramos
     .map(({ recargo, desde, hasta }) => {
       if (tramos.length === 1) return `+${pesos(recargo)}/u por agujereado`
-      if (hasta === null) return `+${pesos(recargo)}/u desde ${numero.format(desde)}u`
-      return `+${pesos(recargo)}/u hasta ${numero.format(hasta)}u`
+      if (hasta === null) return `+${pesos(recargo)}/u desde ${numero.format(desde)} u`
+      return `+${pesos(recargo)}/u hasta ${numero.format(hasta)} u`
     })
     .join(' · ')
 }
 
-function Panel({ titulo, badge, tiers, mayorista }) {
+function Tabla({ titulo, tiers }) {
   return (
-    <div className={`panel${mayorista ? ' mayorista' : ''}`}>
-      <div className="ph">
-        <h3>{titulo}</h3>
-        <span className="badge">{badge}</span>
+    <section>
+      <div className="hm-seccion">
+        <span className="hm-rotulo">{titulo}</span>
       </div>
       <table>
         <thead>
           <tr>
-            <th>Cantidad</th>
-            <th className="num">Sin agujerear</th>
+            <th>Cantidad (unidades)</th>
+            <th className="num">Lisa</th>
             <th className="num">Agujereada</th>
           </tr>
         </thead>
         <tbody>
           {tiers.map((tier) => (
             <tr key={tier.id}>
-              <td>{rangoTexto(tier)}</td>
-              <td className="num sin">{pesos(tier.plain_price)}</td>
+              <td className="mono">{rangoTexto(tier)}</td>
+              <td className="num">{pesos(tier.plain_price)}</td>
               <td className="num">{pesos(tier.drilled_price)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div className="addon">{recargoTexto(tiers)}</div>
-    </div>
+      <p className="hm-rotulo" style={{ marginTop: 8, textTransform: 'none', letterSpacing: 0 }}>
+        {recargoTexto(tiers)}
+      </p>
+    </section>
   )
 }
 
 export default function DocPriceList() {
   const doc = documentoPorTipo('lista-de-precios')
-  const query = useAsync(listTiers, [])
+  /*
+    Desde que hay varios productos, la tabla de escalones tiene los de todos y
+    `listTiers` pide de cuál. La lista que se reparte es la del producto que
+    cotiza la web —la varilla—, el mismo criterio de la pantalla de Precios.
+  */
+  const query = useAsync(async () => listTiers(productoWeb(await listProducts())?.id), [])
   /* Dos listas y no una: al cliente minorista no se le muestra el precio
      mayorista, que es justamente por lo que había dos archivos separados. */
   const [alcance, setAlcance] = useState('minorista')
@@ -274,10 +112,8 @@ export default function DocPriceList() {
     <DocSheet doc={doc}>
       {(contacto) => (
         <>
-          <style>{ESTILOS}</style>
-
           <div className="mx-auto mb-4 flex max-w-[860px] flex-wrap items-center gap-2 print:hidden">
-            <span className="text-xs font-semibold text-steel-600">Qué precios muestra:</span>
+            <span className="text-xs font-semibold text-grafito-700">Qué precios muestra:</span>
             {[
               ['minorista', 'Sólo minorista'],
               ['mayorista', 'Sólo mayorista'],
@@ -289,8 +125,8 @@ export default function DocPriceList() {
                 onClick={() => setAlcance(valor)}
                 className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                   alcance === valor
-                    ? 'border-secondary-500 bg-secondary-50 text-secondary-700'
-                    : 'border-steel-200 bg-white text-steel-600 hover:border-steel-300'
+                    ? 'border-celeste-600 bg-celeste-50 text-celeste-800'
+                    : 'border-alambre bg-white text-grafito-700 hover:border-grafito-500'
                 }`}
               >
                 {etiqueta}
@@ -312,85 +148,36 @@ export default function DocPriceList() {
                 .at(-1)
 
               return (
-                <div className="lista doc-hoja">
-                  <header>
-                    <div>
-                      <div className="eyebrow">
-                        {contacto.localidad} · Envíos a todo el país
-                      </div>
-                      <h1>RECUVARILLA</h1>
-                      <div className="tagline">{TAGLINE}</div>
-                    </div>
-                    <div className="valid-box">
-                      <div>Lista vigente desde</div>
-                      <div className="valid-date">{formatDate(vigencia)}</div>
-                    </div>
+                <div className="hm doc-hoja">
+                  <header className="hm-cabecera">
+                    <LogoHoja />
+                    <dl className="hm-meta">
+                      <span className="hm-tipo">Lista de precios</span>
+                      <dt>Vigente desde</dt>
+                      <dd>{formatDate(vigencia)}</dd>
+                    </dl>
                   </header>
 
-                  <div className="divider">
-                    <span className="cap">Producto</span>
-                    <div className="rod" />
-                  </div>
+                  <h1 className="hm-titular">Varilla 3 × 3 × 120 cm</h1>
+                  <p className="hm-bajada">{TAGLINE} Precio por unidad, sin IVA.</p>
 
-                  <div className="product">
-                    <img src="/alambrado-1.jpg" alt="Varillas Recuvarilla en un alambrado" />
-                    <div>
-                      <h2>Varilla Estándar 3x3x120</h2>
-                      <p>
-                        Resistente a la humedad, insectos y sol. No se pudre, no se
-                        astilla, no requiere pintura ni mantenimiento. Disponible con o
-                        sin agujereado de fábrica.
-                      </p>
-                      <div className="tags">
-                        <span>Sin mantenimiento</span>
-                        <span>Resiste humedad</span>
-                        <span>No lo atacan insectos</span>
-                        <span>Material reciclado</span>
-                      </div>
-                    </div>
-                  </div>
+                  {alcance !== 'mayorista' && minoristas.length > 0 && (
+                    <Tabla titulo="Precio por cantidad" tiers={minoristas} />
+                  )}
+                  {alcance !== 'minorista' && mayoristas.length > 0 && (
+                    <Tabla titulo="Precio mayorista · revendedores" tiers={mayoristas} />
+                  )}
 
-                  <div className="divider">
-                    <span className="cap">Precios</span>
-                    <div className="rod" />
-                  </div>
+                  <img src={reglaUrl} alt="" style={{ width: '100%', margin: '26px 0 18px', display: 'block' }} />
 
-                  <div className="panels">
-                    {alcance !== 'mayorista' && minoristas.length > 0 && (
-                      <Panel titulo="Precio" badge="Venta directa" tiers={minoristas} />
-                    )}
-                    {alcance !== 'minorista' && mayoristas.length > 0 && (
-                      <Panel titulo="Precio mayorista" badge="Por volumen" tiers={mayoristas} mayorista />
-                    )}
-                  </div>
+                  <ul className="hm-lista">
+                    <li>El presupuesto vale {QUOTE_VALID_DAYS} días.</li>
+                    <li>Flete aparte: lo cotiza el expreso según la localidad. Despacho desde Luján.</li>
+                    <li>Precios sin IVA. Si necesitás factura con IVA, consultanos.</li>
+                    <li>Precios sujetos a modificación sin previo aviso.</li>
+                  </ul>
 
-                  <footer>
-                    <div>
-                      <h4>Condiciones</h4>
-                      <p>
-                        Presupuestos válidos por 7 días. Flete a cotizar según destino.
-                        Precios sujetos a modificación sin previo aviso por inflación.
-                        Los precios son sin IVA. Preguntar por facturación con IVA en
-                        caso de ser necesario.
-                      </p>
-                    </div>
-                    <div>
-                      <h4>Contacto</h4>
-                      <p>
-                        <span className="quien">{contacto.nombre}</span>
-                        <br />
-                        WhatsApp: {contacto.telefono}
-                        <br />
-                        Email: {contacto.email}
-                        {contacto.instagram && (
-                          <>
-                            <br />
-                            IG: {contacto.instagram}
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </footer>
+                  <PieContacto contacto={contacto} />
                 </div>
               )
             }}

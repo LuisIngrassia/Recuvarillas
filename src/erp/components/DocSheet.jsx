@@ -16,6 +16,55 @@ import { listSellers } from '../api/sellers'
 import { useAsync } from '../lib/useAsync'
 import { contactoDe, parteDeArchivo } from '../lib/documentos'
 import { Button, ErrorNote, Loading } from './ui'
+import { LOGO, QR_WHATSAPP } from '../../lib/marca'
+import './documentos.css'
+
+/**
+ * El pie de todos los papeles: la varilla y, debajo, el contacto con el QR.
+ *
+ * El QR abre el WhatsApp de la empresa con el mensaje ya escrito; cuando el
+ * contacto es el de un vendedor no va, porque mandaría al cliente a otro
+ * número que el impreso.
+ */
+export function PieContacto({ contacto, children }) {
+  return (
+    <footer className="hm-pie">
+      <span className="hm-varilla" aria-hidden="true" />
+      <div className="hm-pie-contenido">
+        <div className="hm-contacto">
+          <b>{contacto.nombre}</b>
+          <br />
+          WhatsApp {contacto.telefono}
+          <br />
+          {contacto.email}
+          {contacto.instagram && (
+            <>
+              <br />
+              {contacto.instagram}
+            </>
+          )}
+          <br />
+          {contacto.localidad}
+          {children}
+        </div>
+        {contacto.esEmpresa && <img className="hm-qr" src={QR_WHATSAPP} alt="QR para escribir por WhatsApp" />}
+      </div>
+    </footer>
+  )
+}
+
+/** El logo principal, arriba a la izquierda de cada papel. */
+export function LogoHoja() {
+  return (
+    <img
+      className="hm-logo"
+      src={LOGO.principal.color}
+      alt="Recuvarilla, 100% Argentina"
+      width={LOGO.principal.width}
+      height={LOGO.principal.height}
+    />
+  )
+}
 
 /*
   El contenedor del ERP tiene el margen de una pantalla de trabajo y al imprimir
@@ -82,19 +131,19 @@ export default function DocSheet({ doc, children }) {
         <div className="flex flex-wrap items-end gap-4">
           <Link
             to="/erp/documentos"
-            className="inline-flex items-center rounded-md border border-steel-200 bg-white px-3 py-2 text-sm font-semibold text-steel-600 hover:border-steel-300"
+            className="inline-flex items-center rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm font-semibold text-grafito-600 hover:border-grafito-300"
           >
             Documentos
           </Link>
 
           <label className="block">
-            <span className="block text-xs font-semibold text-steel-600">
+            <span className="block text-xs font-semibold text-grafito-600">
               Contacto que sale impreso
             </span>
             <select
               value={sellerId}
               onChange={(event) => elegir(event.target.value)}
-              className="mt-1 rounded-md border border-steel-200 bg-white px-3 py-2 text-sm text-steel-800 focus:border-secondary-500 focus:outline-none"
+              className="mt-1 rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm text-grafito-800 focus:border-celeste-700 focus:outline-none"
             >
               <option value="">Recuvarilla (contacto de la empresa)</option>
               {(sellers.data ?? []).map((item) => (
@@ -124,7 +173,7 @@ export default function DocSheet({ doc, children }) {
 
       {sellers.loading ? <Loading /> : children(contacto)}
 
-      <p className="mx-auto mt-4 max-w-[860px] text-xs text-steel-400 print:hidden">
+      <p className="mx-auto mt-4 max-w-[860px] text-xs text-grafito-400 print:hidden">
         Cada vendedor tiene su versión de este documento: elegilo arriba y el
         contacto impreso cambia. El link de la barra de direcciones ya lleva el
         vendedor puesto, así que se le puede pasar directo.

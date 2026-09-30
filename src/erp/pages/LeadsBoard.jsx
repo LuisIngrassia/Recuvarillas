@@ -43,34 +43,34 @@ function Tarjeta({ lead, onDragStart, arrastrando }) {
       }}
       className={`block cursor-grab rounded-lg border bg-white p-3 transition-shadow hover:shadow-sm ${
         arrastrando ? 'opacity-40' : ''
-      } ${vencida ? 'border-amber-300' : 'border-steel-200'}`}
+      } ${vencida ? 'border-amber-300' : 'border-grafito-200'}`}
     >
-      <p className="text-sm font-semibold text-steel-800">{lead.nombre}</p>
+      <p className="text-sm font-semibold text-grafito-800">{lead.nombre}</p>
 
-      <p className="mt-0.5 text-xs text-steel-400">
+      <p className="mt-0.5 text-xs text-grafito-400">
         {lead.localidad ?? 'Sin zona'}
         {lead.cantidad ? ` · ${formatNumber(lead.cantidad)} varillas` : ''}
       </p>
 
       {lead.quote_amount ? (
-        <p className="mt-1 text-xs font-semibold text-steel-600">
+        <p className="mt-1 text-xs font-semibold text-grafito-600">
           {formatPesos(Number(lead.quote_amount))}
         </p>
       ) : null}
 
       {lead.status === 'lost' && lead.lost_reason ? (
-        <p className="mt-1 text-xs text-steel-400">{LOST_REASON_LABELS[lead.lost_reason]}</p>
+        <p className="mt-1 text-xs text-grafito-400">{LOST_REASON_LABELS[lead.lost_reason]}</p>
       ) : null}
 
       {lead.next_action ? (
-        <p className={`mt-1.5 text-xs ${vencida ? 'text-amber-700' : 'text-steel-500'}`}>
+        <p className={`mt-1.5 text-xs ${vencida ? 'text-amber-700' : 'text-grafito-500'}`}>
           {lead.next_action}
-          <span className="block text-steel-400">{formatDate(lead.next_action_at)}</span>
+          <span className="block text-grafito-400">{formatDate(lead.next_action_at)}</span>
         </p>
       ) : null}
 
       {lead.status === 'dormant' && lead.dormant_until ? (
-        <p className="mt-1.5 text-xs text-steel-500">
+        <p className="mt-1.5 text-xs text-grafito-500">
           Recontactar el {formatDate(lead.dormant_until)}
           {lead.reactivation_count > 0 ? ` · ${lead.reactivation_count} intento(s)` : ''}
         </p>
@@ -100,17 +100,17 @@ function Columna({ status, leads, arrastrado, onDragStart, onDrop, className = '
       }}
       className={`flex min-w-[240px] flex-1 flex-col rounded-lg border p-2 transition-colors ${
         encima
-          ? 'border-secondary-400 bg-secondary-50'
+          ? 'border-celeste-500 bg-celeste-50'
           : arrastrado && admite
-            ? 'border-dashed border-secondary-300 bg-white'
-            : 'border-steel-200 bg-steel-50'
+            ? 'border-dashed border-celeste-400 bg-white'
+            : 'border-grafito-200 bg-grafito-50'
       } ${className}`}
     >
       <header className="flex items-baseline justify-between px-1 pb-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-steel-500">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-grafito-500">
           {LEAD_STATE_LABELS[status]}
         </h3>
-        <span className="text-xs text-steel-400">{leads.length}</span>
+        <span className="text-xs text-grafito-400">{leads.length}</span>
       </header>
 
       <div className="space-y-2">
@@ -124,7 +124,7 @@ function Columna({ status, leads, arrastrado, onDragStart, onDrop, className = '
         ))}
 
         {leads.length === 0 && (
-          <p className="px-1 py-4 text-center text-xs text-steel-300">Vacío</p>
+          <p className="px-1 py-4 text-center text-xs text-grafito-300">Vacío</p>
         )}
       </div>
     </div>
@@ -136,21 +136,21 @@ function Panel({ status, leads, arrastrado, onDragStart, onDrop }) {
   const [abierto, setAbierto] = useState(false)
 
   return (
-    <section className="rounded-lg border border-steel-200 bg-white">
+    <section className="rounded-lg border border-grafito-200 bg-white">
       <button
         type="button"
         onClick={() => setAbierto((v) => !v)}
         className="flex w-full items-center justify-between px-4 py-3 text-left"
       >
-        <span className="text-sm font-semibold text-steel-700">
+        <span className="text-sm font-semibold text-grafito-700">
           {LEAD_STATE_LABELS[status]}{' '}
-          <span className="font-normal text-steel-400">({leads.length})</span>
+          <span className="font-normal text-grafito-400">({leads.length})</span>
         </span>
-        <span className="text-xs text-steel-400">{abierto ? 'Ocultar' : 'Ver'}</span>
+        <span className="text-xs text-grafito-400">{abierto ? 'Ocultar' : 'Ver'}</span>
       </button>
 
       {abierto && (
-        <div className="border-t border-steel-100 p-2">
+        <div className="border-t border-grafito-100 p-2">
           <Columna
             status={status}
             leads={leads}

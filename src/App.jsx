@@ -25,7 +25,7 @@ function App() {
           element={
             <Suspense
               fallback={
-                <p className="p-8 text-center text-sm text-steel-400">Cargando…</p>
+                <p className="p-8 text-center text-sm text-grafito-400">Cargando…</p>
               }
             >
               <ErpApp />

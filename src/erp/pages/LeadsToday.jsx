@@ -57,15 +57,15 @@ function Fila({ lead, onChanged, onError }) {
   }
 
   return (
-    <tr className={lead.dias_vencido > 3 ? 'bg-red-50/40' : undefined}>
+    <tr className={lead.dias_vencido > 3 ? 'bg-tapita-50/40' : undefined}>
       <Td>
         <Link
           to={`/erp/leads/${lead.id}`}
-          className="font-semibold text-steel-800 hover:text-secondary-600"
+          className="font-semibold text-grafito-800 hover:text-celeste-800"
         >
           {lead.nombre}
         </Link>
-        <span className="block text-xs text-steel-400">
+        <span className="block text-xs text-grafito-400">
           {LEAD_SOURCE_LABELS[lead.source] ?? lead.source}
           {lead.localidad ? ` · ${lead.localidad}` : ''}
           {lead.owner ? ` · ${lead.owner}` : ''}
@@ -77,12 +77,12 @@ function Fila({ lead, onChanged, onError }) {
       </Td>
 
       <Td>
-        <span className="text-steel-700">
+        <span className="text-grafito-700">
           {lead.status === 'dormant'
             ? 'Recontactar con alguna novedad'
             : (lead.next_action ?? '—')}
         </span>
-        <span className="block text-xs text-steel-400">
+        <span className="block text-xs text-grafito-400">
           {lead.cantidad ? `${formatNumber(lead.cantidad)} varillas · ` : ''}
           {formatDate(lead.vence_el)}
         </span>
@@ -99,7 +99,7 @@ function Fila({ lead, onChanged, onError }) {
               href={wa}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-md bg-secondary-500 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-secondary-600"
+              className="rounded-md bg-grafito-900 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-grafito-700"
             >
               WhatsApp
             </a>
@@ -110,7 +110,7 @@ function Fila({ lead, onChanged, onError }) {
               type="button"
               onClick={recontactar}
               disabled={reactivando}
-              className="rounded-md border border-steel-200 bg-white px-2.5 py-1 text-xs font-semibold text-steel-600 transition-colors hover:border-steel-300 hover:text-steel-800 disabled:opacity-60"
+              className="rounded-md border border-grafito-200 bg-white px-2.5 py-1 text-xs font-semibold text-grafito-600 transition-colors hover:border-grafito-300 hover:text-grafito-800 disabled:opacity-60"
             >
               {reactivando ? 'Anotando…' : `Intento ${(lead.reactivation_count ?? 0) + 1}`}
             </button>
@@ -178,7 +178,7 @@ export default function LeadsToday() {
       <ErrorNote onRetry={() => setError('')}>{error}</ErrorNote>
 
       {movidos > 0 && (
-        <p className="rounded-md border border-steel-200 bg-steel-50 px-4 py-3 text-sm text-steel-600">
+        <p className="rounded-md border border-grafito-200 bg-grafito-50 px-4 py-3 text-sm text-grafito-600">
           El barrido de hoy movió {movidos}{' '}
           {movidos === 1 ? 'lead' : 'leads'}:{' '}
           {barrido.a_calificar ? `${barrido.a_calificar} a calificación, ` : ''}

@@ -188,8 +188,38 @@
   .lona .w { position: absolute; left: 0; right: 0; height: 1.5px; background: var(--alambre); }
   .lona-in { position: absolute; inset: 9% 13%; background: #fff; display: flex; flex-direction: column; justify-content: center; }
 
+  /* ---------- Etapa 6 ---------- */
+  .icon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 1.6) calc(var(--u) * 2); }
+  .icon-grid > div { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: calc(var(--u) * 1.2); align-items: center; }
+  .icon-grid img { grid-row: span 2; width: calc(var(--u) * 5.2); }
+  .icon-grid b { font-size: calc(var(--u) * 1.1); align-self: end; }
+  .icon-grid span { font-size: calc(var(--u) * .9); color: var(--gris); align-self: start; }
+  .badge { height: calc(var(--u) * 4.4); }
+  .pat-sq { aspect-ratio: 1; background: 0 0 / 50% auto; border-radius: 4px; box-shadow: 0 0 0 1px var(--line); }
+  .use { display: grid; gap: .6em; align-content: start; }
+  .use > div { border-radius: 4px; overflow: hidden; }
+  .sign { background: #fff; border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 6px 18px rgba(29,33,32,.10); }
+  .sign.dark { background: var(--grafito); color: #fff; }
+  .thumb { width: calc(var(--u) * 5.2); border-radius: 2px; box-shadow: 0 0 0 1px var(--line); }
+  .steps { margin: 0; padding-left: 1.4em; display: grid; gap: .7em; }
+  .steps li::marker { font-family: "Chivo Mono", monospace; font-weight: 600; }
+  .comp { position: relative; aspect-ratio: 1; border: 1.5px solid var(--grafito); background: #fff; font: 600 calc(var(--u) * .85) "Chivo Mono", monospace; letter-spacing: .05em; }
+  .comp > * { position: absolute; }
+  .comp .c-logo { left: 8.33%; top: 8.33%; }
+  .comp .c-tit { left: 8.33%; top: 30%; font-size: calc(var(--u) * 1.5); }
+  .comp .c-prod { right: 8.33%; top: 48%; width: 38%; height: 26%; display: grid; place-items: center; background: var(--hormigon); }
+  .comp .c-rod { left: 8.33%; right: 8.33%; bottom: 17%; aspect-ratio: 40 / 1; background: url("../assets/sistema/varilla-separador.svg") left / contain no-repeat; }
+  .comp .c-pie { left: 8.33%; right: 8.33%; bottom: 8.33%; display: flex; justify-content: space-between; }
+  .label-tag { background: #fff; border: 1px solid var(--line); border-radius: 4px; padding: calc(var(--u) * 1.4); aspect-ratio: 100 / 60; font-size: calc(var(--u) * .95); box-shadow: 0 6px 18px rgba(29,33,32,.10); }
+  .partner { border: 2px dashed var(--alambre); border-radius: 4px; display: grid; place-items: center; height: calc(var(--u) * 5); font: 500 calc(var(--u) * .8) "Chivo Mono", monospace; color: var(--gris); text-align: center; }
+  .replay { justify-self: start; font: 600 calc(var(--u) * .9) "Archivo", sans-serif; background: #fff; border: 1.5px solid var(--grafito); border-radius: 5px; padding: .4em .9em; cursor: pointer; }
+  .replay:focus-visible { outline: 2px solid var(--celeste-hondo); outline-offset: 2px; }
+  .frame { width: 100%; border: 1px solid var(--line); border-radius: 4px; padding: 10%; background: #fff; }
+  .solo-papel { display: none; }
+  @media print { .replay, .solo-pantalla { display: none; } .solo-papel { display: block; } }
+
   /* ---------- Pantalla angosta: la página deja de ser A4 y se lee como documento ---------- */
-  @media (max-width: 899px) {
+  @media screen and (max-width: 899px) {
     .page { aspect-ratio: auto; --u: 11.5px; }
     .d-xl { font-size: 46px; } .d-l { font-size: 38px; } h2 { font-size: 32px; }
     .g2, .g-5-7, .g-7-5, .g3, .g4, .bgs, .wrong, .pairs { grid-template-columns: 1fr !important; height: auto; }
@@ -214,7 +244,7 @@
   <div class="in">
     <img src="../assets/logo/recuvarilla-palabra-negativo.svg" alt="Recuvarilla">
     <nav aria-label="Secciones">
-      <a href="#esencia">Esencia</a><a href="#logo">Logo</a><a href="#color">Color</a><a href="#tipografia">Tipografía</a><a href="#sistema">Sistema visual</a><a href="#fotografia">Fotografía</a><a href="#tono">Tono</a><a href="#producto">Producto</a><a href="#aplicaciones">Aplicaciones</a><a href="#mockups">Maquetas</a>
+      <a href="#esencia">Esencia</a><a href="#logo">Logo</a><a href="#color">Color</a><a href="#tipografia">Tipografía</a><a href="#sistema">Sistema visual</a><a href="#fotografia">Fotografía</a><a href="#tono">Tono</a><a href="#producto">Producto</a><a href="#aplicaciones">Aplicaciones</a><a href="#mockups">Maquetas</a><a href="#iconos">Íconos</a><a href="#pattern">Pattern</a><a href="#senaletica">Señalética</a><a href="#redes">Redes</a><a href="#composicion">Composición</a><a href="#packaging">Packaging</a><a href="#cobranding">Co-branding</a><a href="#motion">Motion</a>
     </nav>
     <button class="print" type="button" onclick="window.print()">Guardar PDF</button>
   </div>
@@ -1171,6 +1201,354 @@
           <circle cx="490" cy="192" r="30" fill="#1D2120"/><circle cx="490" cy="192" r="13" fill="#9AA39F"/>
         </svg>
         <ul class="bul small"><li><b>Vehículo blanco</b>: la palabra en la caja, el isotipo en la puerta.</li><li><b>La franja</b> recorre la parte baja de punta a punta.</li><li><b>El WhatsApp</b> en la caja, debajo de la palabra, y repetido en la compuerta: se lee desde el auto de atrás.</li><li>Nada de fotos ploteadas ni degradés: se ensucian y envejecen mal.</li></ul>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+
+<!-- ================= ICONOGRAFÍA ================= -->
+<section class="page" id="iconos">
+  <div class="ph"><span>11 · Iconografía</span><span>Íconos</span></div>
+  <div class="pb">
+    <div class="g-7-5">
+      <div class="stack">
+        <h2 style="margin:0">Íconos propios</h2>
+        <div class="icon-grid">
+          <div><img src="../assets/iconos/reciclado.svg" alt=""><b>Plástico reciclado</b><span>De la botella a la varilla</span></div>
+          <div><img src="../assets/iconos/resistencia.svg" alt=""><b>Resistencia</b><span>Clavada bajo la lluvia</span></div>
+          <div><img src="../assets/iconos/sustentabilidad.svg" alt=""><b>Sustentabilidad</b><span>La tapita, material de origen</span></div>
+          <div><img src="../assets/iconos/medidas.svg" alt=""><b>Sección</b><span>3 × 3 cm con cotas</span></div>
+          <div><img src="../assets/iconos/largo.svg" alt=""><b>Largo</b><span>120 cm</span></div>
+          <div><img src="../assets/iconos/agujereado.svg" alt=""><b>Agujereado</b><span>Tres perforaciones</span></div>
+          <div><img src="../assets/iconos/campo.svg" alt=""><b>Campo</b><span>El alambrado</span></div>
+          <div><img src="../assets/iconos/entrega.svg" alt=""><b>Entrega a campo</b><span>Varillas en la caja</span></div>
+          <div><img src="../assets/iconos/electrico.svg" alt=""><b>Cerco eléctrico</b><span>Varilla y rayo</span></div>
+        </div>
+      </div>
+      <div class="stack">
+        <span class="label">Cómo están hechos</span>
+        <ul class="bul small">
+          <li><b>Grilla de 48</b>, trazo de 3,5 con puntas rectas. Nada redondeado.</li>
+          <li><b>La varilla siempre es una forma llena</b>, nunca un contorno: igual que en el logo.</li>
+          <li><b>Un solo color</b>: grafito sobre claro, blanco sobre oscuro. Hay versión <span class="mono">-blanco</span> de cada uno.</li>
+          <li><b>Mínimo 24 px</b> en pantalla o 6 mm impreso.</li>
+        </ul>
+        <span class="label">Nunca</span>
+        <ul class="bul small">
+          <li>Emojis, flechas de reciclaje, hojitas ni globos terráqueos.</li>
+          <li>El ícono adentro de un círculo o un cuadrado de color.</li>
+          <li>Íconos bajados de internet mezclados con estos.</li>
+        </ul>
+        <div style="display:flex;gap:calc(var(--u)*1.2);align-items:center;background:var(--grafito);border-radius:4px;padding:calc(var(--u)*1.4)">
+          <img src="../assets/iconos/reciclado-blanco.svg" alt="" style="width:calc(var(--u)*3.4)"><img src="../assets/iconos/resistencia-blanco.svg" alt="" style="width:calc(var(--u)*3.4)"><img src="../assets/iconos/campo-blanco.svg" alt="" style="width:calc(var(--u)*3.4)"><img src="../assets/iconos/entrega-blanco.svg" alt="" style="width:calc(var(--u)*3.4)">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= ÍCONOS TÉCNICOS ================= -->
+<section class="page">
+  <div class="ph"><span>11 · Iconografía</span><span>Íconos técnicos</span></div>
+  <div class="pb">
+    <h2>La ficha en cuatro datos</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:calc(var(--u)*1.2)">
+      <img src="../assets/iconos/tecnicos/120-cm.svg" alt="120 cm" class="badge"><img src="../assets/iconos/tecnicos/3-x-3-cm.svg" alt="3 × 3 cm" class="badge"><img src="../assets/iconos/tecnicos/plastico-reciclado.svg" alt="Plástico reciclado" class="badge"><img src="../assets/iconos/tecnicos/agujereado-disponible.svg" alt="Agujereado disponible" class="badge">
+    </div>
+    <div class="g-7-5" style="height:auto;margin-top:calc(var(--u)*2.4)">
+      <div class="cell" style="display:grid;grid-template-columns:5fr 7fr;gap:calc(var(--u)*2);align-items:start">
+        <img class="photo" src="../assets/fotos/producto-perforada.jpg" alt="" style="height:calc(var(--u)*24);object-position:50% 25%">
+        <div class="stack" style="gap:calc(var(--u)*1)">
+          <img src="../assets/logo/recuvarilla-palabra-color.svg" alt="Recuvarilla" style="width:45%">
+          <p style="font-weight:800;font-stretch:75%;font-size:calc(var(--u)*2.8);line-height:.95;margin:0">Varilla agujereada</p>
+          <div style="display:grid;gap:calc(var(--u)*.6)"><img src="../assets/iconos/tecnicos/120-cm.svg" alt="" style="height:calc(var(--u)*3)"><img src="../assets/iconos/tecnicos/3-x-3-cm.svg" alt="" style="height:calc(var(--u)*3)"><img src="../assets/iconos/tecnicos/plastico-reciclado.svg" alt="" style="height:calc(var(--u)*3)"><img src="../assets/iconos/tecnicos/agujereado-disponible.svg" alt="" style="height:calc(var(--u)*3)"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <span class="label">Reglas</span>
+        <ul class="bul small">
+          <li><b>Siempre en este orden:</b> largo, sección, material, agujereado.</li>
+          <li><b>Todos del mismo alto</b>, en fila o en columna, nunca mezclados.</li>
+          <li>Van en fichas, catálogos, la web, etiquetas y el stand.</li>
+          <li>Si la pieza es de varilla lisa, el cuarto dato no va.</li>
+          <li>Archivos en <span class="mono">assets/iconos/tecnicos</span>, con el texto vectorizado.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= PATTERN ================= -->
+<section class="page" id="pattern">
+  <div class="ph"><span>12 · Pattern</span><span>Alambrado</span></div>
+  <div class="pb">
+    <div class="g-5-7">
+      <div class="stack">
+        <h2 style="margin:0">El pattern alambrado</h2>
+        <p class="muted small" style="margin:0">Un módulo de 96 × 40 que se repite: una varilla, un hilo pasando por la perforación. Archivos en <span class="mono">assets/sistema</span>: el módulo suelto y el pattern armado de 1080 × 1080, en positivo y negativo.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*1)">
+          <div class="pat-sq" style="background-image:url('../assets/sistema/alambrado-modulo.svg')"></div>
+          <div class="pat-sq" style="background-image:url('../assets/sistema/alambrado-modulo-negativo.svg')"></div>
+        </div>
+        <ul class="bul small">
+          <li><b>Escala:</b> entre 4 y 8 varillas a lo ancho de la pieza.</li>
+          <li><b>Nunca detrás de un texto</b>, nunca rotado, nunca en otro color.</li>
+          <li>Si hay pattern, no hay marco alambrado ni franja grande en la misma pieza.</li>
+        </ul>
+      </div>
+      <div class="stack">
+        <span class="label">Dónde se usa</span>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:calc(var(--u)*1.2)">
+          <div class="use"><div style="aspect-ratio:9/16;background:url('../assets/sistema/alambrado-modulo.svg') 0 0 / 50% auto;display:grid;align-items:center;padding:12%"><div style="background:#fff;padding:10%;box-shadow:0 0 0 1px var(--line)"><p style="font-weight:800;font-stretch:75%;font-size:calc(var(--u)*1.5);line-height:.95;margin:0">Pedí tu presupuesto</p></div></div><span class="small"><b>Redes:</b> fondo de historia, con el texto en una caja blanca.</span></div>
+          <div class="use"><div style="aspect-ratio:9/16;background:#fff;border:1px solid var(--line);display:grid;grid-template-rows:70% 30%"><div></div><div style="background:url('../assets/sistema/alambrado-modulo-negativo.svg') 0 0 / 50% auto"></div></div><span class="small"><b>Folleto:</b> contratapa o faja inferior.</span></div>
+          <div class="use"><div style="aspect-ratio:9/16;background:#fff;border:1px solid var(--line);display:grid;grid-template-columns:18% 1fr"><div style="background:url('../assets/sistema/alambrado-modulo.svg') 0 0 / 280% auto"></div><div></div></div><span class="small"><b>Cartel:</b> borde lateral, del lado del poste.</span></div>
+          <div class="use"><div style="aspect-ratio:9/16;background:var(--grafito);display:grid;align-items:center"><div style="height:22%;background:url('../assets/sistema/alambrado-modulo-negativo.svg') 0 0 / 50% auto"></div></div><span class="small"><b>Packaging:</b> cinta de embalar o caja.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= SEÑALÉTICA ================= -->
+<section class="page" id="senaletica">
+  <div class="ph"><span>13 · Señalética</span><span>Stand</span></div>
+  <div class="pb">
+    <h2>Señalética del stand</h2>
+    <div style="display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:calc(var(--u)*1.6);align-items:end;margin-top:calc(var(--u)*.8)">
+      <div class="stack" style="gap:calc(var(--u)*.8)">
+        <div class="sign" style="aspect-ratio:3/1;display:grid;align-content:center;gap:.5em;padding:6%">
+          <p style="font-weight:800;font-stretch:75%;font-size:calc(var(--u)*2.2);line-height:1;margin:0">Stand Recuvarilla</p>
+          <div style="display:flex;align-items:center;gap:1em"><div style="flex:1;aspect-ratio:40/1;background:url('../assets/sistema/varilla-separador.svg') left/contain no-repeat"></div><span class="mono" style="font-size:calc(var(--u)*1.2)">50 m</span></div>
+        </div>
+        <p class="small" style="margin:0"><b>Flecha:</b> la varilla acostada; la punta indica hacia dónde. Es la única pieza donde la varilla puede girar.</p>
+      </div>
+      <div class="stack" style="gap:calc(var(--u)*.8)">
+        <div class="sign" style="aspect-ratio:148/210;display:flex;flex-direction:column;padding:8%">
+          <span class="label">Varilla lisa</span>
+          <p class="mono" style="font-weight:500;font-size:calc(var(--u)*2.6);margin:.3em 0 0;line-height:1">$ 2.950</p>
+          <p class="small" style="margin:.2em 0 0">+ IVA, por unidad</p>
+          <div style="margin-top:auto;display:grid;gap:.4em"><img src="../assets/iconos/tecnicos/120-cm.svg" alt="" style="height:calc(var(--u)*1.9)"><img src="../assets/iconos/tecnicos/3-x-3-cm.svg" alt="" style="height:calc(var(--u)*1.9)"></div>
+          <p class="mono" style="font-size:calc(var(--u)*.7);margin:.8em 0 0;color:var(--gris)">Lista 01/08/2026</p>
+        </div>
+        <p class="small" style="margin:0"><b>Precio:</b> A5 parado. Precio en Chivo Mono, grande; la fecha, siempre.</p>
+      </div>
+      <div class="stack" style="gap:calc(var(--u)*.8)">
+        <div class="sign dark" style="aspect-ratio:148/210;display:flex;flex-direction:column;padding:8%;gap:.6em">
+          <p style="font-weight:800;font-stretch:75%;font-size:calc(var(--u)*1.9);line-height:.95;margin:0">Pedí tu presupuesto</p>
+          <img src="../assets/qr/qr-whatsapp-negativo.svg" alt="QR a WhatsApp" style="width:78%;margin-top:auto">
+          <span class="mono" style="font-size:calc(var(--u)*.8);line-height:1.5">WhatsApp 11 2395-8302<br>@recuvarilla</span>
+        </div>
+        <p class="small" style="margin:0"><b>QR:</b> tótem grafito, a la altura del pecho.</p>
+      </div>
+      <div class="stack" style="gap:calc(var(--u)*.8)">
+        <div class="sign" style="aspect-ratio:148/210;display:flex;flex-direction:column;padding:8%;gap:.5em">
+          <img src="../assets/iconos/campo.svg" alt="" style="width:30%">
+          <p style="font-weight:800;font-stretch:75%;font-size:calc(var(--u)*1.9);line-height:.95;margin:0">Alambrados</p>
+          <p class="small" style="margin:0">Agujereada a la altura de cada hilo.</p>
+          <img src="../assets/producto/aplicaciones/alambrado.svg" alt="" style="width:100%;margin-top:auto">
+        </div>
+        <p class="small" style="margin:0"><b>Aplicación:</b> una por cartel, con su ícono y su esquema.</p>
+      </div>
+    </div>
+    <div class="cell small" style="margin-top:calc(var(--u)*1.8);display:grid;grid-template-columns:repeat(3,1fr);gap:calc(var(--u)*2)">
+      <p style="margin:0"><b>Con las varillas reales:</b> los carteles de aplicación van al lado de un tramo de alambrado armado con varillas de verdad. El cartel explica, la varilla convence.</p>
+      <p style="margin:0"><b>Alturas:</b> flechas a 2 m, carteles de precio sobre el mostrador, QR entre 1,2 y 1,5 m.</p>
+      <p style="margin:0"><b>Lectura:</b> el titular de un cartel mide al menos 1/10 de su alto. Si no se lee a 3 m, tiene demasiado texto.</p>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= REDES ================= -->
+<section class="page" id="redes">
+  <div class="ph"><span>14 · Redes</span><span>Sistema de contenidos</span></div>
+  <div class="pb">
+    <h2>Seis tipos de posteo</h2>
+    <table class="t small">
+      <thead><tr><th style="width:9%"></th><th>Tipo</th><th>Para qué</th><th>Ejemplo de titular</th><th>Mezcla</th><th>Plantilla</th></tr></thead>
+      <tbody>
+        <tr><td><img src="../assets/templates/png/producto-1080x1080.png" alt="" class="thumb"></td><td><b>Producto</b></td><td>Qué es y cómo se pide</td><td>3 × 3 × 120 cm.</td><td class="n">25%</td><td class="mono">producto.html</td></tr>
+        <tr><td><img src="../assets/templates/png/aplicaciones-1080x1080.png" alt="" class="thumb"></td><td><b>Aplicaciones</b></td><td>Para qué sirve, con fotos reales</td><td>Alambrados perimetrales.</td><td class="n">25%</td><td class="mono">aplicaciones.html</td></tr>
+        <tr><td><img src="../assets/templates/png/pruebas-1080x1080.png" alt="" class="thumb"></td><td><b>Pruebas</b></td><td>Reseñas y casos reales</td><td>"Gran calidad en las varillas de 1,20."</td><td class="n">15%</td><td class="mono">pruebas.html</td></tr>
+        <tr><td><img src="../assets/templates/png/proceso-1080x1080.png" alt="" class="thumb"></td><td><b>Proceso</b></td><td>Cómo se fabrica, paso a paso</td><td>Pasa por el molde.</td><td class="n">15%</td><td class="mono">proceso.html</td></tr>
+        <tr><td><img src="../assets/templates/png/educacion-1080x1080.png" alt="" class="thumb"></td><td><b>Educación</b></td><td>Plástico reciclado y el campo</td><td>¿Por qué no se pudre?</td><td class="n">10%</td><td class="mono">educacion.html</td></tr>
+        <tr><td><img src="../assets/templates/png/marca-1080x1080.png" alt="" class="thumb"></td><td><b>Marca</b></td><td>Quiénes somos, de dónde</td><td>Hecha para el campo. Pensada para durar.</td><td class="n">10%</td><td class="mono">marca.html</td></tr>
+      </tbody>
+    </table>
+    <p class="small muted" style="margin-top:calc(var(--u)*1.2)">Cada plantilla sale en cuadrado y en historia. Se editan los textos marcados <span class="mono">EDITÁ</span> y se exportan con <span class="mono">herramientas/render-plantillas.sh</span>. No publiques dos posteos oscuros seguidos.</p>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= COMPOSICIÓN ================= -->
+<section class="page" id="composicion">
+  <div class="ph"><span>15 · Composición</span><span>La grilla base</span></div>
+  <div class="pb">
+    <div class="g-5-7">
+      <div class="stack">
+        <h2 style="margin:0">Armar una pieza en cinco pasos</h2>
+        <ol class="steps">
+          <li><b>Margen:</b> 1/12 del lado más corto, en los cuatro lados.</li>
+          <li><b>Logo</b> arriba a la izquierda. Nunca centrado, nunca abajo.</li>
+          <li><b>Titular</b> en Archivo Condensed, alineado a la izquierda. Una idea.</li>
+          <li><b>Producto o foto</b> a la derecha o debajo, grande.</li>
+          <li><b>Varilla y contactos</b> abajo de todo: QR, WhatsApp, Instagram.</li>
+        </ol>
+        <p class="small muted" style="margin:0">Si sobra lugar, no se rellena: el aire también es parte de la marca.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:calc(var(--u)*1.6);align-items:start">
+        <div class="comp">
+          <span class="c-logo">LOGO</span>
+          <span class="c-tit">TITULAR</span>
+          <span class="c-prod">PRODUCTO</span>
+          <div class="c-rod"></div>
+          <span class="c-pie"><b>QR</b><b>WHATSAPP</b><b>IG</b></span>
+        </div>
+        <div class="stack" style="gap:calc(var(--u)*1)">
+          <img src="../assets/templates/png/producto-1080x1080.png" alt="Posteo armado con la grilla" style="width:100%;box-shadow:0 0 0 1px var(--line)">
+          <p class="small muted" style="margin:0">La misma grilla en un posteo real. Vale igual para el folleto, la lista de precios y el cartel.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= PACKAGING ================= -->
+<section class="page" id="packaging">
+  <div class="ph"><span>16 · Packaging</span><span>Atados, etiquetas y stickers</span></div>
+  <div class="pb">
+    <h2>Cómo sale la varilla</h2>
+    <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:calc(var(--u)*2.4);margin-top:calc(var(--u)*1)">
+      <div class="stack" style="gap:calc(var(--u)*.8)">
+        <svg viewBox="0 0 600 300" style="width:100%;background:var(--hormigon);border-radius:4px" role="img" aria-label="Atado de varillas con dos fajines">
+          <g fill="#1D2120">
+            <path d="M40 60H540L570 72L540 84H40Z"/><path d="M40 90H540L570 102L540 114H40Z"/><path d="M40 120H540L570 132L540 144H40Z"/><path d="M40 150H540L570 162L540 174H40Z"/><path d="M40 180H540L570 192L540 204H40Z"/><path d="M40 210H540L570 222L540 234H40Z"/>
+          </g>
+          <g><rect x="130" y="48" width="54" height="198" fill="#74ACDF"/><rect x="148" y="48" width="18" height="198" fill="#fff"/></g>
+          <g><rect x="400" y="48" width="54" height="198" fill="#74ACDF"/><rect x="418" y="48" width="18" height="198" fill="#fff"/></g>
+          <rect x="230" y="118" width="120" height="58" fill="#fff" stroke="#1D2120" stroke-width="2"/>
+          <image href="../assets/logo/recuvarilla-palabra-color.svg" x="242" y="134" width="96" height="16"/>
+          <text x="290" y="166" text-anchor="middle" font-family="Chivo Mono" font-size="11" fill="#1D2120">3×3×120 · × ___</text>
+        </svg>
+        <p class="small" style="margin:0"><b>Atado:</b> dos fajines con la franja, como los zunchos celestes que ya usan los pallets, y la etiqueta al medio.</p>
+      </div>
+      <div class="stack" style="gap:calc(var(--u)*.8)">
+        <div class="label-tag">
+          <div style="display:flex;justify-content:space-between;align-items:start"><img src="../assets/logo/recuvarilla-principal-color.svg" alt="Recuvarilla" style="width:58%"><img src="../assets/qr/qr-whatsapp.svg" alt="QR" style="width:22%"></div>
+          <p style="font-weight:800;font-stretch:75%;font-size:1.7em;line-height:1;margin:.6em 0 .4em">Varilla 3 × 3 × 120 cm</p>
+          <div class="mono" style="font-size:.85em;line-height:1.9">☐ Lisa &nbsp; ☐ Agujereada<br>Cantidad: ________<br>Lote: ________ &nbsp; Fecha: ________</div>
+        </div>
+        <p class="small" style="margin:0"><b>Etiqueta del atado:</b> 100 × 60 mm, se completa a mano. Imprimible en la impresora de la oficina.</p>
+      </div>
+      <div class="stack" style="gap:calc(var(--u)*.8)">
+        <div style="display:flex;gap:calc(var(--u)*1.2);align-items:center">
+          <div style="width:calc(var(--u)*9);aspect-ratio:1;border-radius:50%;overflow:hidden;box-shadow:0 2px 8px rgba(29,33,32,.2)"><img src="../assets/logo/recuvarilla-isotipo-color.svg" alt="" style="width:100%;height:100%;transform:scale(1.02)"></div>
+          <div style="flex:1;background:var(--grafito);color:#fff;border-radius:4px;padding:calc(var(--u)*1);box-shadow:0 2px 8px rgba(29,33,32,.2)"><img src="../assets/logo/recuvarilla-palabra-negativo.svg" alt="" style="width:100%"><p class="mono" style="font-size:calc(var(--u)*.7);margin:.6em 0 0;color:#CFD5D2">Hecha en Luján con plástico recuperado</p></div>
+        </div>
+        <p class="small" style="margin:0"><b>Stickers:</b> redondo con el isotipo (5 cm) para la varilla y los atados; rectangular para camionetas, cajas y la mercadería de los distribuidores.</p>
+        <p class="small muted" style="margin:0">En packaging manda la franja: es la marca de origen que se ve de lejos en el galpón.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= CO-BRANDING ================= -->
+<section class="page" id="cobranding">
+  <div class="ph"><span>17 · Co-branding</span><span>Con distribuidores</span></div>
+  <div class="pb">
+    <div class="g-5-7">
+      <div class="stack">
+        <h2 style="margin:0">Recuvarilla en la agropecuaria</h2>
+        <p class="muted small" style="margin:0">En el local del distribuidor, el distribuidor manda. Recuvarilla aparece con su sello y su producto, sin competir.</p>
+        <img src="../assets/sello/distribuidor-oficial.svg" alt="Sello Distribuidor oficial Recuvarilla" style="width:80%">
+        <ul class="bul small">
+          <li><b>El sello</b> va en la vidriera, el mostrador y los posteos del distribuidor.</li>
+          <li><b>Logos a la misma altura</b>, separados por un filete vertical y con aire de una R a cada lado.</li>
+          <li>El logo del distribuidor, con sus colores. <b>Nunca</b> se lo pasa a grafito ni se lo mete en el alambrado.</li>
+          <li>Precios siempre de la lista vigente; si el distribuidor tiene los suyos, van con su marca, no con la nuestra.</li>
+        </ul>
+      </div>
+      <div class="stack">
+        <span class="label">Cartel en el local · posteo compartido</span>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;gap:calc(var(--u)*1.6)">
+          <div class="sign" style="aspect-ratio:3/4;display:flex;flex-direction:column;padding:7%;gap:.8em">
+            <div class="partner">Logo del distribuidor</div>
+            <p style="font-weight:800;font-stretch:75%;font-size:calc(var(--u)*2.2);line-height:.95;margin:0">Varillas de plástico recuperado.</p>
+            <p class="small" style="margin:0">Pedilas acá, en el mostrador.</p>
+            <img src="../assets/sello/distribuidor-oficial.svg" alt="" style="width:78%;margin-top:auto">
+          </div>
+          <div class="sign" style="aspect-ratio:1;display:flex;flex-direction:column;padding:7%;gap:.8em">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:1em"><div class="partner" style="height:calc(var(--u)*3.6)">Distribuidor</div><div style="width:2px;height:calc(var(--u)*3.6);background:var(--grafito)"></div><img src="../assets/logo/recuvarilla-palabra-color.svg" alt="" style="width:100%"></div>
+            <p style="font-weight:800;font-stretch:75%;font-size:calc(var(--u)*2);line-height:.95;margin:auto 0 0">Ya llegaron las varillas.</p>
+            <div style="aspect-ratio:40/1;background:url('../assets/sistema/varilla-separador.svg') left/contain no-repeat"></div>
+          </div>
+        </div>
+        <p class="small muted" style="margin:0">El recuadro punteado es el lugar del logo del distribuidor: se reemplaza por su archivo.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= MOTION ================= -->
+<section class="page" id="motion">
+  <div class="ph"><span>18 · Motion</span><span>Movimiento</span></div>
+  <div class="pb">
+    <div class="g-7-5">
+      <div class="stack">
+        <h2 style="margin:0">La varilla se clava</h2>
+        <div class="cell" style="display:grid;place-items:center;padding:calc(var(--u)*2.4)"><img id="logoAnim" class="solo-pantalla" src="../assets/motion/logo-animado.svg" alt="Logo animado de Recuvarilla" style="width:88%"><img class="solo-papel" src="../assets/logo/recuvarilla-principal-color.svg" alt="Logo de Recuvarilla" style="width:88%"></div>
+        <button class="replay" type="button" onclick="var i=document.getElementById('logoAnim');i.src='../assets/motion/logo-animado.svg?'+Date.now()">Ver de nuevo</button>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:calc(var(--u)*1)">
+          <figure style="margin:0"><img src="../assets/motion/cuadro-1.svg" alt="" class="frame"><figcaption class="small"><span class="mono">0,0 s</span> Entran las letras</figcaption></figure>
+          <figure style="margin:0"><img src="../assets/motion/cuadro-2.svg" alt="" class="frame"><figcaption class="small"><span class="mono">0,4 s</span> Cae la varilla</figcaption></figure>
+          <figure style="margin:0"><img src="../assets/motion/cuadro-3.svg" alt="" class="frame"><figcaption class="small"><span class="mono">1,0 s</span> Se perfora</figcaption></figure>
+          <figure style="margin:0"><img src="../assets/motion/cuadro-4.svg" alt="" class="frame"><figcaption class="small"><span class="mono">1,8 s</span> Crece la franja</figcaption></figure>
+        </div>
+      </div>
+      <div class="stack">
+        <table class="t small">
+          <thead><tr><th>Movimiento</th><th>Cómo</th></tr></thead>
+          <tbody>
+            <tr><td><b>Logo</b></td><td>1,8 s. La varilla cae y se clava con peso, sin rebote. Tres perforaciones de 90 ms. Las franjas crecen desde el centro.</td></tr>
+            <tr><td><b>Intro de reel</b></td><td>El logo animado y la frase. Máximo 2 s.</td></tr>
+            <tr><td><b>Outro de reel</b></td><td>Logo quieto, WhatsApp y QR, 2 s.</td></tr>
+            <tr><td><b>Transiciones</b></td><td>Corte seco, o la varilla que cruza la pantalla de izquierda a derecha y barre (400 ms).</td></tr>
+            <tr><td><b>Texto</b></td><td>Línea por línea, subiendo apenas; 250 ms cada una, 120 ms entre líneas.</td></tr>
+            <tr><td><b>Curva</b></td><td>Entradas con ease-out, salidas con ease-in. Nada gira, nada rebota.</td></tr>
+          </tbody>
+        </table>
+        <p class="small muted" style="margin:0">Referencia: el scroll 3D de la web, donde la varilla se fabrica y termina clavada en el alambrado. El movimiento siempre cuenta algo del producto. Con "reducir movimiento" activado, el logo aparece quieto.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pf"></div>
+</section>
+
+<!-- ================= CIERRE ================= -->
+<section class="page dark" id="cierre">
+  <div class="ph"><span>Recuvarilla · Manual de marca</span><span>v1 · septiembre 2026</span></div>
+  <div class="pb">
+    <div class="g2">
+      <div class="stack" style="align-content:space-between">
+        <img src="../assets/logo/recuvarilla-vertical-negativo.svg" alt="Recuvarilla, 100% Argentina" style="width:62%">
+        <p class="d-l" style="margin:0">Hecha para el campo.<br>Pensada para durar.</p>
+      </div>
+      <div class="stack">
+        <span class="label">Lo que sigue</span>
+        <p style="margin:0"><b>Design system digital.</b> Botones, tarjetas, campos, espaciado, radios y estados para la web y el ERP, derivados de este manual.</p>
+        <p style="margin:0"><b>Arquitectura de marca.</b> Cómo se nombran y se muestran productos nuevos, como el alambre, al lado de la varilla.</p>
+        <div class="rule" style="filter:invert(1)"></div>
+        <span class="label">Contacto</span>
+        <p class="mono small" style="margin:0;line-height:1.7">WhatsApp 11 2395-8302<br>recuvarilla@gmail.com<br>@recuvarilla · recuvarilla.com.ar<br>Luján, Buenos Aires</p>
+        <p class="small muted" style="margin:0">Este manual se actualiza cuando cambia algo. Anotá la versión y la fecha en la portada.</p>
       </div>
     </div>
   </div>

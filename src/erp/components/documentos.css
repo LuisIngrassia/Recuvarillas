@@ -1,0 +1,178 @@
+/*
+  La base de los papeles que se reparten: lista de precios, folleto, ficha
+  técnica y presupuesto. Es la grilla del manual de marca (15 · Composición)
+  llevada a una hoja: logo arriba a la izquierda, titular en Archivo
+  condensada, datos en Chivo Mono y, abajo de todo, la varilla y el contacto.
+
+  Todo cuelga de `.hm` para no tocar al resto del ERP. Las fuentes son las
+  mismas del sitio (`src/main.jsx`), así que no hace falta cargar nada acá.
+*/
+.hm {
+  --grafito: #1d2120;
+  --gris: #5d6562;
+  --alambre: #9aa39f;
+  --linea: #dadfda;
+  --hormigon: #eef0ec;
+  --celeste: #74acdf;
+  --celeste-hondo: #1f5e96;
+  --pasto: #4f7f2a;
+
+  max-width: 860px;
+  margin: 0 auto;
+  background: #fff;
+  color: var(--grafito);
+  font-family: "Archivo Variable", "Archivo", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 40px 44px 34px;
+  box-shadow: 0 2px 4px rgba(29, 33, 32, 0.06), 0 12px 32px rgba(29, 33, 32, 0.1);
+}
+
+/* Cabecera: el logo a la izquierda y los datos del papel a la derecha. */
+.hm .hm-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 28px;
+}
+.hm .hm-logo { width: 240px; height: auto; display: block; }
+.hm .hm-meta { text-align: right; }
+.hm .hm-meta dt,
+.hm .hm-rotulo {
+  font-family: "Chivo Mono", monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gris);
+}
+.hm .hm-meta dt { margin-top: 6px; }
+.hm .hm-meta dd { margin: 1px 0 0; font-family: "Chivo Mono", monospace; font-size: 14px; font-weight: 500; }
+.hm .hm-tipo {
+  display: inline-block;
+  font-family: "Chivo Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--grafito);
+  padding: 4px 9px;
+  border-radius: 3px;
+}
+
+.hm .hm-titular {
+  font-weight: 800;
+  font-stretch: 75%;
+  line-height: 0.95;
+  letter-spacing: -0.003em;
+  font-size: 44px;
+  margin: 28px 0 8px;
+}
+.hm .hm-titular-chico {
+  font-weight: 800;
+  font-stretch: 75%;
+  line-height: 1;
+  font-size: 24px;
+  margin: 0 0 10px;
+}
+.hm .hm-bajada { color: var(--gris); margin: 0; max-width: 560px; }
+
+/* Separador entre bloques: el rótulo y una línea grafito. */
+.hm .hm-seccion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 26px 0 12px;
+}
+.hm .hm-seccion::after { content: ""; flex: 1; height: 1.5px; background: var(--grafito); }
+
+/* Tablas: encabezado en mono, números alineados a la derecha. */
+.hm table { width: 100%; border-collapse: collapse; }
+.hm thead th {
+  font-family: "Chivo Mono", monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gris);
+  text-align: left;
+  padding: 8px 10px 7px 0;
+  border-bottom: 1.5px solid var(--grafito);
+}
+.hm tbody td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--linea); vertical-align: baseline; }
+.hm .num { text-align: right !important; font-family: "Chivo Mono", monospace; font-weight: 500; white-space: nowrap; }
+.hm .mono { font-family: "Chivo Mono", monospace; }
+.hm .apagado { color: var(--gris); }
+
+/* Listas con la viñeta de la perforación. */
+.hm .hm-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.hm .hm-lista li { position: relative; padding-left: 22px; }
+.hm .hm-lista li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.32em;
+  width: 11px;
+  height: 11px;
+  border: 3px solid var(--grafito);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.hm .hm-varilla {
+  display: block;
+  width: 100%;
+  aspect-ratio: 40 / 1;
+  background: url("../../../brand/assets/sistema/varilla-separador.svg") left center / contain no-repeat;
+}
+.hm .hm-franja {
+  height: 12px;
+  background: linear-gradient(var(--celeste) 0 33.33%, #fff 33.33% 66.66%, var(--celeste) 66.66%);
+}
+
+/* Pie: la varilla y, debajo, el contacto con el QR a WhatsApp. */
+.hm .hm-pie { margin-top: 28px; }
+.hm .hm-pie-contenido {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  margin-top: 14px;
+}
+.hm .hm-contacto { font-family: "Chivo Mono", monospace; font-size: 12.5px; line-height: 1.6; }
+.hm .hm-contacto b { font-family: "Archivo Variable", Arial, sans-serif; font-size: 14px; }
+.hm .hm-qr { width: 92px; height: 92px; display: block; }
+
+/* Dato todavía no medido: se ve que falta, no se escribe como verificado. */
+.hm .hm-pendiente {
+  background: #fbefcb;
+  color: #6b4a00;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: "Chivo Mono", monospace;
+  font-size: 12px;
+}
+
+/*
+  Al imprimir: la hoja arranca en el borde del papel (el margen lo pone
+  @page), la letra baja un punto y los bloques no se parten entre páginas.
+  Sin esto el pie de contacto quedaba solo en una tercera hoja.
+*/
+@page { size: A4; margin: 12mm; }
+@media print {
+  .hm { padding: 0; box-shadow: none; font-size: 12.5px; }
+  .hm .hm-titular { font-size: 36px; margin-top: 18px; }
+  .hm .hm-seccion { margin: 18px 0 8px; }
+  .hm tbody td { padding: 6px 10px 6px 0; }
+  .hm tr, .hm .hm-pie, .hm section, .hm figure { break-inside: avoid; }
+  .hm .hm-seccion { break-after: avoid; }
+}
+
+@media (max-width: 720px) {
+  .hm { padding: 24px 20px; }
+  .hm .hm-cabecera { flex-direction: column; }
+  .hm .hm-meta { text-align: left; }
+  .hm .hm-logo { width: 190px; }
+  .hm .hm-titular { font-size: 34px; }
+}

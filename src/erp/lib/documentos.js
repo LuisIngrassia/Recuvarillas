@@ -29,8 +29,9 @@ export const EMPRESA = {
   localidad: 'Luján, Buenos Aires',
 }
 
+/** La bajada de los papeles, con las palabras del manual de marca (07 · Tono). */
 export const TAGLINE =
-  'Varilla plástica para alambrado, fabricada por extrusión a partir de material industrial recuperado. Reemplazo directo del poste de madera.'
+  'Varilla para alambrado de plástico recuperado, hecha en Luján. No se pudre, no se oxida y viene lisa o agujereada a la medida de tu alambrado.'
 
 /**
  * El bloque de contacto que va impreso.

@@ -14,7 +14,7 @@ export default function Vista({ post, formato, ancho = 280, onMedida }) {
 
   return (
     <div
-      className="overflow-hidden rounded-md border border-steel-200 bg-white shadow-sm"
+      className="overflow-hidden rounded-md border border-grafito-200 bg-white shadow-sm"
       style={{ width: ancho, height: Math.round(alto * escala) }}
     >
       <div style={{ transform: `scale(${escala})`, transformOrigin: 'top left', width: real }}>

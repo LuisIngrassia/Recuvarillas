@@ -38,8 +38,8 @@ export default function Documents() {
                     onClick={() => setSellerId('')}
                     className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
                       sellerId === ''
-                        ? 'border-secondary-500 bg-secondary-50 text-secondary-700'
-                        : 'border-steel-200 bg-white text-steel-600 hover:border-steel-300'
+                        ? 'border-celeste-600 bg-celeste-50 text-celeste-800'
+                        : 'border-grafito-200 bg-white text-grafito-600 hover:border-grafito-300'
                     }`}
                   >
                     Recuvarilla
@@ -51,8 +51,8 @@ export default function Documents() {
                       onClick={() => setSellerId(item.id)}
                       className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
                         sellerId === item.id
-                          ? 'border-secondary-500 bg-secondary-50 text-secondary-700'
-                          : 'border-steel-200 bg-white text-steel-600 hover:border-steel-300'
+                          ? 'border-celeste-600 bg-celeste-50 text-celeste-800'
+                          : 'border-grafito-200 bg-white text-grafito-600 hover:border-grafito-300'
                       }`}
                     >
                       {item.nombre}
@@ -60,9 +60,9 @@ export default function Documents() {
                   ))}
                 </div>
 
-                <p className="mt-3 text-xs text-steel-500">
+                <p className="mt-3 text-xs text-grafito-500">
                   Va a salir impreso:{' '}
-                  <span className="font-semibold text-steel-700">{contacto.nombre}</span>
+                  <span className="font-semibold text-grafito-700">{contacto.nombre}</span>
                   {' · '}
                   {contacto.telefono}
                   {' · '}
@@ -91,7 +91,7 @@ export default function Documents() {
                 )}
 
                 {lista.length === 0 && (
-                  <p className="mt-2 text-xs text-steel-400">
+                  <p className="mt-2 text-xs text-grafito-400">
                     Todavía no hay vendedores activos, así que por ahora todo
                     sale con el contacto de la empresa.
                   </p>
@@ -107,18 +107,18 @@ export default function Documents() {
           <Link
             key={doc.tipo}
             to={`/erp/documentos/${doc.tipo}${query}`}
-            className="block rounded-xl border border-steel-200 bg-white p-4 shadow-sm transition-colors hover:border-secondary-500"
+            className="block rounded-xl border border-grafito-200 bg-white p-4 shadow-sm transition-colors hover:border-celeste-600"
           >
-            <p className="text-sm font-semibold text-steel-800">{doc.titulo}</p>
-            <p className="mt-1.5 text-xs leading-relaxed text-steel-500">{doc.descripcion}</p>
+            <p className="text-sm font-semibold text-grafito-800">{doc.titulo}</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-grafito-500">{doc.descripcion}</p>
           </Link>
         ))}
       </div>
 
-      <p className="mt-6 text-xs leading-relaxed text-steel-400">
+      <p className="mt-6 text-xs leading-relaxed text-grafito-400">
         El presupuesto no está acá porque no es un papel general: sale de cada
         pedido, con su cliente y su mercadería. Está en el botón{' '}
-        <span className="font-semibold text-steel-500">Presupuesto</span> de{' '}
+        <span className="font-semibold text-grafito-500">Presupuesto</span> de{' '}
         <Link to="/erp/pedidos" className="underline underline-offset-2">
           Pedidos
         </Link>

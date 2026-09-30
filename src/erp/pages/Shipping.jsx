@@ -56,38 +56,38 @@ function Candidato({ punto }) {
   const porFlete = punto.lost_reason === 'freight'
 
   return (
-    <tr className={`hover:bg-steel-50 ${porFlete ? 'bg-amber-50/60' : ''}`}>
+    <tr className={`hover:bg-grafito-50 ${porFlete ? 'bg-amber-50/60' : ''}`}>
       <Td>
-        <span className="font-medium text-steel-700">
+        <span className="font-medium text-grafito-700">
           {punto.clase === 'cliente' ? (
             <Link
               to={`/erp/clientes/${punto.id}`}
-              className="hover:text-secondary-500"
+              className="hover:text-celeste-700"
             >
               {punto.nombre}
             </Link>
           ) : (
-            <Link to={`/erp/leads/${punto.id}`} className="hover:text-secondary-500">
+            <Link to={`/erp/leads/${punto.id}`} className="hover:text-celeste-700">
               {punto.nombre}
             </Link>
           )}
         </span>
-        <span className="block text-xs text-steel-400">{punto.telefono}</span>
+        <span className="block text-xs text-grafito-400">{punto.telefono}</span>
       </Td>
       <Td>
         <Badge tone={porFlete ? 'warn' : punto.clase === 'cliente' ? 'good' : 'neutral'}>
           {razon}
         </Badge>
         {punto.clase === 'lead' && punto.status && (
-          <span className="mt-0.5 block text-xs text-steel-400">
+          <span className="mt-0.5 block text-xs text-grafito-400">
             {LEAD_STATE_LABELS[punto.status] ?? punto.status}
             {punto.lost_reason && ` · ${LOST_REASON_LABELS[punto.lost_reason]}`}
           </span>
         )}
       </Td>
-      <Td className="text-xs text-steel-500">
-        {punto.localidad || <span className="text-steel-300">sin localidad</span>}
-        <span className="block text-steel-400">
+      <Td className="text-xs text-grafito-500">
+        {punto.localidad || <span className="text-grafito-300">sin localidad</span>}
+        <span className="block text-grafito-400">
           {punto.provincia}
           {punto.codigo_postal ? ` · ${punto.codigo_postal}` : ''}
         </span>
@@ -103,7 +103,7 @@ function Candidato({ punto }) {
             href={wa}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-md bg-secondary-500 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-secondary-600"
+            className="rounded-md bg-grafito-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-grafito-700"
           >
             WhatsApp
           </a>
@@ -181,7 +181,7 @@ export default function Shipping() {
                   nadie cerca» sacado de media cartera es una respuesta
                   equivocada, no una respuesta incompleta. */}
               {!padron.completo && (
-                <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-800">
+                <div className="mb-6 rounded-md border border-tapita-200 bg-tapita-50 px-4 py-3 text-sm leading-relaxed text-tapita-800">
                   Se están mirando {formatNumber(destinos.length)} de{' '}
                   {formatNumber(padron.total)} contactos: la base cortó la
                   respuesta. Lo que sigue es cierto de esa parte, pero puede
@@ -243,35 +243,35 @@ export default function Shipping() {
                                   },
                             )
                           }
-                          className={`cursor-pointer hover:bg-steel-50 ${
-                            elegido ? 'bg-secondary-50' : ''
+                          className={`cursor-pointer hover:bg-grafito-50 ${
+                            elegido ? 'bg-celeste-50' : ''
                           }`}
                         >
-                          <Td className="whitespace-nowrap font-medium text-steel-700">
+                          <Td className="whitespace-nowrap font-medium text-grafito-700">
                             #{viaje.numero}
-                            <span className="block text-xs font-normal text-steel-400">
+                            <span className="block text-xs font-normal text-grafito-400">
                               {formatDate(viaje.fecha)}
                             </span>
                           </Td>
-                          <Td className="text-steel-600">{viaje.cliente_nombre}</Td>
-                          <Td className="text-sm text-steel-600">
+                          <Td className="text-grafito-600">{viaje.cliente_nombre}</Td>
+                          <Td className="text-sm text-grafito-600">
                             {comoTexto(viaje)}
                             {viaje.codigo_postal && (
-                              <span className="block text-xs text-steel-400">
+                              <span className="block text-xs text-grafito-400">
                                 CP {viaje.codigo_postal}
                               </span>
                             )}
                           </Td>
-                          <Td align="right" className="tabular-nums text-steel-600">
+                          <Td align="right" className="tabular-nums text-grafito-600">
                             {formatNumber(viaje.unidades ?? 0)}
                           </Td>
                           <Td align="right">
                             {cuantos > 0 ? (
-                              <span className="font-semibold text-secondary-600">
+                              <span className="font-semibold text-grafito-900">
                                 {formatNumber(cuantos)}
                               </span>
                             ) : (
-                              <span className="text-steel-300">—</span>
+                              <span className="text-grafito-300">—</span>
                             )}
                           </Td>
                         </tr>
@@ -280,7 +280,7 @@ export default function Shipping() {
                   </Table>
                 )}
 
-                <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
+                <p className="border-t border-grafito-100 px-4 py-3 text-xs leading-relaxed text-grafito-400">
                   Tocá un viaje para ver quién está cerca de ese destino. Cuentan
                   los pedidos confirmados y en producción con entrega por envío:
                   un presupuesto todavía no es un viaje, y un entregado ya
@@ -326,7 +326,7 @@ export default function Shipping() {
 
                       {/* Qué quiere decir cada nivel. Sin esto, "misma zona"
                           parece una estimación de distancia y no lo es. */}
-                      <dl className="divide-y divide-steel-100 border-t border-steel-200 bg-steel-50">
+                      <dl className="divide-y divide-grafito-100 border-t border-grafito-200 bg-grafito-50">
                         {Object.entries(CERCANIA_LABELS).map(([nivel, label]) => (
                           <div
                             key={nivel}
@@ -335,7 +335,7 @@ export default function Shipping() {
                             <dt>
                               <Badge tone={CERCANIA_TONES[nivel]}>{label}</Badge>
                             </dt>
-                            <dd className="text-xs text-steel-500">
+                            <dd className="text-xs text-grafito-500">
                               {CERCANIA_HINTS[nivel]}
                             </dd>
                           </div>
@@ -344,7 +344,7 @@ export default function Shipping() {
                     </>
                   )}
 
-                  <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
+                  <p className="border-t border-grafito-100 px-4 py-3 text-xs leading-relaxed text-grafito-400">
                     El orden lo pone a quién conviene llamar primero: arriba los
                     leads que se perdieron por el costo del flete, que ya
                     quisieron comprar y los frenó justamente esto. No hay
@@ -397,18 +397,18 @@ export default function Shipping() {
                                   },
                             )
                           }
-                          className={`cursor-pointer hover:bg-steel-50 ${
-                            elegida ? 'bg-secondary-50' : ''
+                          className={`cursor-pointer hover:bg-grafito-50 ${
+                            elegida ? 'bg-celeste-50' : ''
                           }`}
                         >
-                          <Td className="font-medium text-steel-700">{fila.nombre}</Td>
-                          <Td align="right" className="tabular-nums text-steel-500">
+                          <Td className="font-medium text-grafito-700">{fila.nombre}</Td>
+                          <Td align="right" className="tabular-nums text-grafito-500">
                             {formatNumber(fila.localidades)}
                           </Td>
-                          <Td align="right" className="tabular-nums text-steel-600">
+                          <Td align="right" className="tabular-nums text-grafito-600">
                             {formatNumber(fila.clientes)}
                           </Td>
-                          <Td align="right" className="tabular-nums text-steel-600">
+                          <Td align="right" className="tabular-nums text-grafito-600">
                             {formatNumber(fila.leads)}
                           </Td>
                           <Td align="right">
@@ -417,7 +417,7 @@ export default function Shipping() {
                                 {formatNumber(fila.perdidosPorFlete)}
                               </span>
                             ) : (
-                              <span className="text-steel-300">—</span>
+                              <span className="text-grafito-300">—</span>
                             )}
                           </Td>
                         </tr>
@@ -426,7 +426,7 @@ export default function Shipping() {
                   </Table>
                 )}
 
-                <p className="border-t border-steel-100 px-4 py-3 text-xs leading-relaxed text-steel-400">
+                <p className="border-t border-grafito-100 px-4 py-3 text-xs leading-relaxed text-grafito-400">
                   «Córdoba» y «Cordoba» cuentan como una sola: se agrupan sin
                   tildes y se muestra la grafía que más se usó. Para ver la lista
                   completa de una provincia están los filtros de{' '}

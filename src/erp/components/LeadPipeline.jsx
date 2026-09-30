@@ -102,7 +102,7 @@ function CamposRequeridos({ status, form, set, lead }) {
   if (status === 'qualified') {
     return (
       <>
-        <p className="text-xs text-steel-500">
+        <p className="text-xs text-grafito-500">
           Calificar es tener los tres datos con los que se puede cotizar. Sin ellos el
           estado diría que el lead está listo para presupuestar y no lo estaría.
         </p>
@@ -196,7 +196,7 @@ export function TransitionModal({ lead, status, onClose, onDone }) {
   return (
     <Modal title={`Pasar a “${LEAD_STATE_LABELS[status]}”`} onClose={onClose}>
       <div className="space-y-4 px-5 py-4">
-        <p className="text-sm text-steel-500">
+        <p className="text-sm text-grafito-500">
           {lead.nombre} — de <StatusBadge status={lead.status} /> a{' '}
           <StatusBadge status={status} />
         </p>
@@ -283,7 +283,7 @@ export function TransitionButtons({ lead, onDone, size = 'normal' }) {
             key={status}
             type="button"
             onClick={() => setDestino(status)}
-            className={`rounded-md border border-steel-200 bg-white font-semibold text-steel-600 transition-colors hover:border-steel-300 hover:text-steel-800 ${
+            className={`rounded-md border border-grafito-200 bg-white font-semibold text-grafito-600 transition-colors hover:border-grafito-300 hover:text-grafito-800 ${
               size === 'small' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs'
             }`}
           >

@@ -47,15 +47,15 @@ function usePostalLookup(code, enabled) {
 function Field({ label, hint, children }) {
   return (
     <label className="block">
-      <span className="block text-sm font-semibold text-steel-800">{label}</span>
-      {hint && <span className="mt-0.5 block text-xs text-steel-400">{hint}</span>}
+      <span className="block text-sm font-semibold text-grafito-800">{label}</span>
+      {hint && <span className="mt-0.5 block text-xs text-grafito-400">{hint}</span>}
       <div className="mt-1.5">{children}</div>
     </label>
   )
 }
 
 const inputClass =
-  'w-full rounded-md border border-steel-200 bg-white px-3 py-2 text-sm text-steel-800 focus:border-secondary-500 focus:outline-none focus:ring-2 focus:ring-secondary-500/20'
+  'min-h-11 w-full rounded-md border-[1.5px] border-alambre bg-white px-3 py-2 text-base text-grafito-900 focus:border-celeste-700 focus:outline-none focus:ring-2 focus:ring-celeste-700/20'
 
 /** Grupo de dos opciones excluyentes, estilo botones. */
 function Choice({ value, onChange, options }) {
@@ -67,10 +67,10 @@ function Choice({ value, onChange, options }) {
           type="button"
           onClick={() => onChange(option.value)}
           aria-pressed={value === option.value}
-          className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+          className={`min-h-11 rounded-md border-[1.5px] px-3 py-2 text-sm font-semibold transition-colors ${
             value === option.value
-              ? 'border-secondary-500 bg-secondary-500 text-white'
-              : 'border-steel-200 bg-white text-steel-600 hover:border-steel-300'
+              ? 'border-grafito-900 bg-grafito-900 text-white'
+              : 'border-alambre bg-white text-grafito-700 hover:border-grafito-500'
           }`}
         >
           {option.label}
@@ -83,13 +83,13 @@ function Choice({ value, onChange, options }) {
 function Row({ label, value, strong }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-2">
-      <span className={strong ? 'font-semibold text-steel-800' : 'text-steel-500'}>
+      <span className={strong ? 'font-semibold text-grafito-800' : 'text-grafito-500'}>
         {label}
       </span>
       <span
-        className={
-          strong ? 'text-lg font-bold text-steel-900' : 'font-medium text-steel-700'
-        }
+        className={`whitespace-nowrap font-mono ${
+          strong ? 'text-lg font-semibold text-grafito-900' : 'font-medium text-grafito-700'
+        }`}
       >
         {value}
       </span>
@@ -202,19 +202,16 @@ function QuoteSimulator() {
   }, [quote, quantity, form.drilled, form.name])
 
   return (
-    <section id="presupuesto" className="bg-white py-20">
+    <section id="presupuesto" className="border-t border-grafito-200 bg-white py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
-          <span className="text-sm font-semibold uppercase tracking-wide text-secondary-500">
-            Presupuesto
-          </span>
-          <h2 className="mt-2 text-3xl font-bold text-steel-800 sm:text-4xl">
-            Calculá tu pedido en el momento
+          <h2 className="font-display text-4xl text-grafito-900 sm:text-5xl lg:text-6xl">
+            Calculá tu presupuesto en un minuto.
           </h2>
-          <p className="mt-4 text-steel-500">
+          <p className="mt-5 text-lg text-grafito-500">
             Poné la cantidad y te mostramos el precio de la mercadería al
             instante. Todos los valores son{' '}
-            <strong className="text-steel-700">sin IVA</strong> y el flete se
+            <strong className="text-grafito-700">sin IVA</strong> y el flete se
             cotiza aparte.
           </p>
         </div>
@@ -274,15 +271,15 @@ function QuoteSimulator() {
                     className={inputClass}
                   />
                   <p className="mt-1.5 text-xs">
-                    {loading && <span className="text-steel-400">Buscando…</span>}
+                    {loading && <span className="text-grafito-400">Buscando…</span>}
                     {place && (
-                      <span className="font-medium text-secondary-600">
+                      <span className="font-medium text-celeste-700">
                         {place.name}, {place.province} · a{' '}
                         {formatNumber(Math.round(place.km * ROAD_FACTOR))} km aprox.
                       </span>
                     )}
                     {notFound && (
-                      <span className="text-steel-500">
+                      <span className="text-grafito-500">
                         No encontramos ese código. Escribinos y lo cotizamos a mano.
                       </span>
                     )}
@@ -291,9 +288,9 @@ function QuoteSimulator() {
               )}
             </div>
 
-            <div className="mt-8 rounded-lg border border-steel-200 bg-steel-50 p-5">
-              <p className="text-sm font-semibold text-steel-800">¿Con quién hablamos?</p>
-              <p className="mt-1 text-xs text-steel-500">
+            <div className="mt-8 rounded-md bg-grafito-100 p-5">
+              <p className="text-sm font-semibold text-grafito-800">¿Con quién hablamos?</p>
+              <p className="mt-1 text-xs text-grafito-500">
                 Para poder responderte si necesitás ajustar algo del presupuesto.
               </p>
 
@@ -327,28 +324,23 @@ function QuoteSimulator() {
               </div>
             </div>
 
-            {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
+            {error && <p className="mt-4 text-sm font-medium text-tapita-600">{error}</p>}
 
-            <button
-              type="submit"
-              className="mt-6 w-full rounded-md bg-secondary-500 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-secondary-600 sm:w-auto"
-            >
+            <button type="submit" className="btn-principal mt-6 w-full sm:w-auto">
               Calcular presupuesto
             </button>
           </form>
 
           <div className="lg:col-span-2">
             {quote ? (
-              <div className="rounded-xl border border-steel-200 bg-white p-6 shadow-sm">
+              <div className="rounded-md border border-grafito-200 border-t-4 border-t-grafito-900 bg-white p-6 shadow-sm">
                 {/* Antes decía el `kind` del escalón, que era 'mayorista' a
                     partir de 1.000. Ahora la lista mayorista es la de los
                     revendedores con acuerdo y no la que cotiza la web, así que
                     mostrar ese rótulo acá prometía un precio que no es este. */}
-                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-500">
-                  Precio de lista
-                </p>
+                <p className="rotulo text-grafito-500">Precio de lista</p>
 
-                <div className="mt-4 divide-y divide-steel-100 text-sm">
+                <div className="mt-4 divide-y divide-grafito-100 text-sm">
                   <Row
                     label={`${formatNumber(quantity)} varillas × ${formatPesos(quote.unitPrice)}`}
                     value={formatPesos(quote.total)}
@@ -359,7 +351,7 @@ function QuoteSimulator() {
                       label={
                         <>
                           Flete a {quote.place.name}
-                          <span className="block text-xs text-steel-400">
+                          <span className="block text-xs text-grafito-400">
                             Lo cotiza la empresa de transporte
                           </span>
                         </>
@@ -381,12 +373,12 @@ function QuoteSimulator() {
                   href={whatsappLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-6 flex w-full items-center justify-center rounded-md bg-secondary-500 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-secondary-600"
+                  className="btn-principal mt-6 w-full"
                 >
                   Cerrar el pedido por WhatsApp
                 </a>
 
-                <p className="mt-4 text-xs leading-relaxed text-steel-400">
+                <p className="mt-4 text-xs leading-relaxed text-grafito-400">
                   Los importes no incluyen IVA. Presupuesto válido por{' '}
                   {QUOTE_VALID_DAYS} días. El total es sólo la mercadería: el
                   flete lo cotiza la empresa de transporte según el destino y se
@@ -395,7 +387,7 @@ function QuoteSimulator() {
                 </p>
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-steel-200 p-6 text-sm text-steel-400">
+              <div className="rounded-md border border-dashed border-alambre p-6 text-sm text-grafito-500">
                 Completá los datos y te mostramos el total acá.
               </div>
             )}

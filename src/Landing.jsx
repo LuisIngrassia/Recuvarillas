@@ -1,5 +1,7 @@
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
+import SpecsBar from './components/SpecsBar'
+import Comparison from './components/Comparison'
 import About from './components/About'
 import Products from './components/Products'
 import QuoteSimulator from './components/QuoteSimulator'
@@ -15,7 +17,9 @@ function Landing() {
       <Navbar />
       <main className="flex-1">
         <Hero />
+        <SpecsBar />
         <Products />
+        <Comparison />
         <QuoteSimulator />
         <RodStory />
         <About />

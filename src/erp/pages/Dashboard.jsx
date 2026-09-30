@@ -137,7 +137,7 @@ export default function Dashboard() {
                   )}
                   <Link
                     to="/erp/pedidos"
-                    className="text-xs font-semibold text-secondary-500 hover:underline"
+                    className="text-xs font-semibold text-celeste-700 hover:underline"
                   >
                     Ver todos
                   </Link>
@@ -161,19 +161,19 @@ export default function Dashboard() {
                   }
                 >
                   {agenda.map((order) => (
-                    <tr key={order.id} className="hover:bg-steel-50">
+                    <tr key={order.id} className="hover:bg-grafito-50">
                       <Td>
                         <Link
                           to={`/erp/pedidos/${order.id}`}
-                          className="font-semibold text-secondary-500 hover:underline"
+                          className="font-semibold text-celeste-700 hover:underline"
                         >
                           #{order.numero}
                         </Link>
                       </Td>
                       <Td>
-                        <span className="text-steel-700">{order.cliente_nombre}</span>
+                        <span className="text-grafito-700">{order.cliente_nombre}</span>
                         {order.cliente_telefono && (
-                          <span className="block text-xs text-steel-400">
+                          <span className="block text-xs text-grafito-400">
                             {order.cliente_telefono}
                           </span>
                         )}
@@ -181,13 +181,13 @@ export default function Dashboard() {
                       <Td className="text-xs">
                         <span
                           className={`font-semibold ${
-                            order.salida.despacho ? 'text-primary-700' : 'text-steel-600'
+                            order.salida.despacho ? 'text-celeste-700' : 'text-grafito-600'
                           }`}
                         >
                           {order.salida.modo}
                         </span>
                         {order.salida.destino && (
-                          <span className="block text-steel-400">{order.salida.destino}</span>
+                          <span className="block text-grafito-400">{order.salida.destino}</span>
                         )}
                       </Td>
                       <Td>
@@ -200,7 +200,7 @@ export default function Dashboard() {
                           {ORDER_STATE_LABELS[order.estado]}
                         </Badge>
                       </Td>
-                      <Td align="right" className="tabular-nums text-steel-600">
+                      <Td align="right" className="tabular-nums text-grafito-600">
                         {formatNumber(order.unidades)}
                       </Td>
                       <Td align="right">
@@ -209,7 +209,7 @@ export default function Dashboard() {
                           className={
                             Number(order.saldo) > 0
                               ? 'font-semibold text-amber-600'
-                              : 'text-steel-400'
+                              : 'text-grafito-400'
                           }
                         />
                       </Td>
@@ -226,21 +226,21 @@ export default function Dashboard() {
                 actions={
                   <Link
                     to="/erp/stock"
-                    className="text-xs font-semibold text-secondary-500 hover:underline"
+                    className="text-xs font-semibold text-celeste-700 hover:underline"
                   >
                     Ver movimientos
                   </Link>
                 }
               >
-                <div className="divide-y divide-steel-100">
+                <div className="divide-y divide-grafito-100">
                   {data.stock.map((row) => (
                     <div
                       key={row.product_id}
                       className="flex items-center justify-between px-4 py-3"
                     >
                       <div>
-                        <p className="text-sm font-medium text-steel-700">{row.nombre}</p>
-                        <p className="text-xs text-steel-400">
+                        <p className="text-sm font-medium text-grafito-700">{row.nombre}</p>
+                        <p className="text-xs text-grafito-400">
                           {formatNumber(row.stock)} en depósito
                           {row.comprometido > 0 &&
                             ` · ${formatNumber(row.comprometido)} reservadas`}
@@ -251,10 +251,10 @@ export default function Dashboard() {
                       <p
                         className={`text-lg font-bold tabular-nums ${
                           row.disponible > 0
-                            ? 'text-steel-800'
+                            ? 'text-grafito-800'
                             : row.disponible === 0
                               ? 'text-amber-600'
-                              : 'text-red-600'
+                              : 'text-tapita-600'
                         }`}
                       >
                         {formatNumber(row.disponible)}
@@ -270,7 +270,7 @@ export default function Dashboard() {
                 actions={
                   <Link
                     to="/erp/leads"
-                    className="text-xs font-semibold text-secondary-500 hover:underline"
+                    className="text-xs font-semibold text-celeste-700 hover:underline"
                   >
                     Ver todos
                   </Link>
@@ -290,14 +290,14 @@ export default function Dashboard() {
                   {data.ultimosLeads.map((lead) => (
                     <tr key={lead.id}>
                       <Td>
-                        <span className="font-medium text-steel-700">{lead.nombre}</span>
-                        <span className="block text-xs text-steel-400">
+                        <span className="font-medium text-grafito-700">{lead.nombre}</span>
+                        <span className="block text-xs text-grafito-400">
                           {lead.telefono}
                         </span>
                       </Td>
                       <Td align="right" className="tabular-nums">
                         {formatNumber(lead.cantidad)}
-                        <span className="block text-xs text-steel-400">
+                        <span className="block text-xs text-grafito-400">
                           {lead.agujereada ? 'agujereada' : 'común'}
                         </span>
                       </Td>
@@ -309,7 +309,7 @@ export default function Dashboard() {
                           {LEAD_STATE_LABELS[lead.status]}
                         </Badge>
                       </Td>
-                      <Td className="whitespace-nowrap text-xs text-steel-400">
+                      <Td className="whitespace-nowrap text-xs text-grafito-400">
                         {formatDate(lead.created_at)}
                       </Td>
                     </tr>
@@ -323,7 +323,7 @@ export default function Dashboard() {
               actions={
                 <Link
                   to="/erp/pedidos"
-                  className="text-xs font-semibold text-secondary-500 hover:underline"
+                  className="text-xs font-semibold text-celeste-700 hover:underline"
                 >
                   Ver todos
                 </Link>
@@ -342,22 +342,22 @@ export default function Dashboard() {
                 }
               >
                 {data.ultimosPedidos.map((order) => (
-                  <tr key={order.id} className="hover:bg-steel-50">
+                  <tr key={order.id} className="hover:bg-grafito-50">
                     <Td>
                       <Link
                         to={`/erp/pedidos/${order.id}`}
-                        className="font-semibold text-secondary-500 hover:underline"
+                        className="font-semibold text-celeste-700 hover:underline"
                       >
                         #{order.numero}
                       </Link>
                     </Td>
-                    <Td className="text-steel-700">{order.cliente_nombre}</Td>
+                    <Td className="text-grafito-700">{order.cliente_nombre}</Td>
                     <Td>
                       <Badge tone={ORDER_STATE_TONES[order.estado]}>
                         {ORDER_STATE_LABELS[order.estado]}
                       </Badge>
                     </Td>
-                    <Td className="whitespace-nowrap text-xs text-steel-400">
+                    <Td className="whitespace-nowrap text-xs text-grafito-400">
                       {formatDate(order.fecha)}
                     </Td>
                     <Td align="right">
@@ -366,7 +366,7 @@ export default function Dashboard() {
                     <Td align="right">
                       <Money
                         value={order.saldo}
-                        className={Number(order.saldo) > 0 ? 'font-semibold text-amber-600' : 'text-steel-400'}
+                        className={Number(order.saldo) > 0 ? 'font-semibold text-amber-600' : 'text-grafito-400'}
                       />
                     </Td>
                   </tr>
