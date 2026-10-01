@@ -37,3 +37,9 @@ dist-ssr
 # Las fotos que hacían falta ya están sueltas en `public/docs/`, que sí se
 # versiona: pesan 380 KB entre las tres y el navegador las cachea.
 docs/*.html
+
+
+# Los videos de /brag-slim: cuadros, audio y mp4 pesan cientos de megas y se
+# regeneran con los scripts de su carpeta work/. Vale para todas las corridas
+# (brag-output/ y brag-output-<fecha>/).
+brag-output*/
