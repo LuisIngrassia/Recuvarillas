@@ -10,18 +10,27 @@
  * marca enciende o apaga algo concreto en otra pantalla. Están explicadas al
  * lado de cada una, porque tocar la equivocada no rompe nada visible: hace que
  * un presupuesto diga algo raro, o que un faltante no avise.
+ *
+ * La más pesada es «se fabrica acá», porque decide cómo se cotiza: lo que
+ * fabricamos va por escalones de cantidad, en Precios; lo que se compra hecho
+ * tiene un precio único, que se carga acá mismo junto con a quién se le compra
+ * y a cuánto.
  */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   UNIDADES,
+  cotizaPorLista,
   createProduct,
   deleteProduct,
   listProducts,
+  margen,
   setProductoWeb,
   updateProduct,
 } from '../api/products'
+import { listSuppliers } from '../api/suppliers'
 import { useAsync } from '../lib/useAsync'
+import { formatPesos } from '../lib/format'
 import {
   Async,
   Badge,
@@ -45,12 +54,12 @@ const MARCAS = [
   {
     campo: 'se_produce',
     label: 'Se fabrica acá',
-    hint: 'Habilita los movimientos de producción en Stock. Lo que se compra hecho va sin esto.',
+    hint: 'Se cotiza por escalones de cantidad (en Precios) y entra al stock por producción. Lo que se compra hecho va sin esto: tiene un precio único y entra por compra.',
   },
   {
     campo: 'se_agujerea',
     label: 'Se agujerea',
-    hint: 'La línea del pedido pide acabado y el presupuesto lo aclara. Sin esto, un presupuesto diría «Bolsa de grampas sin agujerear».',
+    hint: 'Lleva dos precios por escalón, sin agujerear y agujereada, y la línea del pedido pide acabado. Sin esto tiene un solo precio, y el presupuesto no habla de agujeros.',
   },
   {
     campo: 'lleva_stock',
@@ -69,7 +78,12 @@ function aCodigo(texto) {
     .slice(0, 12)
 }
 
-function ProductModal({ product, productos, onClose, onSaved }) {
+/** Un importe opcional del formulario: vacío es null, no cero. */
+const aImporte = (texto) => (String(texto).trim() === '' ? null : Number(texto))
+
+const comoTexto = (valor) => (valor === null || valor === undefined ? '' : String(Number(valor)))
+
+function ProductModal({ product, productos, suppliers, onClose, onSaved }) {
   const [form, setForm] = useState(() => ({
     codigo: product?.codigo ?? '',
     nombre: product?.nombre ?? '',
@@ -77,6 +91,9 @@ function ProductModal({ product, productos, onClose, onSaved }) {
     se_produce: product?.se_produce ?? true,
     se_agujerea: product?.se_agujerea ?? true,
     lleva_stock: product?.lleva_stock ?? true,
+    supplier_id: product?.supplier_id ?? '',
+    costo: comoTexto(product?.costo),
+    precio: comoTexto(product?.precio),
     notas: product?.notas ?? '',
   }))
   const [error, setError] = useState('')
@@ -107,6 +124,19 @@ function ProductModal({ product, productos, onClose, onSaved }) {
       return
     }
 
+    const precio = aImporte(form.precio)
+    const costo = aImporte(form.costo)
+    if (!form.se_produce && [precio, costo].some((n) => n !== null && (!Number.isFinite(n) || n < 0))) {
+      setError('Revisá el precio y el costo: tienen que ser números, sin signo.')
+      return
+    }
+    /* Un producto en la web se cotiza con escalones; si deja de fabricarse acá
+       el simulador se quedaría sin lista. */
+    if (!form.se_produce && product?.en_web) {
+      setError('Es el que cotiza el simulador de la web, que trabaja con escalones. Poné otro en la web antes de pasarlo a comprado.')
+      return
+    }
+
     setSaving(true)
     setError('')
 
@@ -118,6 +148,14 @@ function ProductModal({ product, productos, onClose, onSaved }) {
         se_produce: form.se_produce,
         se_agujerea: form.se_agujerea,
         lleva_stock: form.lleva_stock,
+        /*
+          Lo fabricado no tiene proveedor ni precio único: su precio son los
+          escalones. Se limpian para que una ficha que pasó de comprada a
+          fabricada no arrastre un precio que ya no cotiza nada.
+        */
+        supplier_id: form.se_produce ? null : form.supplier_id || null,
+        costo: form.se_produce ? null : costo,
+        precio: form.se_produce ? null : precio,
         notas: form.notas.trim() || null,
       }
 
@@ -180,6 +218,70 @@ function ProductModal({ product, productos, onClose, onSaved }) {
           ))}
         </div>
 
+        {!form.se_produce && (
+          <div className="space-y-4 rounded-md border border-grafito-200 px-3 py-3">
+            <p className="text-xs font-semibold text-grafito-600">Compra y precio</p>
+
+            <Field
+              label="Proveedor"
+              hint={
+                suppliers.length === 0 ? (
+                  <>
+                    No hay proveedores cargados:{' '}
+                    <Link to="/erp/proveedores" className="underline underline-offset-2">
+                      cargar uno
+                    </Link>
+                    .
+                  </>
+                ) : (
+                  'A quién se le compra habitualmente. Se propone al cargar una compra en Stock.'
+                )
+              }
+            >
+              <Select value={form.supplier_id} onChange={set('supplier_id')}>
+                <option value="">Sin indicar</option>
+                {suppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.nombre}
+                    {supplier.activo ? '' : ' (inactivo)'}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Costo" hint="Lo que cobra el proveedor por unidad, sin IVA. Cada compra lo actualiza.">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={form.costo}
+                  onChange={set('costo')}
+                />
+              </Field>
+              <Field
+                label="Precio de venta"
+                hint={(() => {
+                  const m = margen(aImporte(form.precio), aImporte(form.costo))
+                  return m === null
+                    ? 'Sin IVA. Uno solo, se lleve lo que se lleve.'
+                    : `Sin IVA. ${m >= 0 ? 'Margen' : 'Pérdida'} de ${Math.abs(m).toFixed(0)}% sobre el costo.`
+                })()}
+              >
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={form.precio}
+                  onChange={set('precio')}
+                />
+              </Field>
+            </div>
+          </div>
+        )}
+
         <Field label="Notas">
           <Textarea rows={2} value={form.notas} onChange={set('notas')} />
         </Field>
@@ -187,9 +289,11 @@ function ProductModal({ product, productos, onClose, onSaved }) {
         <ErrorNote>{error}</ErrorNote>
 
         <p className="rounded-md bg-grafito-50 px-3 py-2 text-xs leading-relaxed text-grafito-500">
-          {product
-            ? 'Los precios se cargan en Ajustes › Precios, eligiendo este producto.'
-            : 'Después de guardarlo hay que cargarle la lista de precios en Ajustes › Precios: hasta entonces se puede vender, pero el precio se escribe a mano en cada pedido.'}
+          {!form.se_produce
+            ? 'Sin precio de venta se puede vender igual, pero el precio se escribe a mano en cada pedido.'
+            : product
+              ? 'Los escalones de precio se cargan en Ajustes › Precios, eligiendo este producto.'
+              : 'Después de guardarlo hay que cargarle los escalones de precio en Ajustes › Precios: hasta entonces se puede vender, pero el precio se escribe a mano en cada pedido.'}
         </p>
 
         <div className="flex justify-end gap-2">
@@ -210,6 +314,9 @@ export default function Products() {
   const [error, setError] = useState('')
 
   const query = useAsync(() => listProducts({ todos: true }), [])
+  const suppliers = useAsync(() => listSuppliers(), [])
+  const proveedores = suppliers.data ?? []
+  const nombreProveedor = (id) => proveedores.find((item) => item.id === id)?.nombre
 
   const guard = async (fn) => {
     setError('')
@@ -252,6 +359,7 @@ export default function Products() {
                     <>
                       <Th>Producto</Th>
                       <Th>Qué es</Th>
+                      <Th>Precio</Th>
                       <Th>En la web</Th>
                       <Th align="right"> </Th>
                     </>
@@ -289,6 +397,36 @@ export default function Products() {
                           )}
                         </span>
                       </Td>
+                      <Td className="text-xs">
+                        {cotizaPorLista(product) ? (
+                          <Link
+                            to="/erp/precios"
+                            className="text-grafito-500 underline-offset-2 hover:text-celeste-800 hover:underline"
+                          >
+                            por escalones
+                          </Link>
+                        ) : (
+                          <>
+                            <span className="block text-sm font-medium tabular-nums text-grafito-700">
+                              {product.precio == null ? (
+                                <span className="text-amber-600">sin precio</span>
+                              ) : (
+                                formatPesos(Number(product.precio))
+                              )}
+                            </span>
+                            {product.costo != null && (
+                              <span className="block tabular-nums text-grafito-400">
+                                costo {formatPesos(Number(product.costo))}
+                                {margen(product.precio, product.costo) !== null &&
+                                  ` · ${margen(product.precio, product.costo).toFixed(0)}%`}
+                              </span>
+                            )}
+                            <span className="block text-grafito-400">
+                              {nombreProveedor(product.supplier_id) ?? 'sin proveedor'}
+                            </span>
+                          </>
+                        )}
+                      </Td>
                       <Td>
                         {/* Uno solo puede estar en la web: el simulador cotiza
                             una cosa y pide una cantidad. Marcar otro se lo
@@ -296,7 +434,7 @@ export default function Products() {
                             casilla suelta. */}
                         {product.en_web ? (
                           <Badge tone="good">la cotiza el simulador</Badge>
-                        ) : product.activo ? (
+                        ) : product.activo && cotizaPorLista(product) ? (
                           <button
                             type="button"
                             onClick={() => guard(() => setProductoWeb(product.id))}
@@ -346,10 +484,15 @@ export default function Products() {
                 Un producto que se vendió alguna vez <strong>no se puede borrar</strong>:
                 el historial de ventas no puede quedar sin saber qué se vendió. Lo
                 que corresponde ahí es retirarlo, y deja de ofrecerse al cargar un
-                pedido sin tocar lo que ya se facturó. Los precios de cada uno se
-                cargan en{' '}
+                pedido sin tocar lo que ya se facturó. Lo que fabricamos se cotiza
+                por escalones, que se cargan en{' '}
                 <Link to="/erp/precios" className="font-semibold underline underline-offset-2">
                   Precios
+                </Link>
+                ; lo que se compra hecho tiene un precio único, en su ficha, y su
+                proveedor en{' '}
+                <Link to="/erp/proveedores" className="font-semibold underline underline-offset-2">
+                  Proveedores
                 </Link>
                 .
               </p>
@@ -359,6 +502,7 @@ export default function Products() {
               <ProductModal
                 product={editing.id ? editing : null}
                 productos={productos}
+                suppliers={proveedores}
                 onClose={() => setEditing(null)}
                 onSaved={() => {
                   setEditing(null)

@@ -8,14 +8,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  MANUAL_MOVEMENTS,
   MOVEMENT_LABELS,
   addMovement,
   deleteMovement,
   listMovements,
   listStock,
+  movimientosPara,
 } from '../api/stock'
 import { conStock, listProducts } from '../api/products'
+import { listSuppliers } from '../api/suppliers'
 import { getCostoVarilla } from '../api/production'
 import { useAsync } from '../lib/useAsync'
 import { formatDate, formatNumber, formatPesos, todayISO } from '../lib/format'
@@ -37,6 +38,7 @@ import {
 
 const MOVEMENT_TONES = {
   produccion: 'good',
+  compra: 'good',
   venta: 'info',
   ajuste: 'warn',
   devolucion: 'neutral',
@@ -45,7 +47,7 @@ const MOVEMENT_TONES = {
 /**
  * Carga de un movimiento a mano.
  *
- * Producción y devolución siempre suman, así que se piden en positivo. El
+ * Producción, compra y devolución siempre suman, así que se piden en positivo. El
  * ajuste es el único donde el signo lo pone quien carga: es el movimiento que
  * corrige lo que no coincide con lo contado en el depósito, y puede ir para
  * cualquier lado.
@@ -69,8 +71,8 @@ function MovementModal({ products, onClose, onSaved }) {
   const [costo, setCosto] = useState('')
   const [costoTocado, setCostoTocado] = useState(false)
   const costeo = useAsync(getCostoVarilla, [])
-  const costoSugerido = Number(costeo.data?.costo_unitario) || null
-  const costoMostrado = costoTocado ? costo : (costoSugerido ?? '')
+  const suppliers = useAsync(() => listSuppliers({ soloActivos: true }), [])
+  const [supplierId, setSupplierId] = useState(null)
   const [cantidad, setCantidad] = useState('')
   const [fecha, setFecha] = useState(todayISO)
   const [nota, setNota] = useState('')
@@ -79,15 +81,26 @@ function MovementModal({ products, onClose, onSaved }) {
 
   const product = products.find((item) => item.id === productId)
 
-  /* Lo que no se fabrica acá no puede tener un movimiento de producción: entra
-     por un ajuste, que es lo que es cuando llega una compra. */
-  const tipos = MANUAL_MOVEMENTS.filter(
-    (value) => value !== 'produccion' || product?.se_produce !== false,
-  )
+  /* Lo que se fabrica entra por producción; lo que se compra hecho, por
+     compra. Ninguno de los dos puede entrar por el camino del otro. */
+  const tipos = movimientosPara(product)
 
   /* Si el producto elegido dejó de admitir el tipo que estaba seleccionado, el
      formulario no puede quedarse mostrando uno que no va a poder guardar. */
   const tipoUsado = tipos.includes(tipo) ? tipo : tipos[0]
+  const llevaCosto = tipoUsado === 'produccion' || tipoUsado === 'compra'
+
+  /* Una producción propone el costeo de la varilla; una compra, lo último que
+     se le pagó al proveedor por ese producto. */
+  const costoSugerido =
+    tipoUsado === 'compra'
+      ? Number(product?.costo) || null
+      : Number(costeo.data?.costo_unitario) || null
+  const costoMostrado = costoTocado ? costo : (costoSugerido ?? '')
+
+  /* El proveedor se propone con el habitual del producto, hasta que se elija
+     otro a mano. */
+  const proveedorMostrado = supplierId ?? product?.supplier_id ?? ''
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -117,9 +130,10 @@ function MovementModal({ products, onClose, onSaved }) {
           costeo configurado —el de la varilla—, que es lo correcto para ella y
           lo que se venía haciendo.
         */
-        ...(tipoUsado === 'produccion'
+        ...(llevaCosto
           ? { costo_unitario: costoMostrado === '' ? null : Number(costoMostrado) }
           : {}),
+        ...(tipoUsado === 'compra' ? { supplier_id: proveedorMostrado || null } : {}),
       })
       onSaved()
     } catch (err) {
@@ -132,7 +146,15 @@ function MovementModal({ products, onClose, onSaved }) {
     <Modal title="Cargar movimiento" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Producto">
-          <Select value={productId} onChange={(event) => setProductId(event.target.value)}>
+          <Select
+            value={productId}
+            onChange={(event) => {
+              setProductId(event.target.value)
+              /* Cambiar de producto vuelve a proponer su costo y su proveedor. */
+              setCostoTocado(false)
+              setSupplierId(null)
+            }}
+          >
             {products.map((product) => (
               <option key={product.id} value={product.id}>
                 {product.nombre}
@@ -169,13 +191,37 @@ function MovementModal({ products, onClose, onSaved }) {
         {/* El costo se congela con el movimiento: lo que costó producir esta
             tanda no cambia si mañana sube la luz. Por eso se ve antes de
             guardarlo, y no después. */}
-        {tipoUsado === 'produccion' && (
+        {tipoUsado === 'compra' && (
+          <Field
+            label="Proveedor"
+            hint={
+              suppliers.data?.length === 0
+                ? 'No hay proveedores cargados: se cargan en Ajustes › Proveedores.'
+                : null
+            }
+          >
+            <Select value={proveedorMostrado} onChange={(event) => setSupplierId(event.target.value)}>
+              <option value="">Sin indicar</option>
+              {(suppliers.data ?? []).map((supplier) => (
+                <option key={supplier.id} value={supplier.id}>
+                  {supplier.nombre}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
+
+        {llevaCosto && (
           <Field
             label="Costo por unidad"
             hint={
-              costoSugerido
-                ? `Propuesto: ${formatPesos(costoSugerido)}, del costeo cargado en Ajustes. Corregilo si este producto cuesta otra cosa.`
-                : 'No hay costeo cargado. Sin un número acá, esta producción va a contar costo cero.'
+              tipoUsado === 'compra'
+                ? costoSugerido
+                  ? `Propuesto: ${formatPesos(costoSugerido)}, lo último que se pagó. Sin IVA. Lo que pongas pasa a ser el costo del producto.`
+                  : 'Lo que cobró el proveedor por unidad, sin IVA. Pasa a ser el costo del producto.'
+                : costoSugerido
+                  ? `Propuesto: ${formatPesos(costoSugerido)}, del costeo cargado en Ajustes. Corregilo si este producto cuesta otra cosa.`
+                  : 'No hay costeo cargado. Sin un número acá, esta producción va a contar costo cero.'
             }
           >
             <Input
@@ -431,6 +477,13 @@ export default function Stock() {
                           Sin costo: se cargó antes del costeo
                         </span>
                       ))}
+                    {movement.tipo === 'compra' && (
+                      <span className="block text-grafito-500">
+                        {movement.supplier?.nombre ?? 'Proveedor sin indicar'}
+                        {movement.costo_unitario !== null &&
+                          ` · ${formatPesos(Number(movement.costo_unitario))} c/u`}
+                      </span>
+                    )}
                   </Td>
                   <Td align="right">
                     {movement.tipo !== 'venta' && (

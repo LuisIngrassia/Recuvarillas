@@ -4,11 +4,18 @@
  * Es la única pantalla del ERP que se ve desde afuera: lo que se guarda acá es
  * lo que cotiza el simulador de la web al rato siguiente, sin deployar nada.
  * Por eso pide confirmar antes de guardar y avisa qué implica.
+ *
+ * Sólo tiene escalones lo que fabricamos. Lo que se compra hecho tiene un
+ * precio único, que vive en su ficha de Productos, y no aparece acá.
+ *
+ * Y sólo lleva dos precios por escalón —sin agujerear y agujereada— lo que se
+ * agujerea. Lo demás tiene uno, y pedirle el otro sería inventar un recargo
+ * por un acabado que no existe.
  */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { createTier, deleteTier, listTiers, updateTier } from '../api/prices'
-import { listProducts, productoWeb } from '../api/products'
+import { conLista, listProducts, productoWeb } from '../api/products'
 import { createRate, deleteRate, listRates, updateRate } from '../api/services'
 import { useAsync } from '../lib/useAsync'
 import { formatDateTime, formatNumber, formatPesos } from '../lib/format'
@@ -58,7 +65,7 @@ const LISTAS = [
 ]
 
 /** Alta y edición de un escalón. */
-function TierModal({ tier, productId, onClose, onSaved }) {
+function TierModal({ tier, productId, conAcabado, onClose, onSaved }) {
   const [form, setForm] = useState(() =>
     tier
       ? {
@@ -81,8 +88,16 @@ function TierModal({ tier, productId, onClose, onSaved }) {
 
     const min = Number.parseInt(form.min_qty, 10)
     const max = form.max_qty === '' ? null : Number.parseInt(form.max_qty, 10)
-    const plain = Number(form.plain_price)
-    const drilled = Number(form.drilled_price)
+    const plain = form.plain_price === '' ? NaN : Number(form.plain_price)
+    /*
+      Sin acabado, la base igual pide las dos columnas: se guarda el mismo
+      precio en las dos. Así quien lea `drilled_price` sin mirar el producto
+      cotiza bien igual, y si algún día empieza a agujerearse, la pantalla
+      muestra el recargo en cero en vez de un hueco.
+    */
+    const drilled = conAcabado
+      ? form.drilled_price === '' ? NaN : Number(form.drilled_price)
+      : plain
 
     if (!Number.isFinite(min) || min < 1) {
       setError('El escalón tiene que arrancar en 1 o más.')
@@ -137,7 +152,7 @@ function TierModal({ tier, productId, onClose, onSaved }) {
           <Field label="Hasta" hint="Vacío = sin tope, el último escalón.">
             <Input type="number" min="1" step="1" value={form.max_qty} onChange={set('max_qty')} />
           </Field>
-          <Field label="Precio sin agujerear" hint="Sin IVA">
+          <Field label={conAcabado ? 'Precio sin agujerear' : 'Precio'} hint="Sin IVA">
             <Input
               type="number"
               min="0"
@@ -146,15 +161,17 @@ function TierModal({ tier, productId, onClose, onSaved }) {
               onChange={set('plain_price')}
             />
           </Field>
-          <Field label="Precio agujereada" hint="Sin IVA">
-            <Input
-              type="number"
-              min="0"
-              step="1"
-              value={form.drilled_price}
-              onChange={set('drilled_price')}
-            />
-          </Field>
+          {conAcabado && (
+            <Field label="Precio agujereada" hint="Sin IVA">
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={form.drilled_price}
+                onChange={set('drilled_price')}
+              />
+            </Field>
+          )}
         </div>
 
         <Field label="Lista">
@@ -256,7 +273,9 @@ function RateModal({ rate, onClose, onSaved }) {
 }
 
 export default function Prices() {
-  const products = useAsync(listProducts, [])
+  /* Sólo los que se cotizan por escalones: elegir acá un producto comprado
+     sería cargarle una lista que nada usa. */
+  const products = useAsync(async () => conLista(await listProducts()), [])
 
   /*
     De qué producto es la lista que se está mirando. En null todavía no se
@@ -268,6 +287,8 @@ export default function Prices() {
     products.data?.find((item) => item.id === productId) ?? productoWeb(products.data)
 
   const query = useAsync(() => listTiers(elegido?.id), [elegido?.id])
+  /* Las columnas de agujereada sólo para lo que se agujerea. */
+  const conAcabado = elegido?.se_agujerea !== false
   const rates = useAsync(() => listRates(), [])
   const [editing, setEditing] = useState(null)
   const [editingRate, setEditingRate] = useState(null)
@@ -299,7 +320,7 @@ export default function Prices() {
     <>
       <PageHeader
         title="Precios"
-        description="Una lista por producto, con sus escalones por cantidad. Todo sin IVA."
+        description="Los escalones por cantidad de lo que fabricamos. Todo sin IVA."
         actions={
           <>
             {/* De qué producto es la lista. Un `<select>` pelado porque el
@@ -325,10 +346,12 @@ export default function Prices() {
 
       {products.data?.length === 0 && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-800">
-          No hay productos cargados, así que no hay lista que editar.{' '}
+          No hay productos fabricados acá, así que no hay escalones que editar.
+          Lo que se compra hecho tiene su precio en la ficha de{' '}
           <Link to="/erp/productos" className="font-semibold underline underline-offset-2">
-            Cargar un producto
+            Productos
           </Link>
+          .
         </div>
       )}
 
@@ -375,9 +398,15 @@ export default function Prices() {
                       head={
                         <>
                           <Th>Cantidad</Th>
-                          <Th align="right">Sin agujerear</Th>
-                          <Th align="right">Agujereada</Th>
-                          <Th align="right">Diferencia</Th>
+                          {conAcabado ? (
+                            <>
+                              <Th align="right">Sin agujerear</Th>
+                              <Th align="right">Agujereada</Th>
+                              <Th align="right">Diferencia</Th>
+                            </>
+                          ) : (
+                            <Th align="right">Precio</Th>
+                          )}
                           <Th>Actualizado</Th>
                           <Th align="right"> </Th>
                         </>
@@ -394,13 +423,17 @@ export default function Prices() {
                           <Td align="right" className="tabular-nums text-grafito-700">
                             {formatPesos(Number(tier.plain_price))}
                           </Td>
-                          <Td align="right" className="tabular-nums text-grafito-700">
-                            {formatPesos(Number(tier.drilled_price))}
-                          </Td>
-                          <Td align="right" className="tabular-nums text-xs text-grafito-400">
-                            {/* El recargo por agujereado, que es lo que se revisa al cambiar precios. */}
-                            +{formatPesos(Number(tier.drilled_price) - Number(tier.plain_price))}
-                          </Td>
+                          {conAcabado && (
+                            <>
+                              <Td align="right" className="tabular-nums text-grafito-700">
+                                {formatPesos(Number(tier.drilled_price))}
+                              </Td>
+                              <Td align="right" className="tabular-nums text-xs text-grafito-400">
+                                {/* El recargo por agujereado, que es lo que se revisa al cambiar precios. */}
+                                +{formatPesos(Number(tier.drilled_price) - Number(tier.plain_price))}
+                              </Td>
+                            </>
+                          )}
                           <Td className="whitespace-nowrap text-xs text-grafito-400">
                             {formatDateTime(tier.updated_at)}
                           </Td>
@@ -506,6 +539,18 @@ export default function Prices() {
 
       <div className="mt-4 space-y-2 text-xs text-grafito-400">
         <p>
+          Lo que se compra hecho —alambre, grampas— no lleva escalones: tiene un
+          precio único que se carga en su ficha de{' '}
+          <Link to="/erp/productos" className="underline underline-offset-2">
+            Productos
+          </Link>
+          , al lado de lo que cobra el proveedor.
+        </p>
+        <p>
+          El precio agujereada aparece sólo en los productos que tienen marcado
+          «Se agujerea» en su ficha. Los demás llevan un precio por escalón.
+        </p>
+        <p>
           La minorista tiene que cubrir toda la escala sin huecos: el escalón que
           arranca en 1 y el último sin tope. La mayorista puede arrancar donde
           quiera —hoy en 1.000— porque al revendedor que un mes lleva menos se le
@@ -533,6 +578,7 @@ export default function Prices() {
         <TierModal
           tier={editing.id ? editing : null}
           productId={elegido?.id}
+          conAcabado={conAcabado}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null)

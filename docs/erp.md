@@ -24,7 +24,8 @@ Y lo que se toca de vez en cuando, bajo **Ajustes**:
 | Pantalla        | Para qué                                                                |
 | --------------- | ----------------------------------------------------------------------- |
 | **Productos**   | Qué se vende, y qué da por sentado el sistema sobre cada cosa.           |
-| **Precios**     | Una lista por producto. La del producto marcado la usa la web.           |
+| **Precios**     | Los escalones por cantidad de lo que fabricamos. La del producto marcado la usa la web. |
+| **Proveedores** | A quién se le compra lo que no fabricamos, a cuánto, y las últimas compras. |
 | **Costo de la varilla** | Qué se gasta en producir una, y de dónde sale ese número.        |
 | **Fletes**      | Los transportes, hasta dónde llega cada uno y a cuánto.                  |
 | **Vendedores**  | Quién trae la venta, su comisión y lo que hay que liquidarle en el mes.  |
@@ -535,8 +536,8 @@ marca enciende algo concreto en otra pantalla:
 
 | Marca | Qué decide |
 | --- | --- |
-| **Se fabrica acá** | Habilita los movimientos de producción en Stock. Lo que se compra hecho entra por un ajuste. |
-| **Se agujerea** | La línea del pedido pide acabado y el presupuesto lo aclara. Sin esto, un presupuesto diría «Bolsa de grampas sin agujerear». |
+| **Se fabrica acá** | Cómo se cotiza y cómo entra al depósito. Fabricado: escalones de cantidad en Precios, y producción en Stock. Comprado: un precio único en la ficha, un proveedor, y compra en Stock. |
+| **Se agujerea** | Lleva dos precios por escalón —sin agujerear y agujereada— y la línea del pedido pide acabado. Sin esto, cada escalón tiene un solo precio y el presupuesto no habla de agujeros. |
 | **Lleva stock** | Aparece en Stock y avisa faltantes. Lo que se compra por pedido puede ir sin control de existencias. |
 | **En la web** | Es el que cotiza el simulador de la landing, y con el que se presupuesta un lead. **Uno solo**, y lo garantiza la base. |
 
@@ -544,6 +545,45 @@ Un producto que se vendió alguna vez **no se puede borrar**: el historial de
 ventas no puede quedar sin saber qué se vendió. Lo que corresponde ahí es
 retirarlo — deja de ofrecerse al cargar un pedido sin tocar lo que ya se
 facturó.
+
+#### Lo que fabricamos y lo que compramos
+
+**Sólo lo que fabricamos tiene escalones de precio.** Ahí producir más abarata
+cada unidad y tiene sentido trasladarlo. Lo que se compra hecho —alambre,
+grampas— cuesta lo que lo cobra el proveedor lleve el cliente uno o veinte, así
+que **va un precio y listo**.
+
+Al destildar *Se fabrica acá*, la ficha pide tres cosas más:
+
+- **Proveedor** — a quién se le compra habitualmente. Se propone al cargar una
+  compra.
+- **Costo** — lo que cobra el proveedor por unidad, sin IVA. Se actualiza solo
+  con cada compra que se carga en Stock, así que es siempre el último que se
+  pagó.
+- **Precio de venta** — sin IVA. Es el que se propone al agregar el producto a
+  un pedido. La ficha muestra el margen sobre el costo mientras se escribe.
+
+Un producto comprado no puede estar **En la web**: el simulador trabaja con
+escalones.
+
+> Al correr el schema, los productos comprados que ya tenían escalones pasan a
+> precio único con el de su primer escalón minorista. Los escalones viejos no
+> se borran, pero dejan de cotizar y no aparecen más en Precios.
+
+### Proveedores
+
+En **Ajustes › Proveedores** se cargan los datos de cada uno —contacto,
+teléfono, CUIT, y en notas lo que sirva: plazos, mínimos, cómo se le paga—. La
+lista muestra al lado qué se le compra, con el costo, el precio de venta y el
+margen de cada cosa, y abajo **las últimas compras**, filtrables por proveedor.
+
+Qué se le compra a quién se elige en la ficha del producto, no acá. Borrar un
+proveedor no borra nada más: sus productos quedan sin proveedor y sus compras
+siguen en Stock, sin nombre. Si sólo se dejó de trabajar con él, conviene
+desactivarlo.
+
+**Las compras no entran en Rentabilidad.** La factura del proveedor se carga
+como un gasto, y contarla además desde el stock sería pagarla dos veces.
 
 > **El costo de producción se pregunta al cargar la tanda.** Antes se tomaba
 > solo del costeo configurado, porque el único producto que se fabricaba era la
@@ -553,8 +593,9 @@ facturó.
 
 ### Precios y revendedores
 
-Cada producto tiene **su propia lista**, y se elige cuál mirar con el
-desplegable de arriba de la pantalla. La del producto marcado **En la web** es
+Cada producto que fabricamos tiene **su propia lista**, y se elige cuál mirar
+con el desplegable de arriba de la pantalla. Lo comprado no aparece: tiene un
+precio único en su ficha. La del producto marcado **En la web** es
 la que cotiza el simulador de la landing.
 
 Dentro de cada producto hay **dos listas**, no una con tramos de volumen:
@@ -695,6 +736,10 @@ eso la pantalla muestra las dos cosas juntas, y por eso cuando algo no cuadra la
 respuesta está en la lista de abajo.
 
 - **Producción** y **devolución** suman; se cargan a mano.
+- **Compra** suma, y es por donde entra lo que no se fabrica: guarda el
+  proveedor y lo que se pagó por unidad, y ese costo pasa a la ficha del
+  producto. Un producto fabricado no admite compras, ni uno comprado
+  producción.
 - **Ajuste** puede sumar o restar: es el movimiento para cuando lo contado en el
   depósito no coincide. Se carga en negativo si falta mercadería.
 - **Venta** la genera el sistema al entregar un pedido, y no se puede borrar a

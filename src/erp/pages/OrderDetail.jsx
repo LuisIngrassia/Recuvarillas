@@ -20,7 +20,7 @@ import {
   updateOrder,
 } from '../api/orders'
 import { addPayment, deletePayment, PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '../api/payments'
-import { listProducts } from '../api/products'
+import { cotizaPorLista, listProducts } from '../api/products'
 import { addOrderService, deleteOrderService, listRates } from '../api/services'
 import { CARRIER_TYPE_LABELS, quoteFreight } from '../api/carriers'
 import { listSellers } from '../api/sellers'
@@ -78,14 +78,20 @@ function TotalRow({ label, value, strong, hint }) {
 function AddItem({ order, products, onAdded }) {
   const [productId, setProductId] = useState(products[0]?.id ?? '')
 
+  const product = products.find((p) => p.id === productId)
+  const porLista = cotizaPorLista(product)
+
   /*
     Los escalones del producto elegido, no una lista global: desde que hay
     varios productos cada uno tiene la suya, y cotizar una bolsa de grampas con
     los precios de la varilla sería cargar la línea mal sin que nada lo avise.
+
+    Lo que se compra hecho no tiene escalones: su precio es uno y está en la
+    ficha, así que ni se piden.
   */
   const listaDelProducto = useAsync(
-    async () => (await listTiers(productId)).map(tierFromRow),
-    [productId],
+    async () => (porLista ? (await listTiers(productId)).map(tierFromRow) : []),
+    [productId, porLista],
   )
   /* Memoizado porque `?? []` crea un array nuevo en cada render, y de ahí
      cuelga el cálculo del precio sugerido. */
@@ -103,7 +109,6 @@ function AddItem({ order, products, onAdded }) {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const product = products.find((p) => p.id === productId)
   const cantidadNum = Number.parseInt(cantidad, 10)
 
   /* Un producto que no se agujerea no tiene acabado, se haya dejado lo que se
@@ -112,7 +117,13 @@ function AddItem({ order, products, onAdded }) {
   const acabado = llevaAcabado && agujereada
 
   const sugerido = useMemo(() => {
-    if (!product || !Number.isFinite(cantidadNum) || cantidadNum < 1) return null
+    if (!product) return null
+
+    /* Comprado: un precio y listo, se lleve lo que se lleve. Sin precio en la
+       ficha se escribe a mano, como un fabricado sin lista. */
+    if (!porLista) return product.precio == null ? null : Number(product.precio)
+
+    if (!Number.isFinite(cantidadNum) || cantidadNum < 1) return null
 
     /*
       El escalón lo decide cuánto se lleva pedido **de este producto**, no del
@@ -128,7 +139,7 @@ function AddItem({ order, products, onAdded }) {
     if (!tier) return null
 
     return acabado ? tier.drilled : tier.plain
-  }, [product, productId, acabado, cantidadNum, order.items, tiers, order.cliente_tipo])
+  }, [product, porLista, productId, acabado, cantidadNum, order.items, tiers, order.cliente_tipo])
 
   // Mientras nadie escriba un precio a mano, el campo sigue al sugerido.
   const precioMostrado = tocado ? precio : (sugerido ?? '')
@@ -137,7 +148,7 @@ function AddItem({ order, products, onAdded }) {
     event.preventDefault()
 
     if (!productId || !Number.isFinite(cantidadNum) || cantidadNum < 1) {
-      setError('Poné qué producto y cuántas varillas.')
+      setError('Poné qué producto y cuántas unidades.')
       return
     }
     /*
@@ -214,9 +225,11 @@ function AddItem({ order, products, onAdded }) {
         <Field
           label="Precio unitario"
           hint={
-            sugerido
-              ? `Lista ${order.cliente_tipo}: ${formatNumber(sugerido)}`
-              : 'Sin IVA'
+            sugerido === null
+              ? 'Sin IVA'
+              : porLista
+                ? `Lista ${order.cliente_tipo}: ${formatNumber(sugerido)}`
+                : `Precio de ficha: ${formatNumber(sugerido)}`
           }
         >
           <Input

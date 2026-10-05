@@ -4,13 +4,25 @@ import { getCostoVarilla } from './production'
 
 export const MOVEMENT_LABELS = {
   produccion: 'Producción',
+  compra: 'Compra',
   venta: 'Venta',
   ajuste: 'Ajuste',
   devolucion: 'Devolución',
 }
 
 /** Los movimientos que se cargan a mano. La venta la genera el trigger de entrega. */
-export const MANUAL_MOVEMENTS = ['produccion', 'ajuste', 'devolucion']
+export const MANUAL_MOVEMENTS = ['produccion', 'compra', 'ajuste', 'devolucion']
+
+/**
+ * Cómo entra al depósito cada producto: lo que se fabrica, por producción; lo
+ * que se compra hecho, por compra. Ajuste y devolución valen para los dos.
+ */
+export function movimientosPara(product) {
+  const entrada = product?.se_produce === false ? 'compra' : 'produccion'
+  return MANUAL_MOVEMENTS.filter(
+    (tipo) => tipo === entrada || (tipo !== 'produccion' && tipo !== 'compra'),
+  )
+}
 
 /** Saldo actual por producto, sumado en la base. */
 export async function listStock() {
@@ -20,7 +32,7 @@ export async function listStock() {
 export async function listMovements({ productId, tipo, limit = 200 } = {}) {
   let query = db()
     .from('stock_movements')
-    .select('*, product:products(codigo, nombre), order:orders(numero)')
+    .select('*, product:products(codigo, nombre), order:orders(numero), supplier:suppliers(nombre)')
     .order('fecha', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit)
@@ -34,9 +46,9 @@ export async function listMovements({ productId, tipo, limit = 200 } = {}) {
 /**
  * Carga un movimiento.
  *
- * El signo lo pone esta función y no quien la llama: producción y devolución
- * siempre suman, y un ajuste puede ir para cualquier lado según lo que haya
- * contado el que revisó el depósito. Dejar que cada pantalla decida el signo es
+ * El signo lo pone esta función y no quien la llama: producción, compra y
+ * devolución siempre suman, y un ajuste puede ir para cualquier lado según lo
+ * que haya contado el que revisó el depósito. Dejar que cada pantalla decida el signo es
  * la forma más fácil de terminar sumando una salida.
  */
 export async function addMovement({
@@ -46,6 +58,7 @@ export async function addMovement({
   fecha,
   nota,
   costo_unitario: costoPasado,
+  supplier_id,
 }) {
   const magnitud = Math.abs(cantidad)
   const signed = tipo === 'ajuste' ? cantidad : magnitud
@@ -75,13 +88,37 @@ export async function addMovement({
     }
   }
 
-  return unwrap(
+  /*
+    Una compra guarda lo que se pagó por unidad y a quién. Ese costo pasa
+    además a la ficha del producto, que muestra siempre el último que se pagó:
+    es el que importa para poner el precio de venta, y así no hay que
+    acordarse de actualizarlo a mano cada vez que el proveedor aumenta.
+  */
+  if (tipo === 'compra') {
+    costo_unitario = costoPasado === undefined || costoPasado === null ? null : Number(costoPasado)
+  }
+
+  const movimiento = unwrap(
     await db()
       .from('stock_movements')
-      .insert({ product_id, tipo, cantidad: signed, fecha, nota: nota || null, costo_unitario })
+      .insert({
+        product_id,
+        tipo,
+        cantidad: signed,
+        fecha,
+        nota: nota || null,
+        costo_unitario,
+        supplier_id: tipo === 'compra' ? supplier_id || null : null,
+      })
       .select()
       .single(),
   )
+
+  if (tipo === 'compra' && costo_unitario !== null) {
+    unwrap(await db().from('products').update({ costo: costo_unitario }).eq('id', product_id))
+  }
+
+  return movimiento
 }
 
 /**

@@ -78,5 +78,30 @@ export function productoWeb(products) {
   )
 }
 
+/**
+ * Si el producto se cotiza por escalones de cantidad.
+ *
+ * Sólo lo que se fabrica acá: producir más abarata cada unidad y por eso tiene
+ * una lista. Lo que se compra hecho tiene un precio y listo —el de su ficha—,
+ * porque el proveedor lo cobra igual lleve el cliente uno o veinte.
+ */
+export const cotizaPorLista = (product) => product?.se_produce !== false
+
+/** Los que tienen lista de escalones, que son los que se editan en Precios. */
+export const conLista = (products) => (products ?? []).filter(cotizaPorLista)
+
+/**
+ * Cuánto se gana por unidad sobre lo que cobra el proveedor, en porcentaje del
+ * costo. En null si falta alguno de los dos números: un margen calculado con
+ * un costo vacío diría que todo es ganancia.
+ */
+export function margen(precio, costo) {
+  const p = Number(precio)
+  const c = Number(costo)
+  if (precio === null || precio === '' || costo === null || costo === '') return null
+  if (!Number.isFinite(p) || !Number.isFinite(c) || c <= 0) return null
+  return ((p - c) / c) * 100
+}
+
 /** Los que se pueden llevar a una pantalla de existencias. */
 export const conStock = (products) => (products ?? []).filter((item) => item.lleva_stock)

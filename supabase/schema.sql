@@ -1934,6 +1934,98 @@ alter table orders add column if not exists varillas_entregadas integer
 create index if not exists orders_tipo_idx on orders (tipo);
 
 -- ---------------------------------------------------------------------------
+-- Proveedores
+-- ---------------------------------------------------------------------------
+
+/*
+  A quién se le compra lo que no se fabrica acá.
+
+  La varilla sale de las máquinas; el alambre, las grampas y lo que se sume para
+  vender en el mismo pedido se compran hechos. De esos hace falta saber a quién
+  se le piden, a cuánto los cobra y cuándo se le compró por última vez, que es
+  lo que se pregunta el día que hay que reponer.
+*/
+create table if not exists suppliers (
+  id         uuid primary key default gen_random_uuid(),
+  nombre     text not null unique check (char_length(nombre) between 1 and 160),
+  contacto   text,
+  telefono   text,
+  email      text,
+  cuit       text,
+  localidad  text,
+  notas      text,
+  activo     boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+/*
+  Lo que se compra hecho se vende a un precio, y listo.
+
+  Los escalones por cantidad son de lo que fabricamos: ahí producir más abarata
+  cada unidad y tiene sentido trasladarlo. Un rollo de alambre cuesta lo que lo
+  cobra el proveedor lleve el cliente uno o veinte, así que tiene un precio y
+  no una lista. Lo decide la marca `se_produce`: con ella el producto se cotiza
+  por `price_tiers`; sin ella, por `precio`.
+
+  - `precio`: el de venta, sin IVA como todo lo demás. En null se escribe a mano
+    en cada pedido, igual que un producto fabricado sin lista cargada.
+  - `costo`: lo que cobra el proveedor por unidad, sin IVA. Se actualiza solo
+    con cada compra cargada en Stock, así que es siempre el último que se pagó.
+    Sirve para ver el margen al poner el precio.
+  - `supplier_id`: a quién se le compra habitualmente. `set null` y no
+    `restrict` porque borrar un proveedor no tiene que impedir seguir vendiendo
+    lo que se le compraba: se busca otro.
+*/
+alter table products add column if not exists precio numeric(12, 2)
+  check (precio is null or precio >= 0);
+alter table products add column if not exists costo numeric(12, 2)
+  check (costo is null or costo >= 0);
+alter table products add column if not exists supplier_id uuid
+  references suppliers (id) on delete set null;
+
+create index if not exists products_supplier_idx on products (supplier_id);
+
+/*
+  Los productos comprados que ya tenían escalones cargados pasan a precio único:
+  el del primer escalón minorista, que es lo que pagaba cualquiera que llevara
+  poco. Sólo si todavía no tienen precio, así que volver a correr esto no pisa
+  uno que se haya corregido después. Los escalones quedan en la tabla —no se
+  borra nada— pero dejan de cotizar.
+*/
+update products p
+   set precio = t.plain_price
+  from (
+    select distinct on (product_id) product_id, plain_price
+    from price_tiers
+    where kind = 'minorista'
+    order by product_id, min_qty
+  ) t
+ where t.product_id = p.id
+   and not p.se_produce
+   and p.precio is null;
+
+/*
+  Lo comprado entra al depósito como compra, no como ajuste.
+
+  Hasta ahora lo que no se fabricaba entraba por un ajuste, porque era el único
+  movimiento que sumaba sin decir "producción". Funcionaba, pero mezclaba la
+  mercadería que llegó del proveedor con las correcciones de lo contado en el
+  depósito, y no dejaba anotado a quién se le compró ni a cuánto.
+
+  Una compra guarda el proveedor y, en `costo_unitario`, lo que se pagó por
+  unidad. No entra en Rentabilidad: la factura del proveedor se carga como un
+  gasto, y contarla además acá sería pagarla dos veces.
+*/
+alter table stock_movements drop constraint if exists stock_movements_tipo_check;
+alter table stock_movements add constraint stock_movements_tipo_check
+  check (tipo in ('produccion', 'compra', 'venta', 'ajuste', 'devolucion'));
+
+alter table stock_movements add column if not exists supplier_id uuid
+  references suppliers (id) on delete set null;
+
+create index if not exists stock_movements_supplier_idx on stock_movements (supplier_id);
+
+-- ---------------------------------------------------------------------------
 -- Redes
 -- ---------------------------------------------------------------------------
 
@@ -2513,6 +2605,7 @@ alter table order_services  enable row level security;
 alter table production_costs enable row level security;
 alter table production_setup enable row level security;
 alter table social_posts    enable row level security;
+alter table suppliers       enable row level security;
 
 /*
   Supabase ya suele dar estos permisos sola al crear tablas nuevas, pero
@@ -2584,7 +2677,7 @@ begin
     'profit_shares', 'profit_payouts',
     'service_rates', 'order_services',
     'production_costs', 'production_setup',
-    'social_posts'
+    'social_posts', 'suppliers'
   ] loop
     execute format('drop policy if exists "equipo" on %I', tabla);
     execute format(
