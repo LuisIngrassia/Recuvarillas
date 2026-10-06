@@ -15,8 +15,9 @@
  * explica —medida, beneficios, cómo pedir—.
  */
 import { documentoPorTipo } from '../lib/documentos'
-import { conTexto, encuadreDeImagen, urlDeImagen } from '../lib/fichas'
+import { conTexto, encuadreDeImagen, tieneDibujo, urlDeImagen } from '../lib/fichas'
 import DocSheet, { LogoHoja, PieContacto } from '../components/DocSheet'
+import { DibujoDelProducto } from '../components/DibujoDimensiones'
 
 const ESTILOS = `
 .folleto { padding-top: 0; }
@@ -38,11 +39,11 @@ export default function DocBrochure() {
 
   return (
     <DocSheet doc={doc}>
-      {({ contacto, contenido: c }) => {
+      {({ contacto, producto, contenido: c }) => {
         const fotos = [c.foto_1, c.foto_2]
           .filter((valor) => urlDeImagen(valor))
           .map((valor) => ({ url: urlDeImagen(valor), encuadre: encuadreDeImagen(valor) }))
-        const dibujo = urlDeImagen(c.dibujo)
+        const dibujo = tieneDibujo(c)
         const especificaciones = conTexto(c.especificaciones)
         const ventajas = conTexto(c.ventajas)
         const columnas = [especificaciones.length > 0, ventajas.length > 0].filter(Boolean).length
@@ -82,7 +83,12 @@ export default function DocBrochure() {
                   <div className="hm-seccion">
                     <span className="hm-rotulo">Medidas</span>
                   </div>
-                  <img className="dimensiones" src={dibujo} alt={`Dibujo con medidas: ${c.folleto_titular}`} />
+                  <DibujoDelProducto
+                    contenido={c}
+                    producto={producto}
+                    className="dimensiones"
+                    alt={`Dibujo con medidas: ${c.folleto_titular}`}
+                  />
                 </>
               )}
 

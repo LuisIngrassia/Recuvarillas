@@ -45,9 +45,30 @@ export const IMAGENES_MARCA = {
   'uso-quinta': { url: fotoQuinta, nombre: 'Foto · quinta' },
 }
 
+/**
+ * El dibujo que se arma solo con las medidas del producto (ver
+ * `components/DibujoDimensiones.jsx`). No es una imagen guardada: se dibuja
+ * cada vez, así que corregir una medida corrige el dibujo.
+ */
+export const DIBUJO_GENERADO = 'generado'
+
+/** Las medidas guardadas en el contenido de un documento. */
+export const medidasDe = (c) => ({ largo: c.medida_largo, ancho: c.medida_ancho, alto: c.medida_alto })
+
+/** Las tres medidas cargadas y mayores que cero: «2,5» cuenta como 2.5. */
+export function puedeDibujarse({ largo, ancho, alto }) {
+  return [largo, ancho, alto].every((valor) => Number(String(valor ?? '').replace(',', '.')) > 0)
+}
+
+/** Si el documento tiene un dibujo que mostrar, generado o de imagen. */
+export function tieneDibujo(c) {
+  if (c.dibujo === DIBUJO_GENERADO) return puedeDibujarse(medidasDe(c))
+  return Boolean(urlDeImagen(c.dibujo))
+}
+
 /** De lo guardado a algo que se puede poner en un `src`. */
 export function urlDeImagen(valor) {
-  if (!valor) return null
+  if (!valor || valor === DIBUJO_GENERADO) return null
   if (valor.startsWith('marca:')) return IMAGENES_MARCA[valor.slice(6)]?.url ?? null
   return valor
 }
@@ -215,7 +236,12 @@ export function contenidoInicial(producto) {
     folleto_bajada: `${cosa}s de plástico recuperado para alambrados, hech${o}s en Luján.${medidaCorta ? ` ${medidaCorta}.` : ''}`,
     foto_1: null,
     foto_2: null,
-    dibujo: null,
+    /* Se dibuja solo con las medidas, como el de la varilla. Si las medidas
+       no estaban en el nombre, no sale hasta que se carguen. */
+    dibujo: DIBUJO_GENERADO,
+    medida_largo: medidas?.largo ?? '',
+    medida_ancho: medidas?.ancho ?? '',
+    medida_alto: medidas?.alto ?? '',
     especificaciones: [
       { clave: 'Largo', ...largo },
       { clave: 'Sección', ...seccion },
@@ -308,6 +334,13 @@ export function contenidoDe(producto) {
  * `pares` (tabla de dato y valor; con `pendiente` se puede marcar lo que
  * todavía no se midió) e `imagen`.
  */
+/** Con qué se arma el dibujo generado. Las mismas en el folleto y la ficha. */
+const MEDIDAS = [
+  { clave: 'medida_largo', tipo: 'texto', label: 'Largo (cm)', hint: 'Para el dibujo generado.' },
+  { clave: 'medida_ancho', tipo: 'texto', label: 'Ancho de la sección (cm)' },
+  { clave: 'medida_alto', tipo: 'texto', label: 'Alto de la sección (cm)' },
+]
+
 export const CAMPOS = {
   'lista-de-precios': [
     { clave: 'titular', tipo: 'texto', label: 'Titular' },
@@ -321,6 +354,7 @@ export const CAMPOS = {
     { clave: 'foto_1', tipo: 'imagen', label: 'Foto grande' },
     { clave: 'foto_2', tipo: 'imagen', label: 'Foto chica' },
     { clave: 'dibujo', tipo: 'imagen', label: 'Dibujo con medidas', hint: 'Es el mismo de la ficha técnica.' },
+    ...MEDIDAS,
     { clave: 'especificaciones', tipo: 'pares', label: 'Especificaciones' },
     { clave: 'ventajas', tipo: 'lista', label: 'Por qué conviene', hint: 'Una por renglón.' },
   ],
@@ -330,6 +364,7 @@ export const CAMPOS = {
     { clave: 'revision', tipo: 'texto', label: 'Revisión' },
     { clave: 'identificacion', tipo: 'pares', label: 'Recuadro de identificación', hint: 'Producto, código, aplicación… Entran cuatro por fila.' },
     { clave: 'dibujo', tipo: 'imagen', label: 'Dibujo con medidas', hint: 'Es el mismo del folleto.' },
+    ...MEDIDAS,
     { clave: 'caracteristicas', tipo: 'pares', pendiente: true, label: 'Características' },
     { clave: 'comp_propio', tipo: 'texto', label: 'Comparación · nuestra columna' },
     { clave: 'comp_propias', tipo: 'lista', label: 'Comparación · lo nuestro', hint: 'Uno por renglón. Si queda vacío, la comparación no sale.' },

@@ -13,7 +13,8 @@
 import { useState } from 'react'
 import { updateProduct } from '../api/products'
 import { uploadPhoto } from '../api/social'
-import { CAMPOS, IMAGENES_MARCA, contenidoDe, urlDeImagen } from '../lib/fichas'
+import { CAMPOS, DIBUJO_GENERADO, IMAGENES_MARCA, contenidoDe, urlDeImagen } from '../lib/fichas'
+import DibujoDimensiones from './DibujoDimensiones'
 import { Button, ErrorNote, Field, Input, Modal, Select, Textarea } from './ui'
 
 /** Una lista de textos, un ítem por renglón. */
@@ -107,12 +108,16 @@ function CampoPares({ value, onChange, conPendiente }) {
   )
 }
 
-/** Una imagen: del manual de marca, subida desde la compu, o ninguna. */
-function CampoImagen({ value, onChange }) {
+/**
+ * Una imagen: del manual de marca, subida desde la compu, o ninguna. El
+ * dibujo con medidas tiene además la opción de armarse solo (`generado`).
+ */
+function CampoImagen({ value, onChange, generado }) {
   const [subiendo, setSubiendo] = useState(false)
   const [error, setError] = useState('')
   const url = urlDeImagen(value)
-  const subida = value && !value.startsWith('marca:')
+  const esGenerado = value === DIBUJO_GENERADO
+  const subida = value && !esGenerado && !value.startsWith('marca:')
 
   const subir = async (event) => {
     const file = event.target.files?.[0]
@@ -132,7 +137,9 @@ function CampoImagen({ value, onChange }) {
   return (
     <div className="flex items-start gap-3">
       <div className="flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded border border-grafito-200 bg-grafito-50">
-        {url ? (
+        {esGenerado ? (
+          <DibujoDimensiones {...generado} />
+        ) : url ? (
           <img src={url} alt="" className="h-full w-full object-cover" />
         ) : (
           <span className="text-xs text-grafito-400">Sin imagen</span>
@@ -146,6 +153,7 @@ function CampoImagen({ value, onChange }) {
           }}
         >
           <option value="">Sin imagen</option>
+          {generado && <option value={DIBUJO_GENERADO}>Dibujado con las medidas de abajo</option>}
           {Object.entries(IMAGENES_MARCA).map(([clave, imagen]) => (
             <option key={clave} value={`marca:${clave}`}>
               {imagen.nombre}
@@ -220,7 +228,20 @@ export default function DocEditor({ doc, producto, onClose, onSaved }) {
                   {campo.tipo === 'pares' ? (
                     <CampoPares value={valor} onChange={onChange} conPendiente={campo.pendiente} />
                   ) : (
-                    <CampoImagen value={valor} onChange={onChange} />
+                    <CampoImagen
+                      value={valor}
+                      onChange={onChange}
+                      generado={
+                        campo.clave === 'dibujo'
+                          ? {
+                              largo: form.medida_largo,
+                              ancho: form.medida_ancho,
+                              alto: form.medida_alto,
+                              perforada: producto.se_agujerea !== false,
+                            }
+                          : null
+                      }
+                    />
                   )}
                 </div>
                 {campo.hint && <span className="mt-1 block text-xs text-grafito-400">{campo.hint}</span>}

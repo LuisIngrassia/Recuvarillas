@@ -19,9 +19,10 @@
  * entre un documento serio y uno que promete números que nadie ensayó.
  */
 import { documentoPorTipo } from '../lib/documentos'
-import { conTexto, esDato, urlDeImagen } from '../lib/fichas'
+import { conTexto, esDato, tieneDibujo } from '../lib/fichas'
 import { formatDate, todayISO } from '../lib/format'
 import DocSheet, { LogoHoja, PieContacto } from '../components/DocSheet'
+import { DibujoDelProducto } from '../components/DibujoDimensiones'
 
 const ESTILOS = `
 .ficha .ident { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: 4px; overflow: hidden; margin-top: 26px; }
@@ -79,13 +80,13 @@ export default function DocDatasheet() {
 
   return (
     <DocSheet doc={doc}>
-      {({ contacto, contenido: c }) => {
+      {({ contacto, producto, contenido: c }) => {
         const identificacion = conTexto(c.identificacion)
         const caracteristicas = conTexto(c.caracteristicas)
         const propias = conTexto(c.comp_propias)
         const otras = conTexto(c.comp_otras)
         const logistica = conTexto(c.logistica)
-        const dibujo = urlDeImagen(c.dibujo)
+        const dibujo = tieneDibujo(c)
         const hayPendientes = [...caracteristicas, ...logistica].some((fila) => fila.pendiente)
 
         return (
@@ -127,10 +128,15 @@ export default function DocDatasheet() {
               {(dibujo || caracteristicas.length > 0) && (
                 <section>
                   <div className="hm-seccion">
-                    <span className="hm-rotulo">Dimensiones y datos verificables</span>
+                    <span className="hm-rotulo">Dimensiones y datos verificables · medidas en cm</span>
                   </div>
                   {dibujo && (
-                    <img className="dimensiones" src={dibujo} alt={`Dibujo con medidas: ${c.ficha_titular}`} />
+                    <DibujoDelProducto
+                      contenido={c}
+                      producto={producto}
+                      className="dimensiones"
+                      alt={`Dibujo con medidas: ${c.ficha_titular}`}
+                    />
                   )}
                   {caracteristicas.length > 0 && <TablaDatos filas={caracteristicas} encabezado />}
                 </section>

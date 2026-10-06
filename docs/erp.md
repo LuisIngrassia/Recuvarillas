@@ -958,7 +958,12 @@ en la dirección (`?producto=…`), igual que el vendedor.
   («Poste 10x10x220» da sección 10 × 10 y largo 220). Lo que no se puede
   saber de antemano —peso, presentación, función, separación— sale **marcado
   como pendiente** en la ficha y no aparece en el folleto, que va a manos del
-  cliente. No llevan fotos ni dibujo hasta que se suban.
+  cliente. No llevan fotos hasta que se suban.
+- **El dibujo con medidas se arma solo**, con la misma grilla que el de la
+  varilla: la cota del largo, el perfil con la punta (y los agujeros si se
+  agujerea) y la sección acotada al lado de la tabla. Toma las medidas de
+  «Editar contenido» —largo, ancho y alto de la sección—, que arrancan con las
+  del nombre. Corregir una medida corrige el dibujo.
 
 El texto se cambia con **Editar contenido**, arriba de cada documento: titular,
 bajada, tablas de características (con la marca de *pendiente* para lo que no
