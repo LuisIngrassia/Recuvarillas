@@ -12,13 +12,13 @@
  * vendedor con el suyo.
  *
  * El producto viaja igual (`?producto=…`): cada documento existe para cada
- * producto, con su texto guardado en la ficha. Sin producto en la dirección
+ * producto que fabricamos, con su texto guardado en la ficha. Sin producto en la dirección
  * se abre el de la web, que es la varilla.
  */
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { listSellers } from '../api/sellers'
-import { listProducts, productoWeb } from '../api/products'
+import { conLista, listProducts, productoWeb } from '../api/products'
 import { useAsync } from '../lib/useAsync'
 import { contactoDe, parteDeArchivo } from '../lib/documentos'
 import { contenidoDe } from '../lib/fichas'
@@ -100,7 +100,9 @@ const ESTILOS_IMPRESION = `
 export default function DocSheet({ doc, children }) {
   const [params, setParams] = useSearchParams()
   const sellers = useAsync(() => listSellers({ soloActivos: true }), [])
-  const products = useAsync(() => listProducts(), [])
+  /* Sólo lo que fabricamos tiene papeles: lo que se compra hecho no se
+     ofrece con folleto ni ficha propios. */
+  const products = useAsync(async () => conLista(await listProducts()), [])
   const [editando, setEditando] = useState(false)
 
   const sellerId = params.get('vendedor') ?? ''
@@ -223,7 +225,7 @@ export default function DocSheet({ doc, children }) {
         children({ contacto, producto, contenido: contenidoDe(producto) })
       ) : (
         <p className="mx-auto max-w-[860px] rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          No hay productos activos.{' '}
+          No hay productos fabricados activos.{' '}
           <Link to="/erp/productos" className="font-semibold underline underline-offset-2">
             Cargar uno
           </Link>

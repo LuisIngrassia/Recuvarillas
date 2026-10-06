@@ -944,17 +944,21 @@ cada uno. Tres cosas cambian:
 
 #### Un juego de papeles por producto
 
-**Cada producto tiene sus tres documentos**, y un producto nuevo los tiene
-desde que se carga: en **Documentos** se elige el producto —el poste, las
-tablas— y los tres salen con su nombre y sus precios. El producto también viaja
+**Cada producto que fabricamos tiene sus tres documentos**, y uno nuevo los
+tiene desde que se carga: en **Documentos** se elige el producto —el poste, las
+tablas— y los tres salen con su nombre y sus precios. Lo que se compra hecho
+(alambre, grampas) no lleva papeles propios. El producto también viaja
 en la dirección (`?producto=…`), igual que el vendedor.
 
-- **La lista de precios** de lo que fabricamos sale con sus escalones, y con la
-  columna agujereada sólo si el producto se agujerea. Lo que se compra hecho
-  sale con su precio único.
-- **El folleto y la ficha técnica** salen con el texto que tenga guardado el
-  producto. Lo que quede vacío no se imprime, así que uno recién cargado tiene
-  una ficha corta —titular, código, logística— que se completa de a poco.
+- **La lista de precios** sale con sus escalones, y con la columna agujereada
+  sólo si el producto se agujerea.
+- **El folleto y la ficha técnica** tienen las mismas secciones que los de la
+  varilla, adaptadas al producto: «Poste de plástico recuperado», la
+  comparación contra el poste de madera, y las medidas si están en el nombre
+  («Poste 10x10x220» da sección 10 × 10 y largo 220). Lo que no se puede
+  saber de antemano —peso, presentación, función, separación— sale **marcado
+  como pendiente** en la ficha y no aparece en el folleto, que va a manos del
+  cliente. No llevan fotos ni dibujo hasta que se suban.
 
 El texto se cambia con **Editar contenido**, arriba de cada documento: titular,
 bajada, tablas de características (con la marca de *pendiente* para lo que no

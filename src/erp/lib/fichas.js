@@ -12,10 +12,10 @@
  * - qué campos tiene cada documento y cómo se editan (`CAMPOS`),
  * - con qué arranca un producto que todavía no tiene nada cargado
  *   (`contenidoInicial`): la varilla, con lo que ya decían sus papeles; los
- *   demás, con su nombre y las condiciones que valen para todo.
+ *   demás que fabricamos, con las mismas secciones adaptadas a cada uno.
  *
- * Una sección vacía no sale impresa. Un producto recién creado ya tiene sus
- * tres documentos con un click: salen cortos, y se completan de a poco.
+ * Sólo tienen papeles los productos que fabricamos: lo que se compra hecho
+ * no se ofrece con ficha propia. Una sección vacía no sale impresa.
  */
 import { QUOTE_VALID_DAYS } from '../../data/pricing'
 import { TAGLINE } from './documentos'
@@ -159,46 +159,131 @@ const VARILLA = {
 }
 
 /**
+ * Las medidas que vienen en el nombre: «Poste 10x10x220» es sección de 10 × 10
+ * y largo de 220. Es cómo se nombran los productos acá —la varilla es
+ * «Varilla 3x3x120»—, y leerlas de ahí ahorra cargarlas dos veces. Sin ese
+ * formato devuelve null y las medidas salen como dato a completar.
+ */
+export function medidasDelNombre(nombre) {
+  const m = String(nombre ?? '').match(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/i)
+  if (!m) return null
+  return { ancho: m[1], alto: m[2], largo: m[3] }
+}
+
+/** «Poste 10x10x220» → «Poste»: con qué palabra se nombra la cosa. */
+function queEs(nombre) {
+  const palabra = String(nombre ?? '').trim().split(/\s+/)[0] ?? ''
+  return palabra.replace(/[\d×x]+$/i, '') || 'Producto'
+}
+
+/**
  * Con qué arranca un producto que todavía no tiene nada guardado.
  *
- * La varilla se reconoce por su código, el que le pone el schema. Cualquier
- * otro arranca con su nombre y lo que vale para todo; lo demás —medidas,
- * fotos, ventajas— lo sabe quien conoce el producto, y se completa desde el
- * editor del documento.
+ * La varilla se reconoce por su código, el que le pone el schema, y arranca
+ * con lo que decían sus papeles. Cualquier otro de los que fabricamos arranca
+ * con **las mismas secciones que la varilla**, adaptadas: su nombre, sus
+ * medidas si están en el nombre, el material y la comparación contra el mismo
+ * producto en madera. Lo que no se puede saber desde acá —el peso, la
+ * presentación, para qué se usa— sale marcado como pendiente, que es como la
+ * ficha de la varilla ya señalaba lo que nadie había medido todavía.
  */
 export function contenidoInicial(producto) {
   if (producto?.codigo === 'VAR') return VARILLA
 
   const nombre = producto?.nombre ?? ''
+  const cosa = queEs(nombre)
+  const cosaMinuscula = cosa.toLowerCase()
+  const medidas = medidasDelNombre(nombre)
+  const agujerea = producto?.se_agujerea !== false
+  /* «Poste… hecho», «Tabla… hecha»: el texto concuerda con la cosa. */
+  const o = /a$/i.test(cosa) ? 'a' : 'o'
+  const pendiente = (valor) => ({ valor, pendiente: true })
+
+  const largo = medidas ? { valor: `${medidas.largo} cm` } : pendiente('A completar')
+  const seccion = medidas
+    ? { valor: `${medidas.ancho} cm × ${medidas.alto} cm` }
+    : pendiente('A completar')
+  const medidaCorta = medidas ? `${medidas.ancho} × ${medidas.alto} × ${medidas.largo} cm` : ''
 
   return {
     titular: nombre,
-    bajada: '',
+    bajada: `${cosa} de plástico recuperado, hech${o} en Luján. No se pudre, no se oxida y no necesita mantenimiento.`,
     condiciones: CONDICIONES,
 
-    folleto_tipo: 'Productos para alambrado',
-    folleto_titular: nombre,
-    folleto_bajada: '',
+    folleto_tipo: `${cosa}s para alambrado`,
+    folleto_titular: `Hech${o} para el campo.\nPensad${o} para durar.`,
+    folleto_bajada: `${cosa}s de plástico recuperado para alambrados, hech${o}s en Luján.${medidaCorta ? ` ${medidaCorta}.` : ''}`,
     foto_1: null,
     foto_2: null,
     dibujo: null,
-    especificaciones: [],
-    ventajas: [],
+    especificaciones: [
+      { clave: 'Largo', ...largo },
+      { clave: 'Sección', ...seccion },
+      { clave: 'Peso aproximado', ...pendiente('A medir') },
+      { clave: 'Material', valor: 'Polipropileno (PP) recuperado de descarte industrial' },
+      { clave: 'Protección UV', valor: 'Sí, estabilizante UV incorporado' },
+      ...(agujerea ? [{ clave: 'Agujereado', valor: 'Opcional, a pedido' }] : []),
+      { clave: 'Presentación', ...pendiente('A completar') },
+      { clave: 'Flete', valor: 'A cargo del comprador, despacho desde Luján' },
+      /* El folleto va a manos del cliente: lo que falta medir no sale ahí,
+         se agrega cuando se sepa. En la ficha sí, señalado. */
+    ].filter((fila) => !fila.pendiente),
+    ventajas: [
+      'No se pudre ni se oxida: aguanta la humedad y el sol.',
+      `No l${o} atacan los insectos.`,
+      'Sin mantenimiento: no se pinta ni se repone.',
+      ...(agujerea ? [`Agujeread${o} de fábrica a la altura de cada hilo.`] : []),
+      'Plástico: sirve para cercos eléctricos.',
+      'Precio más bajo por cantidad.',
+    ],
 
     ficha_titular: nombre,
-    ficha_bajada: '',
+    ficha_bajada: `${cosa} para alambrado de plástico recuperado. Industria argentina.`,
     revision: '00',
     identificacion: [
-      { clave: 'Producto', valor: nombre },
+      { clave: 'Producto', valor: cosa },
       { clave: 'Código', valor: producto?.codigo ?? '' },
+      { clave: 'Aplicación', valor: 'Alambrado rural' },
+      { clave: 'Proceso', valor: 'Inyección' },
     ],
-    caracteristicas: [],
+    caracteristicas: [
+      { clave: 'Largo', ...largo },
+      { clave: 'Sección', ...seccion },
+      { clave: 'Peso unitario', ...pendiente('A medir') },
+      { clave: 'Material', valor: 'Polipropileno (PP) reciclado de scrap industrial' },
+      { clave: 'Color', valor: 'Grafito (variable según lote de scrap)' },
+      { clave: 'Estabilización UV', ...pendiente('Sí') },
+      ...(agujerea
+        ? [{ clave: 'Perforado', valor: 'Opcional, cantidad a pedido · con cargo adicional' }]
+        : []),
+      { clave: 'Función', ...pendiente('A completar') },
+      { clave: 'Origen', valor: 'Luján, Buenos Aires · Industria argentina' },
+    ],
     comp_propio: 'Recuvarilla',
-    comp_propias: [],
-    comp_otro: '',
-    comp_otras: [],
-    comp_nota: '',
-    logistica: LOGISTICA,
+    comp_propias: [
+      'No se pudre ni junta hongos',
+      `No l${o} atacan insectos ni roedores`,
+      'No se oxida',
+      'Flexible: absorbe golpes en lugar de quebrarse',
+      'Sin mantenimiento anual',
+      `Fabricad${o} con scrap industrial recuperado`,
+    ],
+    comp_otro: `${cosa} de madera`,
+    comp_otras: [
+      'Se pudre por contacto con humedad',
+      'Vulnerable a insectos',
+      'Se quiebra ante el golpe del animal',
+      'Requiere reposición periódica',
+      'No es ecológico',
+      'Precio creciente por escasez',
+    ],
+    comp_nota: VARILLA.comp_nota,
+    logistica: [
+      { clave: 'Unidades por paquete', ...pendiente('A completar') },
+      { clave: 'Compra mínima', ...pendiente('A completar') },
+      ...LOGISTICA,
+      { clave: `Separación recomendada entre ${cosaMinuscula}s`, ...pendiente('A completar') },
+    ],
     logistica_nota: '',
   }
 }

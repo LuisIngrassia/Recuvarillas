@@ -15,9 +15,8 @@
  * La fecha de vigencia tampoco se escribe a mano: es la última vez que se tocó
  * un precio, que es exactamente lo que esa línea quiere decir.
  *
- * Hay una por producto. Lo que fabricamos sale con sus escalones —con la
- * columna agujereada sólo si se agujerea—; lo que se compra hecho, con su
- * precio único. El titular, la bajada y las condiciones se editan con
+ * Hay una por cada producto que fabricamos, con sus escalones —y la columna
+ * agujereada sólo si se agujerea—. El titular, la bajada y las condiciones se editan con
  * «Editar contenido» y quedan en la ficha del producto.
  *
  * El diseño es la lista A4 del manual de marca (10 · Aplicaciones de marca):
@@ -26,9 +25,8 @@
  */
 import { useState } from 'react'
 import { listTiers } from '../api/prices'
-import { cotizaPorLista } from '../api/products'
 import { useAsync } from '../lib/useAsync'
-import { formatDate, todayISO } from '../lib/format'
+import { formatDate } from '../lib/format'
 import { documentoPorTipo } from '../lib/documentos'
 import { conTexto } from '../lib/fichas'
 import DocSheet, { LogoHoja, PieContacto } from '../components/DocSheet'
@@ -212,53 +210,14 @@ function ConEscalones({ producto, contacto, contenido }) {
   )
 }
 
-/** Lo que se compra hecho: un precio y listo. */
-function PrecioUnico({ producto, contacto, contenido }) {
-  if (producto.precio == null) {
-    return (
-      <p className="mx-auto max-w-[860px] rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-        {producto.nombre} no tiene precio de venta cargado. Se carga en su
-        ficha, en Ajustes › Productos.
-      </p>
-    )
-  }
-
-  return (
-    <Hoja contacto={contacto} contenido={contenido} vigencia={todayISO()}>
-      <section>
-        <div className="hm-seccion">
-          <span className="hm-rotulo">Precio</span>
-        </div>
-        <table>
-          <tbody>
-            <tr>
-              <td>
-                {producto.nombre}
-                {producto.unidad && producto.unidad !== 'unidad' ? ` · por ${producto.unidad}` : ''}
-              </td>
-              <td className="num">{pesos(producto.precio)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-    </Hoja>
-  )
-}
-
 export default function DocPriceList() {
   const doc = documentoPorTipo('lista-de-precios')
 
   return (
     <DocSheet doc={doc}>
-      {(props) =>
-        cotizaPorLista(props.producto) ? (
-          /* `key`: al cambiar de producto, el alcance elegido vuelve a
-             minorista en vez de quedar apuntando a una lista que no existe. */
-          <ConEscalones key={props.producto.id} {...props} />
-        ) : (
-          <PrecioUnico {...props} />
-        )
-      }
+      {/* `key`: al cambiar de producto, el alcance elegido vuelve a
+          minorista en vez de quedar apuntando a una lista que no existe. */}
+      {(props) => <ConEscalones key={props.producto.id} {...props} />}
     </DocSheet>
   )
 }

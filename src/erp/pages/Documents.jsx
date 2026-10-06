@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listSellers } from '../api/sellers'
-import { listProducts, productoWeb } from '../api/products'
+import { conLista, listProducts, productoWeb } from '../api/products'
 import { useAsync } from '../lib/useAsync'
 import { DOCUMENTOS, contactoDe } from '../lib/documentos'
 import { Async, Card, PageHeader } from '../components/ui'
@@ -16,7 +16,8 @@ import { Async, Card, PageHeader } from '../components/ui'
 export default function Documents() {
   const sellers = useAsync(() => listSellers({ soloActivos: true }), [])
   const [sellerId, setSellerId] = useState('')
-  const products = useAsync(() => listProducts(), [])
+  /* Sólo lo que fabricamos: lo que se compra hecho no lleva papeles propios. */
+  const products = useAsync(async () => conLista(await listProducts()), [])
   const [productId, setProductId] = useState('')
 
   const seller = sellers.data?.find((item) => item.id === sellerId) ?? null
@@ -38,7 +39,7 @@ export default function Documents() {
 
       <Card title="¿De qué producto?" className="mb-6">
         <div className="px-4 py-4">
-          <Async query={products} empty="No hay productos activos.">
+          <Async query={products} empty="No hay productos fabricados activos.">
             {(lista) => (
               <div className="flex flex-wrap gap-2">
                 {lista.map((item) => (
@@ -59,9 +60,11 @@ export default function Documents() {
             )}
           </Async>
           <p className="mt-3 text-xs text-grafito-500">
-            Cada producto tiene sus tres papeles. Un producto nuevo los tiene
-            desde que se carga: salen con su nombre y sus precios, y el resto
-            del texto se completa con «Editar contenido» dentro de cada uno.
+            Cada producto que fabricamos tiene sus tres papeles, con las mismas
+            secciones que la varilla. Uno nuevo los tiene desde que se carga,
+            con sus medidas si están en el nombre («Poste 10x10x220»); lo que
+            falta sale marcado como pendiente y se completa con «Editar
+            contenido» dentro de cada documento.
           </p>
         </div>
       </Card>
