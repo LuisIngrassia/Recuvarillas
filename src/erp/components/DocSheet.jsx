@@ -10,11 +10,19 @@
  * pantalla: así el link a "el folleto de Marta" se puede guardar en favoritos o
  * mandar por WhatsApp, que es exactamente lo que va a querer hacer cada
  * vendedor con el suyo.
+ *
+ * El producto viaja igual (`?producto=…`): cada documento existe para cada
+ * producto, con su texto guardado en la ficha. Sin producto en la dirección
+ * se abre el de la web, que es la varilla.
  */
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { listSellers } from '../api/sellers'
+import { listProducts, productoWeb } from '../api/products'
 import { useAsync } from '../lib/useAsync'
 import { contactoDe, parteDeArchivo } from '../lib/documentos'
+import { contenidoDe } from '../lib/fichas'
+import DocEditor from './DocEditor'
 import { Button, ErrorNote, Loading } from './ui'
 import { LOGO, QR_WHATSAPP } from '../../lib/marca'
 import './documentos.css'
@@ -92,17 +100,28 @@ const ESTILOS_IMPRESION = `
 export default function DocSheet({ doc, children }) {
   const [params, setParams] = useSearchParams()
   const sellers = useAsync(() => listSellers({ soloActivos: true }), [])
+  const products = useAsync(() => listProducts(), [])
+  const [editando, setEditando] = useState(false)
 
   const sellerId = params.get('vendedor') ?? ''
   const seller = sellers.data?.find((item) => item.id === sellerId) ?? null
   const contacto = contactoDe(seller)
 
-  const elegir = (id) => {
+  const productId = params.get('producto') ?? ''
+  const producto =
+    products.data?.find((item) => item.id === productId) ??
+    productoWeb(products.data) ??
+    products.data?.[0] ??
+    null
+
+  const cambiarParam = (clave) => (id) => {
     const siguiente = new URLSearchParams(params)
-    if (id) siguiente.set('vendedor', id)
-    else siguiente.delete('vendedor')
+    if (id) siguiente.set(clave, id)
+    else siguiente.delete(clave)
     setParams(siguiente, { replace: true })
   }
+  const elegir = cambiarParam('vendedor')
+  const elegirProducto = cambiarParam('producto')
 
   /**
    * Al imprimir a PDF el navegador propone el nombre de `document.title`, así
@@ -111,6 +130,7 @@ export default function DocSheet({ doc, children }) {
   const imprimir = () => {
     const titulo = document.title
     const partes = [doc.archivo]
+    if (producto) partes.push(parteDeArchivo(producto.nombre))
     if (seller) partes.push(parteDeArchivo(seller.nombre))
     document.title = partes.join('-')
 
@@ -137,6 +157,21 @@ export default function DocSheet({ doc, children }) {
           </Link>
 
           <label className="block">
+            <span className="block text-xs font-semibold text-grafito-600">Producto</span>
+            <select
+              value={producto?.id ?? ''}
+              onChange={(event) => elegirProducto(event.target.value)}
+              className="mt-1 rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm text-grafito-800 focus:border-celeste-700 focus:outline-none"
+            >
+              {(products.data ?? []).map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
             <span className="block text-xs font-semibold text-grafito-600">
               Contacto que sale impreso
             </span>
@@ -155,8 +190,19 @@ export default function DocSheet({ doc, children }) {
           </label>
         </div>
 
-        <Button onClick={imprimir}>Exportar a PDF</Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => setEditando(true)} disabled={!producto}>
+            Editar contenido
+          </Button>
+          <Button onClick={imprimir}>Exportar a PDF</Button>
+        </div>
       </div>
+
+      {products.error && (
+        <div className="mx-auto mb-4 max-w-[860px] print:hidden">
+          <ErrorNote onRetry={products.reload}>{products.error}</ErrorNote>
+        </div>
+      )}
 
       {sellers.error && (
         <div className="mx-auto mb-4 max-w-[860px] print:hidden">
@@ -171,12 +217,37 @@ export default function DocSheet({ doc, children }) {
         </p>
       )}
 
-      {sellers.loading ? <Loading /> : children(contacto)}
+      {sellers.loading || products.loading ? (
+        <Loading />
+      ) : producto ? (
+        children({ contacto, producto, contenido: contenidoDe(producto) })
+      ) : (
+        <p className="mx-auto max-w-[860px] rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          No hay productos activos.{' '}
+          <Link to="/erp/productos" className="font-semibold underline underline-offset-2">
+            Cargar uno
+          </Link>
+          .
+        </p>
+      )}
+
+      {editando && producto && (
+        <DocEditor
+          doc={doc}
+          producto={producto}
+          onClose={() => setEditando(false)}
+          onSaved={() => {
+            setEditando(false)
+            products.reload()
+          }}
+        />
+      )}
 
       <p className="mx-auto mt-4 max-w-[860px] text-xs text-grafito-400 print:hidden">
-        Cada vendedor tiene su versión de este documento: elegilo arriba y el
-        contacto impreso cambia. El link de la barra de direcciones ya lleva el
-        vendedor puesto, así que se le puede pasar directo.
+        Hay uno de estos por producto y por vendedor: elegilos arriba. El
+        texto se cambia con «Editar contenido» y queda guardado en el
+        producto. El link de la barra de direcciones ya lleva los dos
+        puestos, así que se puede pasar directo.
       </p>
     </>
   )

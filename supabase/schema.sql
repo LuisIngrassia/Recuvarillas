@@ -878,6 +878,18 @@ alter table products add column if not exists orden       integer not null defau
 alter table products add column if not exists notas       text;
 
 /*
+  Lo que dicen los papeles de cada producto: lista de precios, folleto y ficha
+  técnica. Antes estaba escrito en el código y era sólo de la varilla; ahora
+  cada producto tiene los suyos y se editan desde el ERP.
+
+  Va en jsonb porque cada papel tiene sus campos —tablas, listas, fotos— y no
+  se consultan nunca por separado: se leen enteros para armar la hoja. Qué
+  campos hay está en `src/erp/lib/fichas.js`. Vacío es "todavía nada": el
+  documento sale con el nombre del producto y lo que vale para todo.
+*/
+alter table products add column if not exists documentos jsonb not null default '{}'::jsonb;
+
+/*
   Un solo producto en la web. El simulador cotiza una cosa y pide una cantidad;
   con dos marcados no habría forma de saber cuál, y elegir "el primero" haría
   que la página cotice distinto según cómo quedó ordenada una tabla.
@@ -2755,6 +2767,22 @@ create policy "el simulador deja leads" on leads
 insert into storage.buckets (id, name, public)
 values ('redes', 'redes', true)
 on conflict (id) do nothing;
+
+/*
+  Las fotos y dibujos de los documentos de cada producto. Público por lo mismo
+  que `redes`: son para imprimir y repartir.
+*/
+insert into storage.buckets (id, name, public)
+values ('productos', 'productos', true)
+on conflict (id) do nothing;
+
+drop policy if exists "el equipo sube fotos de productos" on storage.objects;
+create policy "el equipo sube fotos de productos" on storage.objects
+  for insert to authenticated with check (bucket_id = 'productos');
+
+drop policy if exists "el equipo borra fotos de productos" on storage.objects;
+create policy "el equipo borra fotos de productos" on storage.objects
+  for delete to authenticated using (bucket_id = 'productos');
 
 drop policy if exists "el equipo sube fotos de redes" on storage.objects;
 create policy "el equipo sube fotos de redes" on storage.objects

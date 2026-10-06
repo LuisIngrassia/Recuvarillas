@@ -16,7 +16,7 @@ El día a día:
 | **Envíos**       | Quién está cerca de un viaje que ya sale, para compartir el flete.      |
 | **Costos**       | Lo que sale, y de la parte de quién sale cada cosa.                     |
 | **Rentabilidad** | El resultado del mes y la cuenta de cada socio.                         |
-| **Documentos**   | La lista de precios, el folleto y la ficha técnica, con el contacto de cada vendedor. |
+| **Documentos**   | La lista de precios, el folleto y la ficha técnica de cada producto, con el contacto de cada vendedor. |
 | **Redes**        | El calendario de Instagram: qué sale cada día, las piezas armadas con el manual y listas para bajar. |
 
 Y lo que se toca de vez en cuando, bajo **Ajustes**:
@@ -937,11 +937,39 @@ cada uno. Tres cosas cambian:
   Apellido · 011 0000-0000" de ejemplo, y la mitad de las copias se repartían
   así.
 - **La ficha técnica ya no trae los controles de dibujo.** Cambiar largo, ancho
-  y perforaciones servía para *diseñar* la ficha, no para emitirla; el producto
-  tiene una sola medida. El dibujo sigue siendo paramétrico por dentro, así que
-  el día que haya otra varilla alcanza con pasarle otras medidas. Lo que sí se
+  y perforaciones servía para *diseñar* la ficha, no para emitirla. El dibujo
+  de cada producto se elige o se sube desde «Editar contenido». Lo que sí se
   conserva son las marcas de dato pendiente: lo que no se midió sale señalado y
   no escrito como si estuviera verificado.
+
+#### Un juego de papeles por producto
+
+**Cada producto tiene sus tres documentos**, y un producto nuevo los tiene
+desde que se carga: en **Documentos** se elige el producto —el poste, las
+tablas— y los tres salen con su nombre y sus precios. El producto también viaja
+en la dirección (`?producto=…`), igual que el vendedor.
+
+- **La lista de precios** de lo que fabricamos sale con sus escalones, y con la
+  columna agujereada sólo si el producto se agujerea. Lo que se compra hecho
+  sale con su precio único.
+- **El folleto y la ficha técnica** salen con el texto que tenga guardado el
+  producto. Lo que quede vacío no se imprime, así que uno recién cargado tiene
+  una ficha corta —titular, código, logística— que se completa de a poco.
+
+El texto se cambia con **Editar contenido**, arriba de cada documento: titular,
+bajada, tablas de características (con la marca de *pendiente* para lo que no
+se midió), ventajas, la comparación, las condiciones y las fotos. Las fotos se
+eligen del manual de marca o se suben desde la compu. Queda guardado en el
+producto, así que se hace una vez y vale para todos los vendedores.
+
+Los datos que se repiten entre documentos son uno solo: el dibujo con medidas
+del folleto y el de la ficha, por ejemplo, se cambian juntos.
+
+La varilla arranca con el texto que tenían sus papeles cuando estaban escritos
+en el código. La primera vez que se guarda, queda todo en la base.
+
+> Hace falta volver a correr el schema: agrega la columna `documentos` a
+> `products` y el bucket `productos` para las fotos.
 
 El presupuesto no está en esta pantalla porque no es un papel general: sale de
 cada pedido. También lleva al pie el contacto de su vendedor.

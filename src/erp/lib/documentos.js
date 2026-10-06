@@ -62,29 +62,29 @@ export function contactoDe(seller) {
 /**
  * Los documentos que se pueden emitir.
  *
- * `archivo` es cómo se llama el PDF al guardarlo. Se le pega el vendedor
- * cuando lo hay, así que dos vendedores no terminan con el mismo archivo en la
- * carpeta de descargas.
+ * `archivo` es cómo se llama el PDF al guardarlo. Se le pega el producto y,
+ * cuando lo hay, el vendedor, así que dos versiones no terminan con el mismo
+ * archivo en la carpeta de descargas.
  */
 export const DOCUMENTOS = [
   {
     tipo: 'lista-de-precios',
     titulo: 'Lista de precios',
-    archivo: 'Lista-de-precios-Recuvarilla',
+    archivo: 'Recuvarilla-Lista-de-precios',
     descripcion:
-      'Los escalones por cantidad, salidos de la base: siempre los vigentes, sin volver a armar el archivo.',
+      'Los precios salidos de la base —por escalones o el precio único—: siempre los vigentes, sin volver a armar el archivo.',
   },
   {
     tipo: 'folleto',
     titulo: 'Folleto',
-    archivo: 'Folleto-Recuvarilla',
+    archivo: 'Recuvarilla-Folleto',
     descripcion:
       'Una hoja con las fotos, las especificaciones y las ventajas. Es el papel que se deja en el mostrador.',
   },
   {
     tipo: 'ficha-tecnica',
     titulo: 'Ficha técnica',
-    archivo: 'Ficha-tecnica-Recuvarilla',
+    archivo: 'Recuvarilla-Ficha-tecnica',
     descripcion:
       'El dibujo dimensional y la tabla de características, para el cliente que pregunta los números.',
   },

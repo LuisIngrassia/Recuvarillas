@@ -76,24 +76,25 @@ async function achicar(file) {
 }
 
 /**
- * Sube una foto al bucket `redes` y devuelve su URL pública.
+ * Sube una foto a un bucket público —`redes` si no se dice otro— y devuelve
+ * su URL. Los documentos de producto usan el mismo camino con `productos`.
  *
  * El nombre lleva la fecha y un sufijo al azar: dos fotos que se llamen
  * "IMG_0001.jpg" desde dos teléfonos no se pisan entre sí.
  */
-export async function uploadPhoto(file) {
+export async function uploadPhoto(file, bucket = 'redes') {
   const blob = await achicar(file)
   const hoy = new Date().toISOString().slice(0, 10)
   const path = `${hoy.slice(0, 7)}/${hoy}-${crypto.randomUUID().slice(0, 8)}.jpg`
 
   unwrap(
-    await db().storage.from('redes').upload(path, blob, {
+    await db().storage.from(bucket).upload(path, blob, {
       contentType: 'image/jpeg',
       cacheControl: '31536000',
     }),
   )
 
-  return db().storage.from('redes').getPublicUrl(path).data.publicUrl
+  return db().storage.from(bucket).getPublicUrl(path).data.publicUrl
 }
 
 /**

@@ -15,17 +15,22 @@
  * La fecha de vigencia tampoco se escribe a mano: es la última vez que se tocó
  * un precio, que es exactamente lo que esa línea quiere decir.
  *
+ * Hay una por producto. Lo que fabricamos sale con sus escalones —con la
+ * columna agujereada sólo si se agujerea—; lo que se compra hecho, con su
+ * precio único. El titular, la bajada y las condiciones se editan con
+ * «Editar contenido» y quedan en la ficha del producto.
+ *
  * El diseño es la lista A4 del manual de marca (10 · Aplicaciones de marca):
  * una sola tabla con los escalones, precios en Chivo Mono, la fecha arriba y
  * el QR a WhatsApp abajo.
  */
 import { useState } from 'react'
 import { listTiers } from '../api/prices'
-import { listProducts, productoWeb } from '../api/products'
+import { cotizaPorLista } from '../api/products'
 import { useAsync } from '../lib/useAsync'
-import { formatDate } from '../lib/format'
-import { QUOTE_VALID_DAYS } from '../../data/pricing'
-import { documentoPorTipo, TAGLINE } from '../lib/documentos'
+import { formatDate, todayISO } from '../lib/format'
+import { documentoPorTipo } from '../lib/documentos'
+import { conTexto } from '../lib/fichas'
 import DocSheet, { LogoHoja, PieContacto } from '../components/DocSheet'
 import { Async } from '../components/ui'
 import reglaUrl from '../../../brand/assets/sistema/regla-120.svg?url'
@@ -65,7 +70,7 @@ function recargoTexto(tiers) {
     .join(' · ')
 }
 
-function Tabla({ titulo, tiers }) {
+function Tabla({ titulo, tiers, conAcabado }) {
   return (
     <section>
       <div className="hm-seccion">
@@ -75,8 +80,8 @@ function Tabla({ titulo, tiers }) {
         <thead>
           <tr>
             <th>Cantidad (unidades)</th>
-            <th className="num">Lisa</th>
-            <th className="num">Agujereada</th>
+            <th className="num">{conAcabado ? 'Lisa' : 'Precio'}</th>
+            {conAcabado && <th className="num">Agujereada</th>}
           </tr>
         </thead>
         <tbody>
@@ -84,106 +89,176 @@ function Tabla({ titulo, tiers }) {
             <tr key={tier.id}>
               <td className="mono">{rangoTexto(tier)}</td>
               <td className="num">{pesos(tier.plain_price)}</td>
-              <td className="num">{pesos(tier.drilled_price)}</td>
+              {conAcabado && <td className="num">{pesos(tier.drilled_price)}</td>}
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="hm-rotulo" style={{ marginTop: 8, textTransform: 'none', letterSpacing: 0 }}>
-        {recargoTexto(tiers)}
-      </p>
+      {conAcabado && (
+        <p className="hm-rotulo" style={{ marginTop: 8, textTransform: 'none', letterSpacing: 0 }}>
+          {recargoTexto(tiers)}
+        </p>
+      )}
     </section>
+  )
+}
+
+/** Lo de arriba y lo de abajo de la hoja, que es igual con escalones o sin. */
+function Hoja({ contacto, contenido: c, vigencia, children }) {
+  const condiciones = conTexto(c.condiciones)
+
+  return (
+    <div className="hm doc-hoja">
+      <header className="hm-cabecera">
+        <LogoHoja />
+        <dl className="hm-meta">
+          <span className="hm-tipo">Lista de precios</span>
+          <dt>Vigente desde</dt>
+          <dd>{formatDate(vigencia)}</dd>
+        </dl>
+      </header>
+
+      <h1 className="hm-titular">{c.titular}</h1>
+      <p className="hm-bajada">
+        {c.bajada ? `${c.bajada} ` : ''}Precio por unidad, sin IVA.
+      </p>
+
+      {children}
+
+      <img src={reglaUrl} alt="" style={{ width: '100%', margin: '26px 0 18px', display: 'block' }} />
+
+      {condiciones.length > 0 && (
+        <ul className="hm-lista">
+          {condiciones.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      )}
+
+      <PieContacto contacto={contacto} />
+    </div>
+  )
+}
+
+/** Lo que fabricamos: sus escalones, minorista, mayorista o las dos. */
+function ConEscalones({ producto, contacto, contenido }) {
+  const query = useAsync(() => listTiers(producto.id), [producto.id])
+  /* Dos listas y no una: al cliente minorista no se le muestra el precio
+     mayorista, que es justamente por lo que había dos archivos separados. */
+  const [alcance, setAlcance] = useState('minorista')
+  const conAcabado = producto.se_agujerea !== false
+  const hayMayorista = (query.data ?? []).some((tier) => tier.kind === 'mayorista')
+
+  return (
+    <>
+      {hayMayorista && (
+        <div className="mx-auto mb-4 flex max-w-[860px] flex-wrap items-center gap-2 print:hidden">
+          <span className="text-xs font-semibold text-grafito-700">Qué precios muestra:</span>
+          {[
+            ['minorista', 'Sólo minorista'],
+            ['mayorista', 'Sólo mayorista'],
+            ['completa', 'Las dos'],
+          ].map(([valor, etiqueta]) => (
+            <button
+              key={valor}
+              type="button"
+              onClick={() => setAlcance(valor)}
+              className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                alcance === valor
+                  ? 'border-celeste-600 bg-celeste-50 text-celeste-800'
+                  : 'border-alambre bg-white text-grafito-700 hover:border-grafito-500'
+              }`}
+            >
+              {etiqueta}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <Async
+        query={query}
+        empty={`${producto.nombre} no tiene escalones cargados. Se cargan en Ajustes › Precios.`}
+      >
+        {(tiers) => {
+          const minoristas = tiers.filter((tier) => tier.kind === 'minorista')
+          const mayoristas = tiers.filter((tier) => tier.kind === 'mayorista')
+          const mostrar = hayMayorista ? alcance : 'minorista'
+
+          /* La vigencia es la última vez que se tocó un precio: es lo que
+             esa línea siempre quiso decir, y ahora no hay que acordarse de
+             actualizarla. */
+          const vigencia = tiers
+            .map((tier) => tier.updated_at)
+            .sort()
+            .at(-1)
+
+          return (
+            <Hoja contacto={contacto} contenido={contenido} vigencia={vigencia}>
+              {mostrar !== 'mayorista' && minoristas.length > 0 && (
+                <Tabla titulo="Precio por cantidad" tiers={minoristas} conAcabado={conAcabado} />
+              )}
+              {mostrar !== 'minorista' && mayoristas.length > 0 && (
+                <Tabla
+                  titulo="Precio mayorista · revendedores"
+                  tiers={mayoristas}
+                  conAcabado={conAcabado}
+                />
+              )}
+            </Hoja>
+          )
+        }}
+      </Async>
+    </>
+  )
+}
+
+/** Lo que se compra hecho: un precio y listo. */
+function PrecioUnico({ producto, contacto, contenido }) {
+  if (producto.precio == null) {
+    return (
+      <p className="mx-auto max-w-[860px] rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        {producto.nombre} no tiene precio de venta cargado. Se carga en su
+        ficha, en Ajustes › Productos.
+      </p>
+    )
+  }
+
+  return (
+    <Hoja contacto={contacto} contenido={contenido} vigencia={todayISO()}>
+      <section>
+        <div className="hm-seccion">
+          <span className="hm-rotulo">Precio</span>
+        </div>
+        <table>
+          <tbody>
+            <tr>
+              <td>
+                {producto.nombre}
+                {producto.unidad && producto.unidad !== 'unidad' ? ` · por ${producto.unidad}` : ''}
+              </td>
+              <td className="num">{pesos(producto.precio)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </Hoja>
   )
 }
 
 export default function DocPriceList() {
   const doc = documentoPorTipo('lista-de-precios')
-  /*
-    Desde que hay varios productos, la tabla de escalones tiene los de todos y
-    `listTiers` pide de cuál. La lista que se reparte es la del producto que
-    cotiza la web —la varilla—, el mismo criterio de la pantalla de Precios.
-  */
-  const query = useAsync(async () => listTiers(productoWeb(await listProducts())?.id), [])
-  /* Dos listas y no una: al cliente minorista no se le muestra el precio
-     mayorista, que es justamente por lo que había dos archivos separados. */
-  const [alcance, setAlcance] = useState('minorista')
 
   return (
     <DocSheet doc={doc}>
-      {(contacto) => (
-        <>
-          <div className="mx-auto mb-4 flex max-w-[860px] flex-wrap items-center gap-2 print:hidden">
-            <span className="text-xs font-semibold text-grafito-700">Qué precios muestra:</span>
-            {[
-              ['minorista', 'Sólo minorista'],
-              ['mayorista', 'Sólo mayorista'],
-              ['completa', 'Las dos'],
-            ].map(([valor, etiqueta]) => (
-              <button
-                key={valor}
-                type="button"
-                onClick={() => setAlcance(valor)}
-                className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                  alcance === valor
-                    ? 'border-celeste-600 bg-celeste-50 text-celeste-800'
-                    : 'border-alambre bg-white text-grafito-700 hover:border-grafito-500'
-                }`}
-              >
-                {etiqueta}
-              </button>
-            ))}
-          </div>
-
-          <Async query={query} empty="No hay precios cargados.">
-            {(tiers) => {
-              const minoristas = tiers.filter((tier) => tier.kind === 'minorista')
-              const mayoristas = tiers.filter((tier) => tier.kind === 'mayorista')
-
-              /* La vigencia es la última vez que se tocó un precio: es lo que
-                 esa línea siempre quiso decir, y ahora no hay que acordarse de
-                 actualizarla. */
-              const vigencia = tiers
-                .map((tier) => tier.updated_at)
-                .sort()
-                .at(-1)
-
-              return (
-                <div className="hm doc-hoja">
-                  <header className="hm-cabecera">
-                    <LogoHoja />
-                    <dl className="hm-meta">
-                      <span className="hm-tipo">Lista de precios</span>
-                      <dt>Vigente desde</dt>
-                      <dd>{formatDate(vigencia)}</dd>
-                    </dl>
-                  </header>
-
-                  <h1 className="hm-titular">Varilla 3 × 3 × 120 cm</h1>
-                  <p className="hm-bajada">{TAGLINE} Precio por unidad, sin IVA.</p>
-
-                  {alcance !== 'mayorista' && minoristas.length > 0 && (
-                    <Tabla titulo="Precio por cantidad" tiers={minoristas} />
-                  )}
-                  {alcance !== 'minorista' && mayoristas.length > 0 && (
-                    <Tabla titulo="Precio mayorista · revendedores" tiers={mayoristas} />
-                  )}
-
-                  <img src={reglaUrl} alt="" style={{ width: '100%', margin: '26px 0 18px', display: 'block' }} />
-
-                  <ul className="hm-lista">
-                    <li>El presupuesto vale {QUOTE_VALID_DAYS} días.</li>
-                    <li>Flete aparte: lo cotiza el expreso según la localidad. Despacho desde Luján.</li>
-                    <li>Precios sin IVA. Si necesitás factura con IVA, consultanos.</li>
-                    <li>Precios sujetos a modificación sin previo aviso.</li>
-                  </ul>
-
-                  <PieContacto contacto={contacto} />
-                </div>
-              )
-            }}
-          </Async>
-        </>
-      )}
+      {(props) =>
+        cotizaPorLista(props.producto) ? (
+          /* `key`: al cambiar de producto, el alcance elegido vuelve a
+             minorista en vez de quedar apuntando a una lista que no existe. */
+          <ConEscalones key={props.producto.id} {...props} />
+        ) : (
+          <PrecioUnico {...props} />
+        )
+      }
     </DocSheet>
   )
 }

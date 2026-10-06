@@ -1,13 +1,14 @@
 /**
  * El índice de los papeles que se reparten.
  *
- * Se elige el vendedor una sola vez acá y los tres documentos salen con su
- * contacto. Es el orden en que se trabaja: primero «esto es para Marta», y
- * después qué le doy.
+ * Se elige el producto y el vendedor una sola vez acá, y los tres documentos
+ * salen de ese producto con su contacto. Es el orden en que se trabaja:
+ * primero «el poste, para Marta», y después qué papel le doy.
  */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listSellers } from '../api/sellers'
+import { listProducts, productoWeb } from '../api/products'
 import { useAsync } from '../lib/useAsync'
 import { DOCUMENTOS, contactoDe } from '../lib/documentos'
 import { Async, Card, PageHeader } from '../components/ui'
@@ -15,17 +16,55 @@ import { Async, Card, PageHeader } from '../components/ui'
 export default function Documents() {
   const sellers = useAsync(() => listSellers({ soloActivos: true }), [])
   const [sellerId, setSellerId] = useState('')
+  const products = useAsync(() => listProducts(), [])
+  const [productId, setProductId] = useState('')
 
   const seller = sellers.data?.find((item) => item.id === sellerId) ?? null
   const contacto = contactoDe(seller)
-  const query = sellerId ? `?vendedor=${sellerId}` : ''
+  const producto =
+    products.data?.find((item) => item.id === productId) ?? productoWeb(products.data) ?? products.data?.[0]
+
+  const params = new URLSearchParams()
+  if (producto) params.set('producto', producto.id)
+  if (sellerId) params.set('vendedor', sellerId)
+  const query = params.toString() ? `?${params}` : ''
 
   return (
     <>
       <PageHeader
         title="Documentos"
-        description="Lo que se reparte: la lista de precios, el folleto y la ficha técnica."
+        description="Lo que se reparte: la lista de precios, el folleto y la ficha técnica de cada producto."
       />
+
+      <Card title="¿De qué producto?" className="mb-6">
+        <div className="px-4 py-4">
+          <Async query={products} empty="No hay productos activos.">
+            {(lista) => (
+              <div className="flex flex-wrap gap-2">
+                {lista.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setProductId(item.id)}
+                    className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
+                      producto?.id === item.id
+                        ? 'border-celeste-600 bg-celeste-50 text-celeste-800'
+                        : 'border-grafito-200 bg-white text-grafito-600 hover:border-grafito-300'
+                    }`}
+                  >
+                    {item.nombre}
+                  </button>
+                ))}
+              </div>
+            )}
+          </Async>
+          <p className="mt-3 text-xs text-grafito-500">
+            Cada producto tiene sus tres papeles. Un producto nuevo los tiene
+            desde que se carga: salen con su nombre y sus precios, y el resto
+            del texto se completa con «Editar contenido» dentro de cada uno.
+          </p>
+        </div>
+      </Card>
 
       <Card title="¿De quién es el contacto que sale impreso?">
         <div className="px-4 py-4">
@@ -109,7 +148,10 @@ export default function Documents() {
             to={`/erp/documentos/${doc.tipo}${query}`}
             className="block rounded-xl border border-grafito-200 bg-white p-4 shadow-sm transition-colors hover:border-celeste-600"
           >
-            <p className="text-sm font-semibold text-grafito-800">{doc.titulo}</p>
+            <p className="text-sm font-semibold text-grafito-800">
+              {doc.titulo}
+              {producto && <span className="font-normal text-grafito-500"> · {producto.nombre}</span>}
+            </p>
             <p className="mt-1.5 text-xs leading-relaxed text-grafito-500">{doc.descripcion}</p>
           </Link>
         ))}
