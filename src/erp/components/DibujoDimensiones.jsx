@@ -13,6 +13,10 @@
  * con un tope para que una pieza muy fina no desaparezca ni una muy gruesa se
  * coma la hoja. La sección se dibuja con el lado mayor en 150, como la de la
  * varilla, así se ve la proporción entre ancho y alto.
+ *
+ * Una sección redonda —el poste— se dibuja como un círculo acotado con su
+ * diámetro, y el perfil lleva un brillo a lo largo para que se lea como un
+ * cilindro y no como una pieza plana.
  */
 import { DIBUJO_GENERADO, medidasDe, puedeDibujarse, urlDeImagen } from '../lib/fichas'
 
@@ -41,19 +45,22 @@ function Cota({ x1, y1, x2, y2 }) {
 }
 
 export default function DibujoDimensiones({
+  forma = 'rectangular',
   largo,
   ancho,
   alto,
+  diametro,
   perforada,
   material = 'Polipropileno recuperado',
   nombre,
   className,
 }) {
-  if (!puedeDibujarse({ largo, ancho, alto })) return null
+  if (!puedeDibujarse({ forma, largo, ancho, alto, diametro })) return null
 
+  const redonda = forma === 'redonda'
   const L = numero(largo)
-  const A = numero(ancho)
-  const H = numero(alto)
+  const A = numero(redonda ? diametro : ancho)
+  const H = numero(redonda ? diametro : alto)
 
   /* El perfil, a escala del largo dibujado. */
   const grosor = Math.min(90, Math.max(20, Math.round(((X1 - X0) * H) / L)))
@@ -74,13 +81,17 @@ export default function DibujoDimensiones({
 
   const filas = [
     ['Largo', cm(largo)],
-    ['Sección', `${String(ancho).trim()} × ${String(alto).trim()} cm`],
+    redonda
+      ? ['Diámetro', `Ø ${cm(diametro)}`]
+      : ['Sección', `${String(ancho).trim()} × ${String(alto).trim()} cm`],
     ['Material', material],
     ['Terminación', perforada ? 'Perforada a medida' : 'Lisa'],
   ]
 
   const alturaTotal = Math.max(ySeccion + h + 90, 280 + dy + 4 * 50 + 20)
-  const titulo = `${nombre ? `${nombre}: ` : ''}${A} × ${H} × ${L} cm`
+  const titulo = `${nombre ? `${nombre}: ` : ''}${
+    redonda ? `Ø ${String(diametro).trim()} × ${String(largo).trim()}` : `${A} × ${H} × ${L}`
+  } cm`
 
   return (
     <svg
@@ -104,6 +115,15 @@ export default function DibujoDimensiones({
         d={`M${X0} ${yPerfil}H${punta}L${X1} ${centro}L${punta} ${yPerfil + grosor}H${X0}Z`}
         fill={GRAFITO}
       />
+      {redonda && (
+        <path
+          d={`M${X0} ${yPerfil + grosor * 0.22}H${punta + grosor * 0.25}`}
+          stroke="#fff"
+          strokeOpacity="0.16"
+          strokeWidth={Math.max(2, grosor * 0.12)}
+          strokeLinecap="round"
+        />
+      )}
       {agujeros.map((x) => (
         <circle key={x} cx={x} cy={centro} r={radio} fill="#fff" />
       ))}
@@ -112,15 +132,27 @@ export default function DibujoDimensiones({
       <text x={X0} y={258 + dy} fontFamily={MONO} fontSize="18" fill={GRIS} letterSpacing="1">
         SECCIÓN
       </text>
-      <rect x={X0} y={ySeccion} width={w} height={h} fill={GRAFITO} />
-      <Cota x1={X0 + w + 25} y1={ySeccion} x2={X0 + w + 25} y2={ySeccion + h} />
-      <text x={X0 + w + 45} y={ySeccion + h / 2 + 9} fontFamily={MONO} fontSize="22" fill={GRAFITO}>
-        {cm(alto)}
-      </text>
-      <Cota x1={X0} y1={ySeccion + h + 25} x2={X0 + w} y2={ySeccion + h + 25} />
-      <text x={X0 + w / 2} y={ySeccion + h + 63} textAnchor="middle" fontFamily={MONO} fontSize="22" fill={GRAFITO}>
-        {cm(ancho)}
-      </text>
+      {redonda ? (
+        <>
+          <circle cx={X0 + w / 2} cy={ySeccion + h / 2} r={w / 2} fill={GRAFITO} />
+          <Cota x1={X0} y1={ySeccion + h + 25} x2={X0 + w} y2={ySeccion + h + 25} />
+          <text x={X0 + w / 2} y={ySeccion + h + 63} textAnchor="middle" fontFamily={MONO} fontSize="22" fill={GRAFITO}>
+            Ø {cm(diametro)}
+          </text>
+        </>
+      ) : (
+        <>
+          <rect x={X0} y={ySeccion} width={w} height={h} fill={GRAFITO} />
+          <Cota x1={X0 + w + 25} y1={ySeccion} x2={X0 + w + 25} y2={ySeccion + h} />
+          <text x={X0 + w + 45} y={ySeccion + h / 2 + 9} fontFamily={MONO} fontSize="22" fill={GRAFITO}>
+            {cm(alto)}
+          </text>
+          <Cota x1={X0} y1={ySeccion + h + 25} x2={X0 + w} y2={ySeccion + h + 25} />
+          <text x={X0 + w / 2} y={ySeccion + h + 63} textAnchor="middle" fontFamily={MONO} fontSize="22" fill={GRAFITO}>
+            {cm(ancho)}
+          </text>
+        </>
+      )}
 
       {/* La tabla de al lado. */}
       {filas.map(([clave, valor], i) => {

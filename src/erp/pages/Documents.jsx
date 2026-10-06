@@ -62,7 +62,7 @@ export default function Documents() {
           <p className="mt-3 text-xs text-grafito-500">
             Cada producto que fabricamos tiene sus tres papeles, con las mismas
             secciones que la varilla. Uno nuevo los tiene desde que se carga,
-            con sus medidas si están en el nombre («Poste 10x10x220»); lo que
+            con sus medidas si están en el nombre («Poste 6x165», «Varilla 3x3x120»); lo que
             falta sale marcado como pendiente y se completa con «Editar
             contenido» dentro de cada documento.
           </p>

@@ -52,12 +52,27 @@ export const IMAGENES_MARCA = {
  */
 export const DIBUJO_GENERADO = 'generado'
 
-/** Las medidas guardadas en el contenido de un documento. */
-export const medidasDe = (c) => ({ largo: c.medida_largo, ancho: c.medida_ancho, alto: c.medida_alto })
+/**
+ * Las medidas guardadas en el contenido de un documento.
+ *
+ * La sección puede ser rectangular —la varilla, 3 × 3— o redonda —el poste,
+ * de 6 de diámetro—. Sin forma guardada es rectangular, que es lo que eran
+ * todas antes de que hubiera postes.
+ */
+export const medidasDe = (c) => ({
+  forma: c.medida_forma === 'redonda' ? 'redonda' : 'rectangular',
+  largo: c.medida_largo,
+  ancho: c.medida_ancho,
+  alto: c.medida_alto,
+  diametro: c.medida_diametro,
+})
 
-/** Las tres medidas cargadas y mayores que cero: «2,5» cuenta como 2.5. */
-export function puedeDibujarse({ largo, ancho, alto }) {
-  return [largo, ancho, alto].every((valor) => Number(String(valor ?? '').replace(',', '.')) > 0)
+const positivo = (valor) => Number(String(valor ?? '').replace(',', '.')) > 0
+
+/** Las medidas que la forma necesita, cargadas y mayores que cero. */
+export function puedeDibujarse({ forma, largo, ancho, alto, diametro }) {
+  if (!positivo(largo)) return false
+  return forma === 'redonda' ? positivo(diametro) : positivo(ancho) && positivo(alto)
 }
 
 /** Si el documento tiene un dibujo que mostrar, generado o de imagen. */
@@ -180,18 +195,30 @@ const VARILLA = {
 }
 
 /**
- * Las medidas que vienen en el nombre: «Poste 10x10x220» es sección de 10 × 10
- * y largo de 220. Es cómo se nombran los productos acá —la varilla es
- * «Varilla 3x3x120»—, y leerlas de ahí ahorra cargarlas dos veces. Sin ese
- * formato devuelve null y las medidas salen como dato a completar.
+ * Las medidas que vienen en el nombre. Es cómo se nombran los productos acá,
+ * y leerlas de ahí ahorra cargarlas dos veces:
+ *
+ * - tres números son sección rectangular y largo: «Varilla 3x3x120»;
+ * - dos son diámetro y largo, sección redonda: «Poste 6x165», «Poste Ø6x165».
+ *
+ * Sin ninguno de los dos formatos devuelve null y las medidas salen como dato
+ * a completar.
  */
 export function medidasDelNombre(nombre) {
-  const m = String(nombre ?? '').match(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/i)
-  if (!m) return null
-  return { ancho: m[1], alto: m[2], largo: m[3] }
+  const texto = String(nombre ?? '')
+  const tres = texto.match(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/i)
+  if (tres) return { forma: 'rectangular', ancho: tres[1], alto: tres[2], largo: tres[3] }
+  const dos = texto.match(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/i)
+  if (dos) return { forma: 'redonda', diametro: dos[1], largo: dos[2] }
+  return null
 }
 
-/** «Poste 10x10x220» → «Poste»: con qué palabra se nombra la cosa. */
+/** «3 cm × 3 cm» o «Ø 6 cm»: cómo se escribe la sección en las tablas. */
+export function textoDeSeccion({ forma, ancho, alto, diametro }) {
+  return forma === 'redonda' ? `Ø ${diametro} cm` : `${ancho} cm × ${alto} cm`
+}
+
+/** «Poste 6x165» → «Poste»: con qué palabra se nombra la cosa. */
 function queEs(nombre) {
   const palabra = String(nombre ?? '').trim().split(/\s+/)[0] ?? ''
   return palabra.replace(/[\d×x]+$/i, '') || 'Producto'
@@ -220,11 +247,15 @@ export function contenidoInicial(producto) {
   const o = /a$/i.test(cosa) ? 'a' : 'o'
   const pendiente = (valor) => ({ valor, pendiente: true })
 
+  const redonda = medidas?.forma === 'redonda'
   const largo = medidas ? { valor: `${medidas.largo} cm` } : pendiente('A completar')
-  const seccion = medidas
-    ? { valor: `${medidas.ancho} cm × ${medidas.alto} cm` }
-    : pendiente('A completar')
-  const medidaCorta = medidas ? `${medidas.ancho} × ${medidas.alto} × ${medidas.largo} cm` : ''
+  const seccion = medidas ? { valor: textoDeSeccion(medidas) } : pendiente('A completar')
+  const claveSeccion = redonda ? 'Diámetro' : 'Sección'
+  const medidaCorta = !medidas
+    ? ''
+    : redonda
+      ? `Ø ${medidas.diametro} × ${medidas.largo} cm`
+      : `${medidas.ancho} × ${medidas.alto} × ${medidas.largo} cm`
 
   return {
     titular: nombre,
@@ -239,12 +270,14 @@ export function contenidoInicial(producto) {
     /* Se dibuja solo con las medidas, como el de la varilla. Si las medidas
        no estaban en el nombre, no sale hasta que se carguen. */
     dibujo: DIBUJO_GENERADO,
+    medida_forma: redonda ? 'redonda' : 'rectangular',
     medida_largo: medidas?.largo ?? '',
     medida_ancho: medidas?.ancho ?? '',
     medida_alto: medidas?.alto ?? '',
+    medida_diametro: medidas?.diametro ?? '',
     especificaciones: [
       { clave: 'Largo', ...largo },
-      { clave: 'Sección', ...seccion },
+      { clave: claveSeccion, ...seccion },
       { clave: 'Peso aproximado', ...pendiente('A medir') },
       { clave: 'Material', valor: 'Polipropileno (PP) recuperado de descarte industrial' },
       { clave: 'Protección UV', valor: 'Sí, estabilizante UV incorporado' },
@@ -274,7 +307,7 @@ export function contenidoInicial(producto) {
     ],
     caracteristicas: [
       { clave: 'Largo', ...largo },
-      { clave: 'Sección', ...seccion },
+      { clave: claveSeccion, ...seccion },
       { clave: 'Peso unitario', ...pendiente('A medir') },
       { clave: 'Material', valor: 'Polipropileno (PP) reciclado de scrap industrial' },
       { clave: 'Color', valor: 'Grafito (variable según lote de scrap)' },
@@ -330,15 +363,29 @@ export function contenidoDe(producto) {
  * precios y el dibujo de la ficha se corrigen en un lado y cambian en todos
  * los papeles que lo usan.
  *
- * Tipos: `texto` (un renglón), `parrafo`, `lista` (un ítem por renglón),
+ * `si` deja un campo a la vista sólo cuando aplica: el diámetro, para una
+ * sección redonda.
+ *
+ * Tipos: `texto` (un renglón), `parrafo`, `opciones`, `lista` (un ítem por renglón),
  * `pares` (tabla de dato y valor; con `pendiente` se puede marcar lo que
  * todavía no se midió) e `imagen`.
  */
 /** Con qué se arma el dibujo generado. Las mismas en el folleto y la ficha. */
 const MEDIDAS = [
-  { clave: 'medida_largo', tipo: 'texto', label: 'Largo (cm)', hint: 'Para el dibujo generado.' },
-  { clave: 'medida_ancho', tipo: 'texto', label: 'Ancho de la sección (cm)' },
-  { clave: 'medida_alto', tipo: 'texto', label: 'Alto de la sección (cm)' },
+  {
+    clave: 'medida_forma',
+    tipo: 'opciones',
+    label: 'Forma de la sección',
+    hint: 'Para el dibujo generado.',
+    opciones: [
+      ['rectangular', 'Cuadrada o rectangular (como la varilla)'],
+      ['redonda', 'Redonda (como el poste)'],
+    ],
+  },
+  { clave: 'medida_largo', tipo: 'texto', label: 'Largo (cm)' },
+  { clave: 'medida_diametro', tipo: 'texto', label: 'Diámetro (cm)', si: (c) => c.medida_forma === 'redonda' },
+  { clave: 'medida_ancho', tipo: 'texto', label: 'Ancho de la sección (cm)', si: (c) => c.medida_forma !== 'redonda' },
+  { clave: 'medida_alto', tipo: 'texto', label: 'Alto de la sección (cm)', si: (c) => c.medida_forma !== 'redonda' },
 ]
 
 export const CAMPOS = {

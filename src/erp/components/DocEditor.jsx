@@ -13,7 +13,7 @@
 import { useState } from 'react'
 import { updateProduct } from '../api/products'
 import { uploadPhoto } from '../api/social'
-import { CAMPOS, DIBUJO_GENERADO, IMAGENES_MARCA, contenidoDe, urlDeImagen } from '../lib/fichas'
+import { CAMPOS, DIBUJO_GENERADO, IMAGENES_MARCA, contenidoDe, medidasDe, urlDeImagen } from '../lib/fichas'
 import DibujoDimensiones from './DibujoDimensiones'
 import { Button, ErrorNote, Field, Input, Modal, Select, Textarea } from './ui'
 
@@ -213,7 +213,7 @@ export default function DocEditor({ doc, producto, onClose, onSaved }) {
   return (
     <Modal title={`${doc.titulo} · ${producto.nombre}`} onClose={onClose} wide>
       <form onSubmit={guardar} className="space-y-5">
-        {CAMPOS[doc.tipo].map((campo) => {
+        {CAMPOS[doc.tipo].filter((campo) => !campo.si || campo.si(form)).map((campo) => {
           const valor = form[campo.clave]
           const onChange = set(campo.clave)
 
@@ -233,12 +233,7 @@ export default function DocEditor({ doc, producto, onClose, onSaved }) {
                       onChange={onChange}
                       generado={
                         campo.clave === 'dibujo'
-                          ? {
-                              largo: form.medida_largo,
-                              ancho: form.medida_ancho,
-                              alto: form.medida_alto,
-                              perforada: producto.se_agujerea !== false,
-                            }
+                          ? { ...medidasDe(form), perforada: producto.se_agujerea !== false }
                           : null
                       }
                     />
@@ -251,6 +246,15 @@ export default function DocEditor({ doc, producto, onClose, onSaved }) {
 
           return (
             <Field key={campo.clave} label={campo.label} hint={campo.hint}>
+              {campo.tipo === 'opciones' && (
+                <Select value={valor ?? campo.opciones[0][0]} onChange={(event) => onChange(event.target.value)}>
+                  {campo.opciones.map(([clave, etiqueta]) => (
+                    <option key={clave} value={clave}>
+                      {etiqueta}
+                    </option>
+                  ))}
+                </Select>
+              )}
               {campo.tipo === 'texto' && (
                 <Input value={valor ?? ''} onChange={(event) => onChange(event.target.value)} />
               )}

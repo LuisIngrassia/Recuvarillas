@@ -955,15 +955,18 @@ en la dirección (`?producto=…`), igual que el vendedor.
 - **El folleto y la ficha técnica** tienen las mismas secciones que los de la
   varilla, adaptadas al producto: «Poste de plástico recuperado», la
   comparación contra el poste de madera, y las medidas si están en el nombre
-  («Poste 10x10x220» da sección 10 × 10 y largo 220). Lo que no se puede
+  («Varilla 3x3x120» da sección cuadrada de 3 × 3 y largo 120; con dos números,
+  «Poste 6x165», la sección es redonda: Ø 6 y largo 165). Lo que no se puede
   saber de antemano —peso, presentación, función, separación— sale **marcado
   como pendiente** en la ficha y no aparece en el folleto, que va a manos del
   cliente. No llevan fotos hasta que se suban.
 - **El dibujo con medidas se arma solo**, con la misma grilla que el de la
   varilla: la cota del largo, el perfil con la punta (y los agujeros si se
-  agujerea) y la sección acotada al lado de la tabla. Toma las medidas de
-  «Editar contenido» —largo, ancho y alto de la sección—, que arrancan con las
-  del nombre. Corregir una medida corrige el dibujo.
+  agujerea) y la sección acotada al lado de la tabla. La sección puede ser
+  cuadrada o rectangular, como la de la varilla, o **redonda**, como la del
+  poste: ahí se dibuja un círculo acotado con su diámetro. La forma y las
+  medidas se eligen en «Editar contenido» y arrancan con las del nombre.
+  Corregir una medida corrige el dibujo.
 
 El texto se cambia con **Editar contenido**, arriba de cada documento: titular,
 bajada, tablas de características (con la marca de *pendiente* para lo que no
