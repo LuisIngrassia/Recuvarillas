@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { rutaDeMedio } from '../lib/media'
 
 /** Botón de la barra superior y de los costados, todos del mismo molde. */
 function IconButton({ label, onClick, className = '', children }) {
@@ -123,8 +124,8 @@ function MediaLightbox({ media, alt, startIndex = 0, onClose }) {
                 // Con controles y sin arrancar solo: acá el video se mira a
                 // propósito, no es el relleno animado de una tarjeta.
                 <video
-                  src={`/${item.src}`}
-                  poster={item.poster ? `/${item.poster}` : undefined}
+                  src={rutaDeMedio(item.src)}
+                  poster={item.poster ? rutaDeMedio(item.poster) : undefined}
                   aria-label={label}
                   controls
                   playsInline
@@ -132,7 +133,7 @@ function MediaLightbox({ media, alt, startIndex = 0, onClose }) {
                   className={piece}
                 />
               ) : (
-                <img src={`/${item.src}`} alt={label} className={piece} />
+                <img src={rutaDeMedio(item.src)} alt={label} className={piece} />
               )}
             </div>
           )

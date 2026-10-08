@@ -933,8 +933,16 @@ el ERP**, uno solo por tarjeta:
 Las tarjetas con fotos están escritas en `src/data/siteContent.js` y cada una
 dice con qué producto del ERP va por cómo empieza el nombre (`erp: 'Varilla'`).
 Lo que está en el ERP activo y con precio pero no tiene tarjeta —el poste, las
-torniquetas— aparece igual, en una tarjeta sin fotos. Un producto nuevo se ve
-en la web apenas se le carga el precio, sin deployar.
+torniquetas— aparece igual. Un producto nuevo se ve en la web apenas se le
+carga el precio, sin deployar.
+
+Un producto que se agujerea tiene **una sola tarjeta** con el selector «Lisa /
+Agujereada», que cambia el precio (y, en la varilla, las fotos).
+
+**Las fotos de la web** de cada producto se suben en **Ajustes › Productos**,
+editando el producto, en «Fotos para la web». La primera es la portada; se
+reordenan con las flechas. Hace falta haber corrido el schema: agrega la
+columna `fotos`.
 
 La web lo lee de dos vistas públicas, `catalogo_web` y `catalogo_precios_web`,
 que eligen las columnas: ni el costo, ni el proveedor, ni las notas, ni la

@@ -16,12 +16,6 @@ function Precio({ producto, agujereada }) {
   if (precio === null || precio === undefined) return null
 
   const porCantidad = producto.se_produce && producto.escalones.length > 1
-  /* Lo fabricado que se agujerea y no tiene tarjeta propia de agujereada
-     muestra los dos precios. */
-  const agujereadaAparte =
-    agujereada === undefined && producto.se_produce && producto.se_agujerea
-      ? precioMasAlto(producto, { agujereada: true })
-      : null
 
   return (
     <div className="mt-4">
@@ -31,14 +25,33 @@ function Precio({ producto, agujereada }) {
         </span>
         <span className="ml-1.5 text-sm text-grafito-500">+ IVA</span>
       </p>
-      {agujereadaAparte !== null && agujereadaAparte !== precio && (
-        <p className="text-sm text-grafito-600">
-          Agujereado: <span className="font-mono font-semibold">{formatPesos(agujereadaAparte)}</span> + IVA
-        </p>
-      )}
       <p className="text-xs text-grafito-400">
         {porCantidad ? 'Por unidad. Baja con la cantidad.' : 'Por unidad.'}
       </p>
+    </div>
+  )
+}
+
+/** Lisa o agujereada: cambia el precio y, si hay, las fotos. */
+function Acabado({ value, onChange }) {
+  return (
+    <div className="mt-4 inline-flex self-start rounded-md border border-grafito-200 p-0.5 text-sm" role="group">
+      {[
+        ['lisa', 'Lisa'],
+        ['agujereada', 'Agujereada'],
+      ].map(([valor, etiqueta]) => (
+        <button
+          key={valor}
+          type="button"
+          aria-pressed={value === valor}
+          onClick={() => onChange(valor)}
+          className={`rounded px-3 py-1.5 font-semibold transition-colors ${
+            value === valor ? 'bg-grafito-900 text-white' : 'text-grafito-600 hover:bg-grafito-100'
+          }`}
+        >
+          {etiqueta}
+        </button>
+      ))}
     </div>
   )
 }
@@ -52,6 +65,14 @@ function consultaPorWhatsapp(nombre) {
  * Tarjeta de un producto, con su material al costado y la galería que se abre
  * al tocarla.
  *
+ * Sirve para las dos clases de tarjeta: las fijas de `siteContent.js` —con sus
+ * fotos y videos— y las que salen sólo del ERP, con las fotos subidas en la
+ * ficha del producto. Una tarjeta sin fotos va sin la tira de la izquierda.
+ *
+ * Un producto que se agujerea tiene **una** tarjeta, con el selector de
+ * acabado: la varilla lisa y la agujereada son la misma varilla, y dos
+ * tarjetas hacían creer que eran productos distintos.
+ *
  * El índice del carrusel se guarda acá arriba para que la galería abra en la
  * pieza que se estaba viendo: pasar tres fotos en la tarjeta y que al ampliar
  * vuelva a la primera obliga a rehacer el camino.
@@ -59,11 +80,19 @@ function consultaPorWhatsapp(nombre) {
 function ProductCard({ product, producto }) {
   const [index, setIndex] = useState(0)
   const [expanded, setExpanded] = useState(false)
+  const [acabado, setAcabado] = useState('lisa')
+
+  const agujereable = Boolean(producto?.se_agujerea) || Boolean(product.mediaAgujereada)
+  const agujereada = agujereable && acabado === 'agujereada'
+  const media =
+    agujereada && product.mediaAgujereada?.length ? product.mediaAgujereada : product.media
+  const conMedia = media.length > 0
 
   // Amplía la tarjeta entera y no sólo la foto: en el celular la tira es
   // angosta y apuntarle es incómodo. Lo que ya hace otra cosa —flechas, puntos,
   // la lupa, la ficha técnica, el enlace a contacto— sigue haciendo lo suyo.
   const onCardClick = (event) => {
+    if (!conMedia) return
     if (event.target.closest('a, button')) return
     // Con movimiento reducido el video de la tarjeta lleva controles propios, y
     // usarlos no es pedir que se amplíe.
@@ -71,33 +100,51 @@ function ProductCard({ product, producto }) {
     setExpanded(true)
   }
 
+  const cambiarAcabado = (valor) => {
+    setAcabado(valor)
+    /* Las fotos cambian con el acabado: el carrusel vuelve a la primera. */
+    setIndex(0)
+  }
+
   return (
     <>
       <div
         onClick={onCardClick}
-        className="flex cursor-zoom-in gap-5 rounded-md bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:gap-6 sm:p-5"
+        className={`flex gap-5 rounded-md bg-white p-4 shadow-sm transition-shadow sm:gap-6 sm:p-5 ${
+          conMedia ? 'cursor-zoom-in hover:shadow-md' : ''
+        }`}
       >
-        <ProductCarousel
-          media={product.media}
-          alt={product.name}
-          paused={expanded}
-          onIndexChange={setIndex}
-          onExpand={() => setExpanded(true)}
-          className="aspect-[9/16] w-28 shrink-0 sm:w-36 lg:w-40"
-        />
+        {conMedia && (
+          <ProductCarousel
+            /* Otra clave al cambiar de fotos: el carrusel arranca de cero en
+               vez de quedar parado en un índice que la lista nueva no tiene. */
+            key={agujereada ? 'agujereada' : 'lisa'}
+            media={media}
+            alt={product.name}
+            paused={expanded}
+            onIndexChange={setIndex}
+            onExpand={() => setExpanded(true)}
+            className="aspect-[9/16] w-28 shrink-0 sm:w-36 lg:w-40"
+          />
+        )}
 
         <div className="flex min-w-0 flex-1 flex-col">
           <h3 className="font-display text-2xl text-grafito-900 sm:text-3xl">{product.name}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-grafito-500">{product.description}</p>
+          {product.description && (
+            <p className="mt-2 text-sm leading-relaxed text-grafito-500">{product.description}</p>
+          )}
 
           {/* La viñeta es la perforación de la varilla, como en todo el sistema. */}
-          <ul className="lista-agujero mt-3 space-y-1.5 text-sm text-grafito-700">
-            {product.specs.map((spec) => (
-              <li key={spec}>{spec}</li>
-            ))}
-          </ul>
+          {product.specs?.length > 0 && (
+            <ul className="lista-agujero mt-3 space-y-1.5 text-sm text-grafito-700">
+              {product.specs.map((spec) => (
+                <li key={spec}>{spec}</li>
+              ))}
+            </ul>
+          )}
 
-          <Precio producto={producto} agujereada={Boolean(product.agujereada)} />
+          {agujereable && <Acabado value={acabado} onChange={cambiarAcabado} />}
+          <Precio producto={producto} agujereada={agujereada} />
 
           {/*
             `download` baja el archivo en vez de abrirlo en el visor del
@@ -128,11 +175,20 @@ function ProductCard({ product, producto }) {
                 Descargar ficha técnica
               </a>
             )}
+            {producto?.en_web && !product.datasheet && (
+              <a href="#presupuesto" className="btn-principal min-h-10 px-3.5 py-2 text-sm">
+                Calcular presupuesto
+              </a>
+            )}
             <a
-              href="#contacto"
+              href={consultaPorWhatsapp(
+                `${product.name}${agujereable ? (agujereada ? ' (agujereada)' : ' (lisa)') : ''}`,
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
               className="link-marca text-sm"
             >
-              Consultar disponibilidad →
+              Consultar por WhatsApp →
             </a>
           </div>
         </div>
@@ -146,7 +202,7 @@ function ProductCard({ product, producto }) {
       */}
       {expanded && (
         <MediaLightbox
-          media={product.media}
+          media={media}
           alt={product.name}
           startIndex={index}
           onClose={() => setExpanded(false)}
@@ -156,57 +212,46 @@ function ProductCard({ product, producto }) {
   )
 }
 
-/**
- * Un producto del ERP que no tiene tarjeta con fotos: el poste, las
- * torniquetas, lo que se cargue mañana. Sale con su nombre y su precio, sin
- * tener que tocar la web.
- */
-function ErpCard({ producto }) {
-  return (
-    <div className="flex flex-col rounded-md bg-white p-4 shadow-sm sm:p-5">
-      <h3 className="font-display text-2xl text-grafito-900 sm:text-3xl">{producto.nombre}</h3>
-      <Precio producto={producto} />
-      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 pt-4">
-        {producto.en_web && (
-          <a href="#presupuesto" className="btn-principal min-h-10 px-3.5 py-2 text-sm">
-            Calcular presupuesto
-          </a>
-        )}
-        <a
-          href={consultaPorWhatsapp(producto.nombre)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="link-marca text-sm"
-        >
-          Consultar por WhatsApp →
-        </a>
-      </div>
-    </div>
-  )
-}
+/** Las fotos subidas desde el ERP, en el formato del carrusel. */
+const fotosDelErp = (producto) =>
+  (producto?.fotos ?? []).map((src) => ({ type: 'image', src }))
 
 function Products() {
   const catalogo = useCatalogo()
 
-  /* Cada tarjeta fija con su producto del ERP, y los del ERP que quedaron sin
-     tarjeta. Sólo los que tienen precio: una tarjeta nueva sin precio no dice
-     nada que no diga ya la de al lado. */
-  const fijas = products.map((product) => ({
-    product,
-    producto: productoPara(catalogo, product.erp),
-  }))
+  /*
+    Cada tarjeta fija con su producto del ERP. Si la fija no trae fotos y el
+    producto tiene fotos subidas en el ERP, van ésas.
+  */
+  const fijas = products.map((product) => {
+    const producto = productoPara(catalogo, product.erp)
+    return {
+      product: product.media?.length ? product : { ...product, media: fotosDelErp(producto) },
+      producto,
+    }
+  })
+
+  /*
+    Los del ERP que quedaron sin tarjeta fija: el poste, las torniquetas, lo
+    que se cargue mañana. Salen con su nombre, su precio y las fotos de su
+    ficha, sin tocar la web. Sólo los que tienen precio, y no los de nombre
+    igual a uno ya usado: ésos son duplicados cargados de más.
+  */
   const usados = new Set(fijas.map(({ producto }) => producto?.id).filter(Boolean))
-  /* Los de nombre igual a uno ya usado tampoco: son duplicados cargados de más,
-     no productos distintos. */
   const nombresUsados = new Set(
     fijas.map(({ producto }) => producto?.nombre.trim().toLowerCase()).filter(Boolean),
   )
-  const sueltos = (catalogo ?? []).filter(
-    (item) =>
-      !usados.has(item.id) &&
-      !nombresUsados.has(item.nombre.trim().toLowerCase()) &&
-      tienePrecio(item),
-  )
+  const sueltos = (catalogo ?? [])
+    .filter(
+      (item) =>
+        !usados.has(item.id) &&
+        !nombresUsados.has(item.nombre.trim().toLowerCase()) &&
+        tienePrecio(item),
+    )
+    .map((producto) => ({
+      product: { name: producto.nombre, media: fotosDelErp(producto), specs: [] },
+      producto,
+    }))
 
   return (
     <section id="productos" className="bg-grafito-100 py-20 sm:py-24">
@@ -227,11 +272,12 @@ function Products() {
           toda la pantalla. Al lado, la altura la fija la foto y no el texto.
         */}
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          {fijas.map(({ product, producto }) => (
-            <ProductCard key={product.name} product={product} producto={producto} />
-          ))}
-          {sueltos.map((producto) => (
-            <ErpCard key={producto.id} producto={producto} />
+          {[...fijas, ...sueltos].map(({ product, producto }) => (
+            <ProductCard
+              key={producto?.id ?? product.name}
+              product={product}
+              producto={producto}
+            />
           ))}
         </div>
       </div>

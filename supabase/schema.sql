@@ -900,6 +900,14 @@ alter table products add column if not exists notas       text;
 alter table products add column if not exists documentos jsonb not null default '{}'::jsonb;
 
 /*
+  Las fotos de la tarjeta del producto en la web, en orden: la primera es la
+  que se ve. Son URLs del bucket `productos`, que se suben desde la ficha del
+  producto en el ERP. Así un producto nuevo aparece en la web con sus fotos sin
+  tocar el código.
+*/
+alter table products add column if not exists fotos text[] not null default '{}';
+
+/*
   Un solo producto en la web. El simulador cotiza una cosa y pide una cantidad;
   con dos marcados no habría forma de saber cuál, y elegir "el primero" haría
   que la página cotice distinto según cómo quedó ordenada una tabla.
@@ -2190,7 +2198,8 @@ create view catalogo_web as
     p.se_agujerea,
     p.en_web,
     p.orden,
-    case when p.se_produce then null else p.precio end as precio
+    case when p.se_produce then null else p.precio end as precio,
+    p.fotos
   from products p
   where p.activo;
 

@@ -29,6 +29,7 @@ import {
   updateProduct,
 } from '../api/products'
 import { listSuppliers } from '../api/suppliers'
+import FotosWeb from '../components/FotosWeb'
 import { useAsync } from '../lib/useAsync'
 import { formatPesos } from '../lib/format'
 import {
@@ -95,6 +96,7 @@ function ProductModal({ product, productos, suppliers, onClose, onSaved }) {
     costo: comoTexto(product?.costo),
     precio: comoTexto(product?.precio),
     notas: product?.notas ?? '',
+    fotos: product?.fotos ?? [],
   }))
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -157,6 +159,10 @@ function ProductModal({ product, productos, suppliers, onClose, onSaved }) {
         costo: form.se_produce ? null : costo,
         precio: form.se_produce ? null : precio,
         notas: form.notas.trim() || null,
+        /* Sólo si la base ya tiene la columna (la ficha la trajo) o se subió
+           algo: en una base sin el schema al día, mandarla vacía haría fallar
+           el guardado entero por un campo que nadie tocó. */
+        ...(product?.fotos !== undefined || form.fotos.length ? { fotos: form.fotos } : {}),
       }
 
       if (product) await updateProduct(product.id, values)
@@ -281,6 +287,11 @@ function ProductModal({ product, productos, suppliers, onClose, onSaved }) {
             </div>
           </div>
         )}
+
+        <FotosWeb
+          value={form.fotos}
+          onChange={(fotos) => setForm((prev) => ({ ...prev, fotos }))}
+        />
 
         <Field label="Notas">
           <Textarea rows={2} value={form.notas} onChange={set('notas')} />

@@ -24,6 +24,8 @@ async function fetchCatalogo() {
   return productos.map((producto) => ({
     ...producto,
     precio: producto.precio === null ? null : Number(producto.precio),
+    /* Sin la columna (base con el schema viejo) viene undefined. */
+    fotos: producto.fotos ?? [],
     escalones: precios
       .filter((tier) => tier.product_id === producto.id)
       .map((tier) => ({

@@ -30,19 +30,26 @@ export const navLinks = [
 
   `erp` dice con qué producto del ERP va cada tarjeta, por cómo empieza su
   nombre —«Varilla», «Alambre»— y no por el código, que lo elige quien lo carga
-  y cambia de una base a otra. `agujereada` elige qué precio muestra: el de la
-  columna agujereada en vez del liso.
+  y cambia de una base a otra.
 
-  Lo que está en el ERP y no tiene tarjeta acá aparece igual, en una tarjeta
-  sin fotos, con su nombre y su precio.
+  Un producto que se agujerea tiene una sola tarjeta con el selector «Lisa /
+  Agujereada», que cambia el precio y, si hay `mediaAgujereada`, las fotos.
+
+  Lo que está en el ERP y no tiene tarjeta acá aparece igual, con su nombre,
+  su precio y las fotos que se le suban en Ajustes › Productos.
 */
 export const products = [
   {
     erp: 'Varilla',
     name: 'Varilla estándar para alambrado',
     description:
-      'Varilla de plástico recuperado apta para tejidos y alambrados perimetrales, con perforaciones a medida.',
-    specs: ['Largo: 120 cm', 'Dimensiones: 3 x 3 cm ', 'Uso: alambrados y cercos eléctricos'],
+      'Varilla de plástico recuperado para tejidos y alambrados perimetrales. Lisa, o agujereada de fábrica a la medida de cada hilo.',
+    specs: [
+      'Largo: 120 cm',
+      'Dimensiones: 3 x 3 cm',
+      'Lisa o perforada a pedido',
+      'Uso: alambrados y cercos eléctricos',
+    ],
     // Arranca siempre con una foto y no con un video: el carrusel reproduce lo
     // que está a la vista, y la sección cae debajo del pliegue, así que un
     // video primero se pondría a correr sin que nadie lo esté mirando.
@@ -51,18 +58,8 @@ export const products = [
       { type: 'video', src: 'videos/comun-vid.mp4', poster: 'videos/comun-vid-poster.jpg' },
       { type: 'image', src: 'stock.png' },
     ],
-    // La ficha es la misma que emite el ERP (Documentos → Ficha técnica),
-    // exportada con el contacto de la empresa.
-    datasheet: 'fichas/ficha-tecnica-varilla.pdf',
-  },
-  {
-    erp: 'Varilla',
-    agujereada: true,
-    name: 'Varilla estándar perforada a medida',
-    description:
-      'Cortamos, perforamos y adaptamos la varilla según las necesidades del establecimiento.',
-    specs: ['Largo: 120 cm', 'Dimensiones: 3 x 3 cm ', 'Perforaciones a pedido', 'Uso: alambrados y cercos eléctricos'],
-    media: [
+    // Lo que se muestra con el acabado «Agujereada» elegido en la tarjeta.
+    mediaAgujereada: [
       { type: 'image', src: 'alambrado-1.jpg' },
       {
         type: 'video',
@@ -72,6 +69,8 @@ export const products = [
       { type: 'image', src: 'agujereada-cerca.jpg' },
       { type: 'image', src: 'stock.png' },
     ],
+    // La ficha es la misma que emite el ERP (Documentos → Ficha técnica),
+    // exportada con el contacto de la empresa.
     datasheet: 'fichas/ficha-tecnica-varilla.pdf',
   },
   {

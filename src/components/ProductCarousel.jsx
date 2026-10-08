@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { rutaDeMedio } from '../lib/media'
 
 /** Cuánto se queda quieta una foto antes de pasar a la siguiente. */
 const IMAGE_MS = 5000
@@ -145,8 +146,8 @@ function ProductCarousel({
                 if (el) videos.current.set(i, el)
                 else videos.current.delete(i)
               }}
-              src={`/${item.src}`}
-              poster={item.poster ? `/${item.poster}` : undefined}
+              src={rutaDeMedio(item.src)}
+              poster={item.poster ? rutaDeMedio(item.poster) : undefined}
               aria-label={label}
               muted
               playsInline
@@ -163,7 +164,7 @@ function ProductCarousel({
           ) : (
             <img
               key={item.src}
-              src={`/${item.src}`}
+              src={rutaDeMedio(item.src)}
               alt={label}
               loading="lazy"
               className={slide}
