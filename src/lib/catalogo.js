@@ -52,6 +52,40 @@ export function loadCatalogo() {
 export const tienePrecio = (producto) =>
   producto.se_produce ? producto.escalones.length > 0 : producto.precio !== null
 
+/**
+ * El precio que se muestra en la tarjeta: uno solo.
+ *
+ * Con escalones va **el más alto**, que es el de quien lleva poco: es el
+ * precio que paga cualquiera, y mostrar el de 5.000 unidades sería prometer un
+ * número que casi nadie va a pagar. `agujereada` elige la columna; si el
+ * producto no se agujerea, las dos son la misma.
+ */
+export function precioMasAlto(producto, { agujereada = false } = {}) {
+  if (!producto) return null
+  if (!producto.se_produce) return producto.precio
+  if (!producto.escalones.length) return null
+  const columna = agujereada && producto.se_agujerea ? 'drilled' : 'plain'
+  return Math.max(...producto.escalones.map((tier) => tier[columna]))
+}
+
+/**
+ * El producto del ERP que va con una tarjeta fija: el primero cuyo nombre
+ * empieza con `prefijo`, prefiriendo el de la web y después el que tiene
+ * precio. Si hay dos varillas cargadas, gana la que cotiza.
+ */
+export function productoPara(catalogo, prefijo) {
+  if (!catalogo || !prefijo) return null
+  const candidatos = catalogo.filter((item) =>
+    item.nombre.trim().toLowerCase().startsWith(prefijo.toLowerCase()),
+  )
+  return (
+    candidatos.find((item) => item.en_web && tienePrecio(item)) ??
+    candidatos.find(tienePrecio) ??
+    candidatos[0] ??
+    null
+  )
+}
+
 /** El catálogo, o `null` mientras llega. Vacío si la base no contestó. */
 export function useCatalogo() {
   const [productos, setProductos] = useState(null)

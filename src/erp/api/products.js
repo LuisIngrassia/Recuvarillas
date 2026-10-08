@@ -68,12 +68,21 @@ export async function setProductoWeb(id) {
  */
 export function productoDelLead(lead, products) {
   const lista = products ?? []
+  const varillas = lista.filter(esVarilla)
   return (
     lista.find((item) => item.id === lead?.product_id) ??
-    lista.find((item) => item.codigo === 'VAR') ??
+    varillas.find((item) => item.en_web) ??
+    varillas.find((item) => item.activo !== false) ??
     productoWeb(lista)
   )
 }
+
+/**
+ * Si es la varilla. Por el nombre y no por el código: el código lo elige quien
+ * la carga (`VAR`, `VAR120`…), y buscarla por uno fijo fue lo que hizo que la
+ * base terminara con dos varillas.
+ */
+export const esVarilla = (producto) => /^varilla/i.test(String(producto?.nombre ?? '').trim())
 
 /* Vive en `src/lib` porque la landing también lo usa y no puede importar
    nada del ERP: arrastraría el SDK de Supabase. */
@@ -84,15 +93,15 @@ export { enPlural } from '../../lib/productos'
  *
  * Se lo busca por su marca y no agarrando el primero de la lista: "el primero"
  * depende de cómo quedó ordenada una tabla, y presupuestar un lead empezaría a
- * cargar en silencio lo que no era. Si nadie lo marcó, cae al código histórico
- * de la varilla y recién después al primero, para que una base a medio
+ * cargar en silencio lo que no era. Si nadie lo marcó, cae a la varilla y
+ * recién después al primero, para que una base a medio
  * configurar siga cotizando algo.
  */
 export function productoWeb(products) {
   const lista = products ?? []
   return (
     lista.find((item) => item.en_web) ??
-    lista.find((item) => item.codigo === 'VAR') ??
+    lista.find(esVarilla) ??
     lista[0] ??
     null
   )

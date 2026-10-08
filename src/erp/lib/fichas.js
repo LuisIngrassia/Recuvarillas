@@ -227,7 +227,7 @@ function queEs(nombre) {
 /**
  * Con qué arranca un producto que todavía no tiene nada guardado.
  *
- * La varilla se reconoce por su código, el que le pone el schema, y arranca
+ * La varilla se reconoce por su nombre —el código lo elige quien la carga— y arranca
  * con lo que decían sus papeles. Cualquier otro de los que fabricamos arranca
  * con **las mismas secciones que la varilla**, adaptadas: su nombre, sus
  * medidas si están en el nombre, el material y la comparación contra el mismo
@@ -236,7 +236,7 @@ function queEs(nombre) {
  * ficha de la varilla ya señalaba lo que nadie había medido todavía.
  */
 export function contenidoInicial(producto) {
-  if (producto?.codigo === 'VAR') return VARILLA
+  if (/^varilla/i.test(String(producto?.nombre ?? '').trim())) return VARILLA
 
   const nombre = producto?.nombre ?? ''
   const cosa = queEs(nombre)

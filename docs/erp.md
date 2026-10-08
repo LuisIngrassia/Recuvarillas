@@ -920,17 +920,25 @@ Quien no tenga localidad cargada no puede aparecer en ninguna de las dos
 pantallas: Envíos lo cuenta aparte, en **Sin dirección**, porque a esa gente no
 se le puede ofrecer un envío hasta saber dónde está.
 
-### La web: catálogo con precios
+### La web: productos con precio
 
-Debajo de las tarjetas de productos, la landing muestra **todos los productos
-activos del ERP con su precio**: lo que fabricamos con su lista minorista
-(la mayorista no se publica) y lo que se compra hecho con su precio único. Un
-producto nuevo aparece solo, sin deployar. Lo que no tiene precio cargado no
-se muestra.
+Las tarjetas de productos de la landing muestran **el precio que está cargado en
+el ERP**, uno solo por tarjeta:
+
+- Lo que fabricamos muestra **el precio más alto de su lista minorista**, que es
+  el de quien lleva poco, con la aclaración de que baja con la cantidad. La
+  tarjeta de la varilla agujereada muestra el de la columna agujereada.
+- Lo que se compra hecho muestra su precio único.
+
+Las tarjetas con fotos están escritas en `src/data/siteContent.js` y cada una
+dice con qué producto del ERP va por cómo empieza el nombre (`erp: 'Varilla'`).
+Lo que está en el ERP activo y con precio pero no tiene tarjeta —el poste, las
+torniquetas— aparece igual, en una tarjeta sin fotos. Un producto nuevo se ve
+en la web apenas se le carga el precio, sin deployar.
 
 La web lo lee de dos vistas públicas, `catalogo_web` y `catalogo_precios_web`,
-que eligen las columnas: ni el costo, ni el proveedor, ni las notas salen de la
-base sin sesión.
+que eligen las columnas: ni el costo, ni el proveedor, ni las notas, ni la
+lista mayorista salen de la base sin sesión.
 
 Hay además un **botón flotante de WhatsApp** abajo a la derecha en toda la
 página.

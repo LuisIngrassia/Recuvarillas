@@ -25,8 +25,20 @@ export const navLinks = [
   { label: 'Contacto', href: '#contacto' },
 ]
 
+/*
+  Las tarjetas con fotos y videos. El precio no se escribe acá: sale del ERP.
+
+  `erp` dice con qué producto del ERP va cada tarjeta, por cómo empieza su
+  nombre —«Varilla», «Alambre»— y no por el código, que lo elige quien lo carga
+  y cambia de una base a otra. `agujereada` elige qué precio muestra: el de la
+  columna agujereada en vez del liso.
+
+  Lo que está en el ERP y no tiene tarjeta acá aparece igual, en una tarjeta
+  sin fotos, con su nombre y su precio.
+*/
 export const products = [
   {
+    erp: 'Varilla',
     name: 'Varilla estándar para alambrado',
     description:
       'Varilla de plástico recuperado apta para tejidos y alambrados perimetrales, con perforaciones a medida.',
@@ -44,6 +56,8 @@ export const products = [
     datasheet: 'fichas/ficha-tecnica-varilla.pdf',
   },
   {
+    erp: 'Varilla',
+    agujereada: true,
     name: 'Varilla estándar perforada a medida',
     description:
       'Cortamos, perforamos y adaptamos la varilla según las necesidades del establecimiento.',
@@ -61,6 +75,7 @@ export const products = [
     datasheet: 'fichas/ficha-tecnica-varilla.pdf',
   },
   {
+    erp: 'Alambre',
     name: 'Alambre 17 / 15 galvanizado para alambrado rural',
     description:
       'El mejor alambre para alambrar todo ',

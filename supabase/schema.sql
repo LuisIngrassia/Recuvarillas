@@ -2857,26 +2857,60 @@ create policy "el equipo borra fotos de redes" on storage.objects
 -- ---------------------------------------------------------------------------
 
 /*
+  La varilla sembrada de más.
+
+  Hasta esta versión, la semilla de abajo insertaba `VAR` siempre que no
+  existiera ese código. Una base donde la varilla se cargó con otro código
+  —`VAR120`— terminaba con dos varillas del mismo nombre: la de verdad, con sus
+  precios, y una `VAR` vacía que aparecía en la web y en los selectores.
+
+  Se borra sólo si es seguro: no tiene escalones, ni pedidos, ni movimientos de
+  stock, y hay otro producto activo con el mismo nombre. Los leads que la
+  apuntaban quedan en null (la clave es `on delete set null`) y el relleno de
+  abajo los manda a la varilla real.
+*/
+alter table leads disable trigger leads_guard_trigger;
+
+delete from products v
+ where v.codigo = 'VAR'
+   and not exists (select 1 from price_tiers t where t.product_id = v.id)
+   and not exists (select 1 from order_items i where i.product_id = v.id)
+   and not exists (select 1 from stock_movements m where m.product_id = v.id)
+   and exists (
+     select 1 from products o
+      where o.id <> v.id and o.activo and lower(o.nombre) = lower(v.nombre)
+   );
+
+/*
   Los leads de antes de que existiera `product_id` preguntaban todos por la
-  varilla: hasta entonces no había otra cosa que preguntar.
+  varilla: hasta entonces no había otra cosa que preguntar. Se elige la
+  varilla que tiene precios —y entre ésas, la de la web—, no un código fijo:
+  el código lo pone quien la carga.
 
   Con la guarda del embudo apagada mientras tanto: este relleno no cambia nada
   de lo que ella revisa, y un lead viejo que no cumpla alguna regla nueva haría
   fallar el archivo entero por una columna que no tiene que ver.
 */
-alter table leads disable trigger leads_guard_trigger;
-
 update leads
-   set product_id = (select id from products where codigo = 'VAR')
- where product_id is null
-   and exists (select 1 from products where codigo = 'VAR');
+   set product_id = (
+     select p.id from products p
+      where p.activo and p.nombre ilike 'varilla%'
+      order by exists (select 1 from price_tiers t where t.product_id = p.id) desc,
+               p.en_web desc
+      limit 1
+   )
+ where product_id is null;
 
 alter table leads enable trigger leads_guard_trigger;
 
-/* La varilla. Una sola: el agujereado va en la línea del pedido. */
+/*
+  La varilla, sólo en una base nueva. Una sola: el agujereado va en la línea
+  del pedido. Si ya hay productos no se toca nada: la varilla puede estar
+  cargada con otro código, y sembrar ésta la duplicaba.
+*/
 insert into products (codigo, nombre)
-values ('VAR', 'Varilla 3x3x120')
-on conflict (codigo) do nothing;
+select 'VAR', 'Varilla 3x3x120'
+where not exists (select 1 from products);
 
 /*
   Las bases que se crearon con los dos productos se funden acá.

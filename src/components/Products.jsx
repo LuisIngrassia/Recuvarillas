@@ -1,8 +1,52 @@
 import { useState } from 'react'
 import MediaLightbox from './MediaLightbox'
 import ProductCarousel from './ProductCarousel'
-import { products } from '../data/siteContent'
-import Catalogo from './Catalogo'
+import { company, products } from '../data/siteContent'
+import { precioMasAlto, productoPara, tienePrecio, useCatalogo } from '../lib/catalogo'
+import { formatPesos } from '../lib/quote'
+
+/**
+ * El precio de una tarjeta. Uno solo: con escalones es el más alto, el de
+ * quien lleva poco (ver `precioMasAlto`), y la línea de abajo avisa que baja
+ * con la cantidad. Sin precio cargado en el ERP no se muestra nada: un hueco
+ * es mejor que un número viejo escrito en el código.
+ */
+function Precio({ producto, agujereada }) {
+  const precio = precioMasAlto(producto, { agujereada })
+  if (precio === null || precio === undefined) return null
+
+  const porCantidad = producto.se_produce && producto.escalones.length > 1
+  /* Lo fabricado que se agujerea y no tiene tarjeta propia de agujereada
+     muestra los dos precios. */
+  const agujereadaAparte =
+    agujereada === undefined && producto.se_produce && producto.se_agujerea
+      ? precioMasAlto(producto, { agujereada: true })
+      : null
+
+  return (
+    <div className="mt-4">
+      <p>
+        <span className="font-mono text-2xl font-semibold text-grafito-900 sm:text-3xl">
+          {formatPesos(precio)}
+        </span>
+        <span className="ml-1.5 text-sm text-grafito-500">+ IVA</span>
+      </p>
+      {agujereadaAparte !== null && agujereadaAparte !== precio && (
+        <p className="text-sm text-grafito-600">
+          Agujereado: <span className="font-mono font-semibold">{formatPesos(agujereadaAparte)}</span> + IVA
+        </p>
+      )}
+      <p className="text-xs text-grafito-400">
+        {porCantidad ? 'Por unidad. Baja con la cantidad.' : 'Por unidad.'}
+      </p>
+    </div>
+  )
+}
+
+function consultaPorWhatsapp(nombre) {
+  const texto = `Hola ${company.name}, quiero consultar por ${nombre}.`
+  return `https://wa.me/${company.whatsapp}?text=${encodeURIComponent(texto)}`
+}
 
 /**
  * Tarjeta de un producto, con su material al costado y la galería que se abre
@@ -12,7 +56,7 @@ import Catalogo from './Catalogo'
  * pieza que se estaba viendo: pasar tres fotos en la tarjeta y que al ampliar
  * vuelva a la primera obliga a rehacer el camino.
  */
-function ProductCard({ product }) {
+function ProductCard({ product, producto }) {
   const [index, setIndex] = useState(0)
   const [expanded, setExpanded] = useState(false)
 
@@ -52,6 +96,8 @@ function ProductCard({ product }) {
               <li key={spec}>{spec}</li>
             ))}
           </ul>
+
+          <Precio producto={producto} agujereada={Boolean(product.agujereada)} />
 
           {/*
             `download` baja el archivo en vez de abrirlo en el visor del
@@ -110,7 +156,58 @@ function ProductCard({ product }) {
   )
 }
 
+/**
+ * Un producto del ERP que no tiene tarjeta con fotos: el poste, las
+ * torniquetas, lo que se cargue mañana. Sale con su nombre y su precio, sin
+ * tener que tocar la web.
+ */
+function ErpCard({ producto }) {
+  return (
+    <div className="flex flex-col rounded-md bg-white p-4 shadow-sm sm:p-5">
+      <h3 className="font-display text-2xl text-grafito-900 sm:text-3xl">{producto.nombre}</h3>
+      <Precio producto={producto} />
+      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 pt-4">
+        {producto.en_web && (
+          <a href="#presupuesto" className="btn-principal min-h-10 px-3.5 py-2 text-sm">
+            Calcular presupuesto
+          </a>
+        )}
+        <a
+          href={consultaPorWhatsapp(producto.nombre)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="link-marca text-sm"
+        >
+          Consultar por WhatsApp →
+        </a>
+      </div>
+    </div>
+  )
+}
+
 function Products() {
+  const catalogo = useCatalogo()
+
+  /* Cada tarjeta fija con su producto del ERP, y los del ERP que quedaron sin
+     tarjeta. Sólo los que tienen precio: una tarjeta nueva sin precio no dice
+     nada que no diga ya la de al lado. */
+  const fijas = products.map((product) => ({
+    product,
+    producto: productoPara(catalogo, product.erp),
+  }))
+  const usados = new Set(fijas.map(({ producto }) => producto?.id).filter(Boolean))
+  /* Los de nombre igual a uno ya usado tampoco: son duplicados cargados de más,
+     no productos distintos. */
+  const nombresUsados = new Set(
+    fijas.map(({ producto }) => producto?.nombre.trim().toLowerCase()).filter(Boolean),
+  )
+  const sueltos = (catalogo ?? []).filter(
+    (item) =>
+      !usados.has(item.id) &&
+      !nombresUsados.has(item.nombre.trim().toLowerCase()) &&
+      tienePrecio(item),
+  )
+
   return (
     <section id="productos" className="bg-grafito-100 py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -130,13 +227,13 @@ function Products() {
           toda la pantalla. Al lado, la altura la fija la foto y no el texto.
         */}
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          {products.map((product) => (
-            <ProductCard key={product.name} product={product} />
+          {fijas.map(({ product, producto }) => (
+            <ProductCard key={product.name} product={product} producto={producto} />
+          ))}
+          {sueltos.map((producto) => (
+            <ErpCard key={producto.id} producto={producto} />
           ))}
         </div>
-
-        {/* La lista con precio de todo lo cargado en el ERP. */}
-        <Catalogo />
       </div>
     </section>
   )
