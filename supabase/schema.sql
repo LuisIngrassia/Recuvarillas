@@ -190,6 +190,16 @@ alter table leads add column if not exists reactivation_count integer not null d
 alter table leads add column if not exists updated_at         timestamptz not null default now();
 
 /*
+  Qué producto pidió. Hasta que hubo más de uno, todo lead era de varillas y el
+  presupuesto se armaba con «el producto de la web»; el día que el marcado en la
+  web fue otro, los leads que preguntaban por varillas se presupuestaban con
+  postes. La clave foránea y el relleno de los viejos van más abajo, cuando ya
+  existe la tabla de productos: acá va sola la columna, antes de `leads_hoy`,
+  que la levanta con `l.*`.
+*/
+alter table leads add column if not exists product_id uuid;
+
+/*
   Si van agujereadas dejó de ser sí o no: ahora hay un tercer caso, "todavía no
   se sabe", que es el de casi todo lead recién entrado. Sin ese null no hay cómo
   distinguir al que dijo que las quería lisas del que todavía no contestó, y es
@@ -911,6 +921,19 @@ alter table price_tiers add column if not exists product_id uuid
   references products (id) on delete cascade;
 
 create index if not exists price_tiers_product_idx on price_tiers (product_id, min_qty);
+
+/*
+  El producto del lead (la columna se crea arriba, junto al resto de `leads`).
+  `set null`: borrar un producto no se lleva a la gente que preguntó por él.
+*/
+do $lead_producto$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'leads_product_id_fkey') then
+    alter table leads add constraint leads_product_id_fkey
+      foreign key (product_id) references products (id) on delete set null;
+  end if;
+end;
+$lead_producto$;
 
 /*
   Un pedido arranca como presupuesto y va cambiando de estado. Descuenta stock
@@ -2091,6 +2114,8 @@ create index if not exists social_posts_fecha_idx on social_posts (fecha);
 */
 drop view if exists leads_por_origen;
 drop view if exists price_tiers_web;
+drop view if exists catalogo_web;
+drop view if exists catalogo_precios_web;
 drop view if exists localidades;
 drop view if exists destinos;
 drop view if exists finanzas_mensuales;
@@ -2140,6 +2165,40 @@ create or replace view price_tiers_web with (security_invoker = on) as
   from price_tiers t
   join products p on p.id = t.product_id
   where p.activo and p.en_web;
+
+/*
+  El catálogo de la web: todos los productos activos, con su precio.
+
+  A diferencia de `price_tiers_web`, estas dos vistas **no** son
+  `security_invoker`: corren con los permisos de quien las creó y por eso
+  saltean las políticas de `products`. Es a propósito. La ficha del producto
+  tiene datos que no son para afuera —el costo, el proveedor, las notas— y la
+  forma de mostrar el resto sin abrir la tabla es una vista que elige las
+  columnas. Lo que no está acá no se ve sin sesión.
+
+  De lo que fabricamos va la lista minorista, que es la pública; la mayorista
+  es de los revendedores y no se publica. De lo que se compra hecho, el precio
+  único de la ficha.
+*/
+create view catalogo_web as
+  select
+    p.id,
+    p.codigo,
+    p.nombre,
+    p.unidad,
+    p.se_produce,
+    p.se_agujerea,
+    p.en_web,
+    p.orden,
+    case when p.se_produce then null else p.precio end as precio
+  from products p
+  where p.activo;
+
+create view catalogo_precios_web as
+  select t.product_id, t.min_qty, t.max_qty, t.plain_price, t.drilled_price
+  from price_tiers t
+  join products p on p.id = t.product_id
+  where p.activo and p.se_produce and t.kind = 'minorista';
 
 create or replace view stock_actual with (security_invoker = on) as
   select
@@ -2630,6 +2689,7 @@ grant all on all tables in schema public to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
 grant select on price_tiers to anon;
 grant select on price_tiers_web to anon;
+grant select on catalogo_web, catalogo_precios_web to anon, authenticated;
 grant select on products to anon;
 grant insert on leads to anon;
 
@@ -2795,6 +2855,23 @@ create policy "el equipo borra fotos de redes" on storage.objects
 -- ---------------------------------------------------------------------------
 -- Datos iniciales
 -- ---------------------------------------------------------------------------
+
+/*
+  Los leads de antes de que existiera `product_id` preguntaban todos por la
+  varilla: hasta entonces no había otra cosa que preguntar.
+
+  Con la guarda del embudo apagada mientras tanto: este relleno no cambia nada
+  de lo que ella revisa, y un lead viejo que no cumpla alguna regla nueva haría
+  fallar el archivo entero por una columna que no tiene que ver.
+*/
+alter table leads disable trigger leads_guard_trigger;
+
+update leads
+   set product_id = (select id from products where codigo = 'VAR')
+ where product_id is null
+   and exists (select 1 from products where codigo = 'VAR');
+
+alter table leads enable trigger leads_guard_trigger;
 
 /* La varilla. Una sola: el agujereado va en la línea del pedido. */
 insert into products (codigo, nombre)

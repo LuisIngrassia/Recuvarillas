@@ -26,9 +26,12 @@ import { TransitionModal } from '../components/LeadPipeline'
 import { Async, Button, ErrorNote, PageHeader } from '../components/ui'
 import { formatDate, formatNumber, formatPesos } from '../lib/format'
 import { useAsync } from '../lib/useAsync'
+import { enPlural, productoDelLead } from '../api/products'
+import { useProductosCompartidos } from '../lib/precioProducto'
 
 /** Una tarjeta del tablero. Lo mínimo para decidir si hay que abrirla. */
 function Tarjeta({ lead, onDragStart, arrastrando }) {
+  const productos = useProductosCompartidos()
   const vencida = lead.next_action_at && new Date(lead.next_action_at) < new Date()
 
   return (
@@ -49,7 +52,9 @@ function Tarjeta({ lead, onDragStart, arrastrando }) {
 
       <p className="mt-0.5 text-xs text-grafito-400">
         {lead.localidad ?? 'Sin zona'}
-        {lead.cantidad ? ` · ${formatNumber(lead.cantidad)} varillas` : ''}
+        {lead.cantidad
+          ? ` · ${formatNumber(lead.cantidad)} ${enPlural(productoDelLead(lead, productos))}`
+          : ''}
       </p>
 
       {lead.quote_amount ? (

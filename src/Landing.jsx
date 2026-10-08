@@ -9,6 +9,7 @@ import RodStory from './components/RodStory'
 import Testimonials from './components/Testimonials'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
+import WhatsappFlotante from './components/WhatsappFlotante'
 
 /** La web pública. Lo que había en `App.jsx` antes de que el ERP le pusiera rutas. */
 function Landing() {
@@ -27,6 +28,7 @@ function Landing() {
         <Contact />
       </main>
       <Footer />
+      <WhatsappFlotante />
     </div>
   )
 }

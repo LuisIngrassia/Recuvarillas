@@ -6,6 +6,8 @@ import { findPostalCode, loadPostalCodes } from '../lib/postalCodes'
 import { canonicalProvince } from '../lib/provinces'
 import { usePriceTiers } from '../lib/priceTiers'
 import { recordLead } from '../lib/leads'
+import { useCatalogo } from '../lib/catalogo'
+import { enPlural } from '../lib/productos'
 
 const EMPTY = {
   quantity: '1000',
@@ -118,6 +120,19 @@ function QuoteSimulator() {
   const tiers = usePriceTiers()
 
   /*
+    Qué producto cotiza: el marcado para la web en el ERP. Hace falta saberlo
+    para nombrarlo bien —no todo son varillas— y para dejarlo asentado en el
+    lead, así el presupuesto que arma el ERP es de lo mismo que se cotizó acá.
+    Sin catálogo (la base no contestó) los precios son los del código, que son
+    los de la varilla, y se la nombra así.
+  */
+  const catalogo = useCatalogo()
+  const producto = catalogo?.find((item) => item.en_web) ?? null
+  const cosas = producto ? enPlural(producto) : 'varillas'
+  const seAgujerea = producto ? producto.se_agujerea : true
+  const drilled = seAgujerea && form.drilled === 'si'
+
+  /*
     El simulador cotiza siempre la lista minorista, que es la pública. La
     mayorista es la de los revendedores con acuerdo y no se muestra acá: no es
     un descuento que se gane por llevar mucho de una vez, es una condición de
@@ -135,7 +150,7 @@ function QuoteSimulator() {
     event.preventDefault()
 
     if (!Number.isFinite(quantity) || quantity < 1) {
-      setError('Poné cuántas varillas necesitás.')
+      setError(`Poné cuántos ${cosas} necesitás.`)
       return
     }
     if (shipping && !place) {
@@ -150,7 +165,7 @@ function QuoteSimulator() {
     setError('')
     const result = buildQuote({
       quantity,
-      drilled: form.drilled === 'si',
+      drilled,
       tiers,
       kind: 'minorista',
     })
@@ -161,8 +176,9 @@ function QuoteSimulator() {
       nombre: form.name.trim(),
       telefono: form.phone.trim(),
       email: form.email.trim(),
+      productId: producto?.id ?? null,
       cantidad: quantity,
-      agujereada: form.drilled === 'si',
+      agujereada: drilled,
       entrega: shipping ? 'envio' : 'retiro',
       codigoPostal: shipping ? place.code : '',
       localidad: shipping ? place.name : '',
@@ -181,7 +197,7 @@ function QuoteSimulator() {
     const lines = [
       `Hola ${company.name}, simulé un presupuesto en la web:`,
       '',
-      `• ${formatNumber(quantity)} varillas ${form.drilled === 'si' ? 'agujereadas' : 'sin agujerear'}`,
+      `• ${formatNumber(quantity)} ${cosas}${seAgujerea ? (drilled ? ' agujereados' : ' sin agujerear') : ''}`,
       `• Precio unitario: ${formatPesos(quote.unitPrice)} + IVA`,
       `• Mercadería: ${formatPesos(quote.total)} + IVA`,
     ]
@@ -199,7 +215,7 @@ function QuoteSimulator() {
     )
 
     return `https://wa.me/${company.whatsapp}?text=${encodeURIComponent(lines.join('\n'))}`
-  }, [quote, quantity, form.drilled, form.name])
+  }, [quote, quantity, drilled, seAgujerea, cosas, form.name])
 
   return (
     <section id="presupuesto" className="border-t border-grafito-200 bg-white py-20 sm:py-24">
@@ -220,7 +236,7 @@ function QuoteSimulator() {
           <form onSubmit={handleSubmit} className="lg:col-span-3">
             <div className="grid gap-5 sm:grid-cols-2">
               <Field
-                label="¿Cuántas varillas?"
+                label={`Cantidad de ${cosas}`}
                 hint={
                   descuentoDesde &&
                   `Desde ${formatNumber(descuentoDesde)} unidades el precio baja`
@@ -237,16 +253,18 @@ function QuoteSimulator() {
                 />
               </Field>
 
-              <Field label="¿Agujereada de fábrica?">
-                <Choice
-                  value={form.drilled}
-                  onChange={set('drilled')}
-                  options={[
-                    { value: 'no', label: 'Sin agujerear' },
-                    { value: 'si', label: 'Agujereada' },
-                  ]}
-                />
-              </Field>
+              {seAgujerea && (
+                <Field label="¿Agujereado de fábrica?">
+                  <Choice
+                    value={form.drilled}
+                    onChange={set('drilled')}
+                    options={[
+                      { value: 'no', label: 'Sin agujerear' },
+                      { value: 'si', label: 'Agujereado' },
+                    ]}
+                  />
+                </Field>
+              )}
 
               <Field label="¿Cómo la recibís?">
                 <Choice
@@ -342,7 +360,7 @@ function QuoteSimulator() {
 
                 <div className="mt-4 divide-y divide-grafito-100 text-sm">
                   <Row
-                    label={`${formatNumber(quantity)} varillas × ${formatPesos(quote.unitPrice)}`}
+                    label={`${formatNumber(quantity)} ${cosas} × ${formatPesos(quote.unitPrice)}`}
                     value={formatPesos(quote.total)}
                   />
 

@@ -35,15 +35,14 @@ import {
 } from '../api/leads'
 import { listCustomerOptions } from '../api/customers'
 import { StatusBadge } from '../components/LeadPipeline'
-import { listProducts, productoWeb } from '../api/products'
+import { enPlural, listProducts, productoDelLead } from '../api/products'
+import { precioDeLista, useEscalones } from '../lib/precioProducto'
 import { listLocalidades, provinciasDe } from '../api/shipping'
 import LocalidadField from '../components/LocalidadField'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
 import { formatDate, formatDateTime, formatNumber, formatPesos, whatsappLink } from '../lib/format'
 
-import { usePriceTiers } from '../../lib/priceTiers'
-import { tierFor } from '../../lib/quote'
 import { findPostalCode, loadPostalCodes } from '../../lib/postalCodes'
 import { PROVINCES, canonicalProvince, esProvinciaConocida } from '../../lib/provinces'
 import { ROAD_FACTOR } from '../../data/pricing'
@@ -74,28 +73,32 @@ import {
  * detalle que hace sonar el mensaje a formulario automático, que es justo lo
  * contrario de lo que se busca al retomar un contacto.
  */
-function saludo(lead) {
+function saludo(lead, producto) {
   const arranque = `Hola ${lead.nombre}, te escribo de Recuvarilla.`
+  const cosas = enPlural(producto)
 
   if (!lead.cantidad) {
-    return `${arranque} Vi tu consulta por las varillas. ¿Te paso un presupuesto?`
+    return `${arranque} Vi tu consulta por los ${cosas}. ¿Te paso un presupuesto?`
   }
 
   /* Sin el dato no se inventa: decirle "sin agujerear" al que nunca lo dijo es
      ponerle en la boca algo que no eligió, y encima es lo que hay que
-     preguntarle. Se sale sin el adjetivo y con la pregunta. */
+     preguntarle. Se sale sin el adjetivo y con la pregunta. Lo que no se
+     agujerea no tiene nada que preguntar. */
+  const seAgujerea = producto?.se_agujerea !== false
   const tipo =
-    lead.agujereada === null || lead.agujereada === undefined
+    !seAgujerea || lead.agujereada === null || lead.agujereada === undefined
       ? ''
       : lead.agujereada
-        ? ' agujereadas'
+        ? ' agujereados'
         : ' sin agujerear'
   const donde = lead.source === 'web' ? ' en nuestra web' : ''
-  const cierre = tipo
-    ? '¿Te sirve que repasemos el presupuesto?'
-    : '¿Las querías agujereadas o comunes? Con eso te paso el presupuesto.'
+  const cierre =
+    tipo || !seAgujerea
+      ? '¿Te sirve que repasemos el presupuesto?'
+      : '¿Los querías agujereados o comunes? Con eso te paso el presupuesto.'
 
-  return `${arranque} Vi que cotizaste ${formatNumber(lead.cantidad)} varillas${tipo}${donde}. ${cierre}`
+  return `${arranque} Vi que cotizaste ${formatNumber(lead.cantidad)} ${cosas}${tipo}${donde}. ${cierre}`
 }
 
 /**
@@ -115,14 +118,35 @@ function saludo(lead) {
  * Sin cantidad las tres quedan en null. Vacío no es cero: el que preguntó un
  * precio por Instagram todavía no dijo cuántas necesita, y un cero se leería
  * como que pidió ninguna.
+ *
+ * El precio es el del producto que pidió, no el de la web: el que pregunta por
+ * postes se cotiza con los precios del poste.
  */
-function cotizacionDeLead(cantidad, agujereada, tiers) {
+function cotizacionDeLead(cantidad, agujereada, producto, escalones) {
   if (!cantidad) return { cantidad: null, precio_unitario: null, mercaderia: null }
 
-  const tier = tierFor(cantidad, tiers, 'minorista')
-  const precio = agujereada ? tier.drilled : tier.plain
+  const precio = precioDeLista(producto, escalones, { cantidad, agujereada })
+  if (precio === null) return { cantidad, precio_unitario: null, mercaderia: null }
 
   return { cantidad, precio_unitario: precio, mercaderia: precio * cantidad }
+}
+
+/**
+ * El selector de producto de las fichas de lead. Activos todos, fabricados y
+ * comprados: se puede preguntar por cualquier cosa que se venda.
+ */
+function CampoProducto({ value, onChange, products, hint }) {
+  return (
+    <Field label="Qué producto" hint={hint}>
+      <Select value={value} onChange={(event) => onChange(event.target.value)}>
+        {(products ?? []).map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.nombre}
+          </option>
+        ))}
+      </Select>
+    </Field>
+  )
 }
 
 /**
@@ -141,7 +165,7 @@ function cotizacionDeLead(cantidad, agujereada, tiers) {
  * completan cuando hace falta facturarle.
  */
 function LeadModal({ lead, onClose, onSaved }) {
-  const tiers = usePriceTiers()
+  const products = useAsync(listProducts, [])
   /* El padrón son ~55 KB que se bajan una sola vez por sesión, y sólo si
      alguien abre una ficha. Sirve para que corregir el código postal complete
      la localidad y los kilómetros en lugar de dejarlos viejos. */
@@ -173,6 +197,15 @@ function LeadModal({ lead, onClose, onSaved }) {
   })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  /* El producto que pidió; en null, el del lead (o la varilla, si es viejo). */
+  const [productId, setProductId] = useState(null)
+  const producto =
+    (products.data ?? []).find((item) => item.id === productId) ??
+    productoDelLead(lead, products.data)
+  const escalones = useEscalones(producto)
+  const seAgujerea = producto?.se_agujerea !== false
+  const cosas = enPlural(producto)
 
   const set = (key) => (event) =>
     setForm((prev) => ({
@@ -211,13 +244,20 @@ function LeadModal({ lead, onClose, onSaved }) {
   const cantidadValida = vacia || (Number.isFinite(cantidadNum) && cantidadNum >= 1)
 
   /* El valor del select vuelve a ser booleano —o null— antes de tocar nada
-     más. Pasarlo crudo cotizaba mal: el string 'false' es verdadero. */
-  const agujereada = form.agujereada === '' ? null : form.agujereada === 'true'
+     más. Pasarlo crudo cotizaba mal: el string 'false' es verdadero. Lo que
+     no se agujerea va sin agujerear, sin preguntarlo: es el dato que pide la
+     calificación, y no tiene sentido dejarlo trabado por una pregunta que no
+     aplica. */
+  const agujereada = !seAgujerea
+    ? false
+    : form.agujereada === ''
+      ? null
+      : form.agujereada === 'true'
 
   /* El monto se recalcula mientras se escribe, no al guardar: que el número se
      mueva a la vista es lo que hace que no sorprenda después. */
   const cotizacion = cantidadValida
-    ? cotizacionDeLead(cantidadNum, agujereada, tiers)
+    ? cotizacionDeLead(cantidadNum, agujereada, producto, escalones)
     : null
 
   const save = async () => {
@@ -227,7 +267,7 @@ function LeadModal({ lead, onClose, onSaved }) {
       return
     }
     if (!cantidadValida) {
-      setError('La cantidad tiene que ser un número de varillas, o quedar vacía.')
+      setError(`La cantidad tiene que ser un número de ${cosas}, o quedar vacía.`)
       return
     }
 
@@ -245,6 +285,7 @@ function LeadModal({ lead, onClose, onSaved }) {
            ficha lo venía mostrando y no lo mandaba: se corregía, el precio de
            abajo se movía, y al volver a abrirla estaba como antes. */
         agujereada,
+        product_id: producto?.id ?? null,
         entrega: form.entrega,
         codigo_postal: form.codigo_postal.trim() || null,
         localidad: form.localidad.trim() || null,
@@ -302,12 +343,20 @@ function LeadModal({ lead, onClose, onSaved }) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
+          <CampoProducto
+            value={producto?.id ?? ''}
+            onChange={setProductId}
+            products={products.data}
+            hint="Con sus precios se cotiza."
+          />
           <Field
-            label="Cuántas quiere"
+            label={`Cuántos ${cosas} quiere`}
             hint={
-              cotizacion?.cantidad
+              cotizacion?.cantidad && cotizacion.precio_unitario !== null
                 ? `${formatNumber(cotizacion.cantidad)} × ${formatPesos(cotizacion.precio_unitario)} = ${formatPesos(cotizacion.mercaderia)} + IVA, con la lista de hoy.`
-                : 'Vacío mientras no haya dicho cuántas necesita.'
+                : cotizacion?.cantidad
+                  ? `${producto?.nombre ?? 'Este producto'} no tiene precio cargado.`
+                  : 'Vacío mientras no haya dicho cuántos necesita.'
             }
           >
             <Input
@@ -341,16 +390,18 @@ function LeadModal({ lead, onClose, onSaved }) {
           </Field>
         </div>
 
-        <Field
-          label="¿Van agujereadas?"
-          hint="Sin definir es una respuesta: quiere decir que todavía no contestó."
-        >
-          <Select value={form.agujereada} onChange={set('agujereada')}>
-            <option value="">Todavía no se sabe</option>
-            <option value="true">Sí, agujereadas</option>
-            <option value="false">No, comunes</option>
-          </Select>
-        </Field>
+        {seAgujerea && (
+          <Field
+            label="¿Van agujereados?"
+            hint="Sin definir es una respuesta: quiere decir que todavía no contestó."
+          >
+            <Select value={form.agujereada} onChange={set('agujereada')}>
+              <option value="">Todavía no se sabe</option>
+              <option value="true">Sí, agujereados</option>
+              <option value="false">No, comunes</option>
+            </Select>
+          </Field>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Entrega">
@@ -440,6 +491,15 @@ function NewLeadModal({ onClose, onSaved }) {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
+  /* Arranca en la varilla, que es por lo que pregunta casi todo el mundo. */
+  const products = useAsync(listProducts, [])
+  const [productId, setProductId] = useState(null)
+  const producto =
+    (products.data ?? []).find((item) => item.id === productId) ??
+    productoDelLead(null, products.data)
+  const seAgujerea = producto?.se_agujerea !== false
+  const cosas = enPlural(producto)
+
   /* Acá no se pide ni provincia ni código postal —a alguien que recién pregunta
      un precio no se le piden tres datos de domicilio— así que la lista sale sin
      filtrar. Igual sirve: dice si ya hay gente en el lugar que se está
@@ -463,7 +523,7 @@ function NewLeadModal({ onClose, onSaved }) {
 
     const cantidad = form.cantidad === '' ? null : Number.parseInt(form.cantidad, 10)
     if (cantidad !== null && (!Number.isFinite(cantidad) || cantidad < 1)) {
-      setError('La cantidad tiene que ser un número de varillas, o quedar vacía.')
+      setError(`La cantidad tiene que ser un número de ${cosas}, o quedar vacía.`)
       return
     }
 
@@ -485,7 +545,12 @@ function NewLeadModal({ onClose, onSaved }) {
           que hacen falta para calificar, así que confundirlos dejaba al lead
           trabado por un dato que en realidad estaba.
         */
-        agujereada: form.agujereada === '' ? null : form.agujereada === 'true',
+        agujereada: !seAgujerea
+          ? false
+          : form.agujereada === ''
+            ? null
+            : form.agujereada === 'true',
+        product_id: producto?.id ?? null,
         localidad: form.localidad.trim() || null,
         notas: form.notas.trim() || null,
       })
@@ -521,7 +586,12 @@ function NewLeadModal({ onClose, onSaved }) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Cantidad" hint="Opcional, si ya dijo cuántas necesita.">
+          <CampoProducto
+            value={producto?.id ?? ''}
+            onChange={setProductId}
+            products={products.data}
+          />
+          <Field label={`Cuántos ${cosas}`} hint="Opcional, si ya dijo cuántos necesita.">
             <Input
               type="number"
               min="1"
@@ -538,16 +608,18 @@ function NewLeadModal({ onClose, onSaved }) {
           />
         </div>
 
-        <Field
-          label="¿Van agujereadas?"
-          hint="Si todavía no lo dijo, dejalo sin definir: es distinto de que las quiera lisas."
-        >
-          <Select value={form.agujereada} onChange={set('agujereada')}>
-            <option value="">Todavía no se sabe</option>
-            <option value="true">Sí, agujereadas</option>
-            <option value="false">No, comunes</option>
-          </Select>
-        </Field>
+        {seAgujerea && (
+          <Field
+            label="¿Van agujereados?"
+            hint="Si todavía no lo dijo, dejalo sin definir: es distinto de que los quiera lisos."
+          >
+            <Select value={form.agujereada} onChange={set('agujereada')}>
+              <option value="">Todavía no se sabe</option>
+              <option value="true">Sí, agujereados</option>
+              <option value="false">No, comunes</option>
+            </Select>
+          </Field>
+        )}
 
         <Field label="Notas" hint="Qué preguntó, por dónde escribió, quién lo trajo.">
           <Textarea rows={3} value={form.notas} onChange={set('notas')} />
@@ -699,7 +771,21 @@ function ConvertModal({ lead, onClose, onDone }) {
 function QuoteModal({ lead, onClose, onDone }) {
   const products = useAsync(listProducts, [])
   const customers = useAsync(listCustomerOptions, [])
-  const tiers = usePriceTiers()
+
+  /*
+    El producto que pidió el lead, no «el de la web». Antes se presupuestaba
+    siempre con el marcado para el simulador, y el día que ése fue el poste,
+    el que había pedido varillas recibía un presupuesto de postes. Se puede
+    cambiar acá, porque es donde se está hablando con la persona.
+  */
+  const [productId, setProductId] = useState(null)
+  const producto =
+    (products.data ?? []).find((item) => item.id === productId) ??
+    productoDelLead(lead, products.data)
+  const escalones = useEscalones(producto)
+  const seAgujerea = producto?.se_agujerea !== false
+  const cosas = enPlural(producto)
+  const cambioProducto = Boolean(producto && lead.product_id && producto.id !== lead.product_id)
 
   /* Si el lead ya está enganchado a un cliente no hay nada que preguntar: el
      presupuesto va a esa ficha. */
@@ -750,11 +836,15 @@ function QuoteModal({ lead, onClose, onDone }) {
   */
   const tipoCliente = fijo?.tipo ?? (modo === 'existente' ? elegido?.tipo : null) ?? 'minorista'
 
-  const agujereadaBool = agujereada === '' ? null : agujereada === 'true'
+  /* Lo que no se agujerea va sin agujerear, sin preguntarlo. */
+  const agujereadaBool = !seAgujerea ? false : agujereada === '' ? null : agujereada === 'true'
   const cambioAgujereado = agujereadaBool !== null && agujereadaBool !== lead.agujereada
 
-  const tier = tierFor(cantidadUsada, tiers, tipoCliente)
-  const precioLista = agujereadaBool ? tier.drilled : tier.plain
+  const precioLista = precioDeLista(producto, escalones, {
+    cantidad: cantidadUsada,
+    agujereada: agujereadaBool,
+    kind: tipoCliente,
+  })
   const precioCotizado =
     lead.precio_unitario === null ? null : Number(lead.precio_unitario)
 
@@ -773,32 +863,29 @@ function QuoteModal({ lead, onClose, onDone }) {
   const distinto =
     !cambioCantidad &&
     !cambioAgujereado &&
+    !cambioProducto &&
     precioCotizado !== null &&
+    precioLista !== null &&
     precioCotizado !== precioLista
   const precioUsado = distinto && precioModo === 'cotizado' ? precioCotizado : precioLista
 
-  /*
-    La varilla es una sola. El agujereado va en la línea del pedido, así que
-    acá ya no hay que buscar "el producto agujereado": antes se lo buscaba por
-    igualdad estricta contra el dato del lead, y un lead que todavía no había
-    dicho si las quería agujereadas no matcheaba ninguno de los dos y se comía
-    un "revisá Stock" por un faltante que no existía.
-  */
-  /* El mismo producto que cotiza el simulador de la web: un lead pidió un
-     precio por eso, no por lo que haya quedado primero en la lista. */
-  const producto = productoWeb(products.data)
-
   const confirmar = async () => {
+    if (!producto) {
+      setError('No hay ningún producto cargado. Se cargan en Ajustes › Productos.')
+      return
+    }
     if (!cantidadValida) {
-      setError('Poné cuántas varillas lleva.')
+      setError(`Poné cuántos ${cosas} lleva.`)
       return
     }
     if (agujereadaBool === null) {
-      setError('Decí si van agujereadas: es lo que decide el precio.')
+      setError('Decí si van agujereados: es lo que decide el precio.')
       return
     }
-    if (!producto) {
-      setError('No hay ningún producto cargado. Revisá Stock.')
+    if (precioUsado === null) {
+      setError(
+        `${producto.nombre} no tiene precio cargado para esa cantidad. Cargalo en Ajustes, o armá el pedido a mano.`,
+      )
       return
     }
     if (!fijo && modo === 'existente' && !customerId) {
@@ -813,6 +900,7 @@ function QuoteModal({ lead, onClose, onDone }) {
       const order = await createQuoteFromLead(lead, {
         customerId: fijo?.id ?? (modo === 'existente' ? customerId : null),
         productId: producto.id,
+        productoNombre: producto.nombre,
         agujereada: agujereadaBool,
         cantidad: cantidadNum,
         precioUnitario: precioUsado,
@@ -821,10 +909,12 @@ function QuoteModal({ lead, onClose, onDone }) {
            agujereado se contestó recién en esta pantalla, también se guarda:
            el dato que faltaba para calificarlo ya está. */
         leadChanges: {
-          ...(cambioCantidad || cambioAgujereado
-            ? cotizacionDeLead(cantidadNum, agujereadaBool, tiers)
+          ...(cambioCantidad || cambioAgujereado || cambioProducto
+            ? cotizacionDeLead(cantidadNum, agujereadaBool, producto, escalones)
             : null),
           ...(cambioAgujereado ? { agujereada: agujereadaBool } : null),
+          /* El lead queda diciendo lo que se le presupuestó. */
+          product_id: producto.id,
         },
       })
       onDone(order)
@@ -845,8 +935,19 @@ function QuoteModal({ lead, onClose, onDone }) {
           </p>
         </div>
 
+        <CampoProducto
+          value={producto?.id ?? ''}
+          onChange={setProductId}
+          products={products.data}
+          hint={
+            cambioProducto
+              ? 'El lead había preguntado por otro producto. Al guardar queda con éste.'
+              : 'Es por lo que preguntó. Si cambió, corregilo acá.'
+          }
+        />
+
         <Field
-          label="Cuántas lleva"
+          label={`Cuántos ${cosas} lleva`}
           hint={
             cambioCantidad
               ? `Pidió ${formatNumber(lead.cantidad)}. Al guardar, el lead queda con la cantidad nueva.`
@@ -863,22 +964,24 @@ function QuoteModal({ lead, onClose, onDone }) {
           />
         </Field>
 
-        <Field
-          label="¿Van agujereadas?"
-          hint={
-            lead.agujereada === null || lead.agujereada === undefined
-              ? 'El lead no lo dice. Preguntáselo: cambia el precio, y al guardar queda anotado.'
-              : cambioAgujereado
-                ? `El lead decía ${lead.agujereada ? 'agujereadas' : 'comunes'}. Al guardar queda con lo de acá.`
-                : 'Es lo que pidió. Si cambió, corregilo acá.'
-          }
-        >
-          <Select value={agujereada} onChange={(event) => setAgujereada(event.target.value)}>
-            <option value="">Todavía no se sabe</option>
-            <option value="true">Sí, agujereadas</option>
-            <option value="false">No, comunes</option>
-          </Select>
-        </Field>
+        {seAgujerea && (
+          <Field
+            label="¿Van agujereados?"
+            hint={
+              lead.agujereada === null || lead.agujereada === undefined
+                ? 'El lead no lo dice. Preguntáselo: cambia el precio, y al guardar queda anotado.'
+                : cambioAgujereado
+                  ? `El lead decía ${lead.agujereada ? 'agujereados' : 'comunes'}. Al guardar queda con lo de acá.`
+                  : 'Es lo que pidió. Si cambió, corregilo acá.'
+            }
+          >
+            <Select value={agujereada} onChange={(event) => setAgujereada(event.target.value)}>
+              <option value="">Todavía no se sabe</option>
+              <option value="true">Sí, agujereados</option>
+              <option value="false">No, comunes</option>
+            </Select>
+          </Field>
+        )}
 
         {products.loading ? (
           <Loading>Cargando productos…</Loading>
@@ -908,7 +1011,7 @@ function QuoteModal({ lead, onClose, onDone }) {
                   [
                     'lista',
                     `Lista de hoy: ${formatPesos(precioLista)}`,
-                    `Es la ${tipoCliente} vigente para ${formatNumber(cantidadUsada)} varillas.`,
+                    `Es la ${tipoCliente} vigente para ${formatNumber(cantidadUsada)} ${cosas}.`,
                   ],
                   [
                     'cotizado',
@@ -943,12 +1046,19 @@ function QuoteModal({ lead, onClose, onDone }) {
             )}
 
             <div className="rounded-md border border-grafito-200 px-3 py-2 text-sm text-grafito-600">
-              <span className="flex items-baseline justify-between gap-3">
-                <span>
-                  {formatNumber(cantidadUsada)} × {formatPesos(precioUsado)}
+              {precioUsado === null ? (
+                <span className="text-amber-700">
+                  {producto?.nombre ?? 'Este producto'} no tiene precio cargado para esa
+                  cantidad.
                 </span>
-                <Money value={precioUsado * cantidadUsada} className="font-semibold" />
-              </span>
+              ) : (
+                <span className="flex items-baseline justify-between gap-3">
+                  <span>
+                    {formatNumber(cantidadUsada)} {cosas} × {formatPesos(precioUsado)}
+                  </span>
+                  <Money value={precioUsado * cantidadUsada} className="font-semibold" />
+                </span>
+              )}
               <span className="mt-1 block text-xs text-grafito-400">
                 Sin IVA. El presupuesto se abre para completar flete y vendedor.
               </span>
@@ -990,6 +1100,9 @@ export default function Leads() {
   /* No depende de ningún filtro: es la lista de provincias que existen, y se
      pide una sola vez. */
   const provincias = useAsync(listLeadProvinces, [])
+  /* Para nombrar lo que pidió cada uno —varillas, postes— en la lista y en el
+     saludo de WhatsApp. */
+  const products = useAsync(() => listProducts({ todos: true }), [])
 
   const query = useAsync(
     () => listLeads({ status, source, provincia, search: term }),
@@ -1102,7 +1215,8 @@ export default function Leads() {
               }
             >
               {leads.map((lead) => {
-                const wa = whatsappLink(lead.telefono, saludo(lead))
+                const producto = productoDelLead(lead, products.data)
+                const wa = whatsappLink(lead.telefono, saludo(lead, producto))
 
                 return (
                   <tr key={lead.id} className="hover:bg-grafito-50">
@@ -1135,13 +1249,15 @@ export default function Leads() {
                         <span className="text-grafito-300">—</span>
                       ) : (
                         <>
-                          {formatNumber(lead.cantidad)}
+                          {formatNumber(lead.cantidad)} {enPlural(producto)}
                           <span className="block text-xs text-grafito-400">
-                            {lead.agujereada === null
-                          ? 'sin definir'
-                          : lead.agujereada
-                            ? 'agujereada'
-                            : 'común'}
+                            {producto?.se_agujerea === false
+                              ? ''
+                              : lead.agujereada === null
+                                ? 'sin definir'
+                                : lead.agujereada
+                                  ? 'agujereados'
+                                  : 'comunes'}
                           </span>
                         </>
                       )}

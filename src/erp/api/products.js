@@ -59,8 +59,28 @@ export async function setProductoWeb(id) {
 }
 
 /**
- * El producto que cotiza la web, que es también con el que se presupuesta un
- * lead.
+ * El producto por el que preguntó un lead.
+ *
+ * El suyo si lo tiene. Los leads de antes de que se guardara preguntaban por
+ * la varilla —no había otra cosa—, así que sin dato se cae a la varilla y no a
+ * «el de la web»: el día que la web pasó a mostrar otro producto, esos leads se
+ * presupuestaban con postes.
+ */
+export function productoDelLead(lead, products) {
+  const lista = products ?? []
+  return (
+    lista.find((item) => item.id === lead?.product_id) ??
+    lista.find((item) => item.codigo === 'VAR') ??
+    productoWeb(lista)
+  )
+}
+
+/* Vive en `src/lib` porque la landing también lo usa y no puede importar
+   nada del ERP: arrastraría el SDK de Supabase. */
+export { enPlural } from '../../lib/productos'
+
+/**
+ * El producto que cotiza la web.
  *
  * Se lo busca por su marca y no agarrando el primero de la lista: "el primero"
  * depende de cómo quedó ordenada una tabla, y presupuestar un lead empezaría a

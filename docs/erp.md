@@ -381,6 +381,17 @@ nueva. Esa era la duplicación real.
 
 #### Presupuestar un lead
 
+**Cada lead sabe qué producto pidió.** La ficha, el alta y el armado del
+presupuesto tienen un selector de producto, y con sus precios se cotiza: el que
+pregunta por postes se presupuesta con los del poste, con la pregunta de
+agujereado sólo si ese producto se agujerea. Los que entran por el simulador de
+la web quedan con el producto que cotizaron. Los leads de antes de este cambio
+quedan como de varillas, que era lo único que había.
+
+> Antes el presupuesto se armaba siempre con el producto marcado **En la
+> web**: el día que ése fue el poste, el que había pedido varillas recibía un
+> presupuesto de postes.
+
 **Presupuestar** arma el pedido con lo que la persona cotizó, sin volver a
 cargar nada. Antes había que hacerlo cliente, entrar a su ficha, crear un
 pedido, elegir el producto, tipear la cantidad y tipear el precio: seis pasos
@@ -908,6 +919,21 @@ lista corta en los primeros 300, así que filtrar después de traerlos contestar
 Quien no tenga localidad cargada no puede aparecer en ninguna de las dos
 pantallas: Envíos lo cuenta aparte, en **Sin dirección**, porque a esa gente no
 se le puede ofrecer un envío hasta saber dónde está.
+
+### La web: catálogo con precios
+
+Debajo de las tarjetas de productos, la landing muestra **todos los productos
+activos del ERP con su precio**: lo que fabricamos con su lista minorista
+(la mayorista no se publica) y lo que se compra hecho con su precio único. Un
+producto nuevo aparece solo, sin deployar. Lo que no tiene precio cargado no
+se muestra.
+
+La web lo lee de dos vistas públicas, `catalogo_web` y `catalogo_precios_web`,
+que eligen las columnas: ni el costo, ni el proveedor, ni las notas salen de la
+base sin sesión.
+
+Hay además un **botón flotante de WhatsApp** abajo a la derecha en toda la
+página.
 
 ### Documentos
 

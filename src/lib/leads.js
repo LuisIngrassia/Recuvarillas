@@ -64,6 +64,11 @@ async function sendToSupabase(lead) {
       nombre: lead.nombre,
       telefono: lead.telefono || null,
       email: lead.email || null,
+      /* Qué cotizó: el ERP presupuesta con este producto y no con «el de la
+         web», que puede haber cambiado para cuando alguien lo atienda. Sólo
+         cuando se sabe: en una base sin la columna, mandarla en null haría
+         fallar la inserción entera, y el error acá se traga. */
+      ...(lead.productId ? { product_id: lead.productId } : {}),
       cantidad: lead.cantidad,
       agujereada: lead.agujereada,
       entrega: lead.entrega,

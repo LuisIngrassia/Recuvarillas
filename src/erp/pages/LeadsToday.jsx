@@ -30,6 +30,8 @@ import {
 } from '../components/ui'
 import { formatDate, formatNumber, whatsappLink } from '../lib/format'
 import { useAsync } from '../lib/useAsync'
+import { enPlural, productoDelLead } from '../api/products'
+import { useProductosCompartidos } from '../lib/precioProducto'
 
 /**
  * El saludo con el que se abre el chat.
@@ -42,6 +44,7 @@ function saludo(lead) {
 }
 
 function Fila({ lead, onChanged, onError }) {
+  const productos = useProductosCompartidos()
   const wa = whatsappLink(lead.telefono, saludo(lead))
   const [reactivando, setReactivando] = useState(false)
 
@@ -83,7 +86,9 @@ function Fila({ lead, onChanged, onError }) {
             : (lead.next_action ?? '—')}
         </span>
         <span className="block text-xs text-grafito-400">
-          {lead.cantidad ? `${formatNumber(lead.cantidad)} varillas · ` : ''}
+          {lead.cantidad
+            ? `${formatNumber(lead.cantidad)} ${enPlural(productoDelLead(lead, productos))} · `
+            : ''}
           {formatDate(lead.vence_el)}
         </span>
       </Td>

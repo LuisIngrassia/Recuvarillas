@@ -2,6 +2,7 @@ import { useState } from 'react'
 import MediaLightbox from './MediaLightbox'
 import ProductCarousel from './ProductCarousel'
 import { products } from '../data/siteContent'
+import Catalogo from './Catalogo'
 
 /**
  * Tarjeta de un producto, con su material al costado y la galería que se abre
@@ -133,6 +134,9 @@ function Products() {
             <ProductCard key={product.name} product={product} />
           ))}
         </div>
+
+        {/* La lista con precio de todo lo cargado en el ERP. */}
+        <Catalogo />
       </div>
     </section>
   )
