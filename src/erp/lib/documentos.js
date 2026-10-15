@@ -65,6 +65,9 @@ export function contactoDe(seller) {
  * `archivo` es cómo se llama el PDF al guardarlo. Se le pega el producto y,
  * cuando lo hay, el vendedor, así que dos versiones no terminan con el mismo
  * archivo en la carpeta de descargas.
+ *
+ * `general` es el que no es de un producto sino de la marca: sale uno solo,
+ * con todos los productos que fabricamos (ver `components/DocSheet.jsx`).
  */
 export const DOCUMENTOS = [
   {
@@ -87,6 +90,14 @@ export const DOCUMENTOS = [
     archivo: 'Recuvarilla-Ficha-tecnica',
     descripcion:
       'El dibujo dimensional y la tabla de características, para el cliente que pregunta los números.',
+  },
+  {
+    tipo: 'flyer',
+    titulo: 'Flyer de marca',
+    archivo: 'Recuvarilla-Flyer',
+    general: true,
+    descripcion:
+      'Una hoja para pegar o mandar por WhatsApp: la marca, las varillas y los postes con sus medidas a escala, y cómo pedir.',
   },
 ]
 

@@ -46,6 +46,7 @@ const Documents = lazy(() => import('./pages/Documents'))
 const DocPriceList = lazy(() => import('./pages/DocPriceList'))
 const DocBrochure = lazy(() => import('./pages/DocBrochure'))
 const DocDatasheet = lazy(() => import('./pages/DocDatasheet'))
+const DocFlyer = lazy(() => import('./pages/DocFlyer'))
 const Social = lazy(() => import('./pages/Social'))
 const SocialPost = lazy(() => import('./pages/SocialPost'))
 
@@ -252,6 +253,7 @@ function Gate() {
           <Route path="documentos/lista-de-precios" element={<DocPriceList />} />
           <Route path="documentos/folleto" element={<DocBrochure />} />
           <Route path="documentos/ficha-tecnica" element={<DocDatasheet />} />
+          <Route path="documentos/flyer" element={<DocFlyer />} />
           <Route path="redes" element={<Social />} />
           <Route path="redes/:id" element={<SocialPost />} />
           <Route path="*"element={<p className="text-sm text-grafito-500">No existe esa pantalla.</p>} />

@@ -29,12 +29,14 @@ export default function Documents() {
   if (producto) params.set('producto', producto.id)
   if (sellerId) params.set('vendedor', sellerId)
   const query = params.toString() ? `?${params}` : ''
+  /* El flyer no es de un producto: lleva sólo el vendedor. */
+  const queryGeneral = sellerId ? `?${new URLSearchParams({ vendedor: sellerId })}` : ''
 
   return (
     <>
       <PageHeader
         title="Documentos"
-        description="Lo que se reparte: la lista de precios, el folleto y la ficha técnica de cada producto."
+        description="Lo que se reparte: la lista de precios, el folleto y la ficha técnica de cada producto, y el flyer de la marca."
       />
 
       <Card title="¿De qué producto?" className="mb-6">
@@ -144,16 +146,19 @@ export default function Documents() {
         </div>
       </Card>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {DOCUMENTOS.map((doc) => (
           <Link
             key={doc.tipo}
-            to={`/erp/documentos/${doc.tipo}${query}`}
+            to={`/erp/documentos/${doc.tipo}${doc.general ? queryGeneral : query}`}
             className="block rounded-xl border border-grafito-200 bg-white p-4 shadow-sm transition-colors hover:border-celeste-600"
           >
             <p className="text-sm font-semibold text-grafito-800">
               {doc.titulo}
-              {producto && <span className="font-normal text-grafito-500"> · {producto.nombre}</span>}
+              {producto && !doc.general && (
+                <span className="font-normal text-grafito-500"> · {producto.nombre}</span>
+              )}
+              {doc.general && <span className="font-normal text-grafito-500"> · todos los productos</span>}
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-grafito-500">{doc.descripcion}</p>
           </Link>

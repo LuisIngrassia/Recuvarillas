@@ -14,6 +14,10 @@
  * El producto viaja igual (`?producto=…`): cada documento existe para cada
  * producto que fabricamos, con su texto guardado en la ficha. Sin producto en la dirección
  * se abre el de la web, que es la varilla.
+ *
+ * Los documentos `general` —el flyer— no son de un producto sino de todos:
+ * no llevan selector de producto ni «Editar contenido», y reciben la lista
+ * entera en `productos`.
  */
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -98,6 +102,7 @@ const ESTILOS_IMPRESION = `
 `
 
 export default function DocSheet({ doc, children }) {
+  const general = Boolean(doc.general)
   const [params, setParams] = useSearchParams()
   const sellers = useAsync(() => listSellers({ soloActivos: true }), [])
   /* Sólo lo que fabricamos tiene papeles: lo que se compra hecho no se
@@ -132,7 +137,7 @@ export default function DocSheet({ doc, children }) {
   const imprimir = () => {
     const titulo = document.title
     const partes = [doc.archivo]
-    if (producto) partes.push(parteDeArchivo(producto.nombre))
+    if (producto && !general) partes.push(parteDeArchivo(producto.nombre))
     if (seller) partes.push(parteDeArchivo(seller.nombre))
     document.title = partes.join('-')
 
@@ -158,20 +163,22 @@ export default function DocSheet({ doc, children }) {
             Documentos
           </Link>
 
-          <label className="block">
-            <span className="block text-xs font-semibold text-grafito-600">Producto</span>
-            <select
-              value={producto?.id ?? ''}
-              onChange={(event) => elegirProducto(event.target.value)}
-              className="mt-1 rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm text-grafito-800 focus:border-celeste-700 focus:outline-none"
-            >
-              {(products.data ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
+          {!general && (
+            <label className="block">
+              <span className="block text-xs font-semibold text-grafito-600">Producto</span>
+              <select
+                value={producto?.id ?? ''}
+                onChange={(event) => elegirProducto(event.target.value)}
+                className="mt-1 rounded-md border border-grafito-200 bg-white px-3 py-2 text-sm text-grafito-800 focus:border-celeste-700 focus:outline-none"
+              >
+                {(products.data ?? []).map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <label className="block">
             <span className="block text-xs font-semibold text-grafito-600">
@@ -193,9 +200,11 @@ export default function DocSheet({ doc, children }) {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => setEditando(true)} disabled={!producto}>
-            Editar contenido
-          </Button>
+          {!general && (
+            <Button variant="ghost" onClick={() => setEditando(true)} disabled={!producto}>
+              Editar contenido
+            </Button>
+          )}
           <Button onClick={imprimir}>Exportar a PDF</Button>
         </div>
       </div>
@@ -222,7 +231,7 @@ export default function DocSheet({ doc, children }) {
       {sellers.loading || products.loading ? (
         <Loading />
       ) : producto ? (
-        children({ contacto, producto, contenido: contenidoDe(producto) })
+        children({ contacto, producto, contenido: contenidoDe(producto), productos: products.data })
       ) : (
         <p className="mx-auto max-w-[860px] rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
           No hay productos fabricados activos.{' '}
@@ -246,10 +255,9 @@ export default function DocSheet({ doc, children }) {
       )}
 
       <p className="mx-auto mt-4 max-w-[860px] text-xs text-grafito-400 print:hidden">
-        Hay uno de estos por producto y por vendedor: elegilos arriba. El
-        texto se cambia con «Editar contenido» y queda guardado en el
-        producto. El link de la barra de direcciones ya lleva los dos
-        puestos, así que se puede pasar directo.
+        {general
+          ? 'Hay uno por vendedor: elegilo arriba. Los productos y sus medidas salen de las fichas, así que uno nuevo aparece solo. El link de la barra de direcciones ya lleva el vendedor puesto.'
+          : 'Hay uno de estos por producto y por vendedor: elegilos arriba. El texto se cambia con «Editar contenido» y queda guardado en el producto. El link de la barra de direcciones ya lleva los dos puestos, así que se puede pasar directo.'}
       </p>
     </>
   )
