@@ -44,7 +44,7 @@ function extremo(texto, color) {
   return L.divIcon({
     className: '',
     iconSize: [0, 0],
-    html: `<div style="transform:translate(-50%,-100%);white-space:nowrap;background:${color};color:#fff;
+    html: `<div style="position:absolute;width:max-content;transform:translate(-50%,calc(-100% - 6px));white-space:nowrap;background:${color};color:#fff;
       font:700 11px/1 Archivo,sans-serif;padding:5px 8px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.3)">
       ${texto}</div>`,
   })
@@ -57,9 +57,10 @@ export default function MapaRuta({ ruta, origen, destino, paradas, corredor, ele
 
   useEffect(() => {
     mapa.current = L.map(contenedor.current, { zoomControl: true, scrollWheelZoom: true })
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '© OpenStreetMap · © CARTO',
-      maxZoom: 18,
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19,
+      className: 'mapa-ruta-fondo',
     }).addTo(mapa.current)
     capas.current = L.layerGroup().addTo(mapa.current)
     return () => mapa.current.remove()
@@ -132,5 +133,10 @@ export default function MapaRuta({ ruta, origen, destino, paradas, corredor, ele
     if (parada) mapa.current.panTo([parada.lat, parada.lon])
   }, [elegida, paradas])
 
-  return <div ref={contenedor} className="h-full min-h-[420px] w-full rounded-xl" />
+  return (
+    <>
+      <style>{'.mapa-ruta-fondo{filter:saturate(.55) brightness(1.04)}'}</style>
+      <div ref={contenedor} className="h-full min-h-[420px] w-full rounded-xl" />
+    </>
+  )
 }
