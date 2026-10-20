@@ -50,7 +50,16 @@ function extremo(texto, color) {
   })
 }
 
-export default function MapaRuta({ ruta, origen, destino, paradas, corredor, elegida, onElegir }) {
+export default function MapaRuta({
+  ruta,
+  origen,
+  destino,
+  paradas,
+  corredor,
+  radioDestino = 0,
+  elegida,
+  onElegir,
+}) {
   const contenedor = useRef(null)
   const mapa = useRef(null)
   const capas = useRef(null)
@@ -97,6 +106,22 @@ export default function MapaRuta({ ruta, origen, destino, paradas, corredor, ele
     mapa.current.on('zoomend', ajustar)
     grupo.addLayer(franja)
 
+    /* El radio del destino va aparte del corredor: una vez descargado se
+       puede recorrer bastante más lejos que lo que conviene desviarse yendo. */
+    if (radioDestino > 0) {
+      grupo.addLayer(
+        L.circle([destino.lat, destino.lon], {
+          radius: radioDestino * 1000,
+          color: '#1f5e96',
+          weight: 1.5,
+          dashArray: '6 6',
+          fillColor: '#74acdf',
+          fillOpacity: 0.1,
+          interactive: false,
+        }),
+      )
+    }
+
     grupo.addLayer(
       L.polyline(ruta.linea, {
         color: '#1d2120',
@@ -125,7 +150,7 @@ export default function MapaRuta({ ruta, origen, destino, paradas, corredor, ele
     })
 
     return () => mapa.current.off('zoomend', ajustar)
-  }, [ruta, origen, destino, paradas, corredor, elegida, onElegir])
+  }, [ruta, origen, destino, paradas, corredor, radioDestino, elegida, onElegir])
 
   /* Al elegir una parada desde la lista, el mapa va hasta ella. */
   useEffect(() => {

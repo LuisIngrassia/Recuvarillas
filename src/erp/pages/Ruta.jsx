@@ -154,6 +154,9 @@ export default function Ruta() {
   const [viaje, setViaje] = useState(VIAJE_INICIAL)
   const [fecha, setFecha] = useState('')
   const [corredor, setCorredor] = useState(30)
+  /* Aparte del corredor: desviarse en el camino es ir y volver con el camión
+     cargado; una vez en el destino, recorrer la zona es lo que se vino a hacer. */
+  const [radioDestino, setRadioDestino] = useState(100)
   const [ver, setVer] = useState({ clientes: true, prospectos: false, leads: false })
   const [mensaje, setMensaje] = useState(MENSAJE_INICIAL)
   const [editandoMensaje, setEditandoMensaje] = useState(false)
@@ -212,13 +215,32 @@ export default function Ruta() {
       if (t.orden === 2) return ver.prospectos
       return ver.leads
     })
-    return paradasSobreRuta(elegidos, camino.data.preparada, corredor).map((parada) => ({
+    return paradasSobreRuta(
+      elegidos,
+      camino.data.preparada,
+      corredor,
+      camino.data.hasta,
+      radioDestino,
+    ).map((parada) => ({
       ...parada,
       contactos: [...parada.contactos].sort(
         (a, b) => tipoDe(a).orden - tipoDe(b).orden || a.nombre.localeCompare(b.nombre),
       ),
     }))
-  }, [cartera.data, camino.data, corredor, ver])
+  }, [cartera.data, camino.data, corredor, radioDestino, ver])
+
+  const primeraEnDestino = paradas.findIndex((p) => p.enDestino)
+  const nombreDestino = camino.data?.hasta.nombre ?? separarLugar(viaje.hasta).localidad
+
+  /** "km 143 · sobre el camino" o "a 62 km de Santa Rosa". */
+  const dondeQueda = (parada) =>
+    parada.enDestino
+      ? `a ${formatNumber(Math.round(parada.alDestino))} km de ${nombreDestino}`
+      : `km ${formatNumber(Math.round(parada.km))}${
+          parada.desvio >= 8
+            ? ` · ${formatNumber(Math.round(parada.desvio))} km fuera del camino`
+            : ' · sobre el camino'
+        }`
 
   useEffect(() => setElegida(null), [viaje])
 
@@ -237,7 +259,7 @@ export default function Ruta() {
     const texto = paradas
       .map(
         (p, i) =>
-          `${i + 1}. ${p.nombre} (km ${Math.round(p.km)})\n` +
+          `${i + 1}. ${p.nombre} (${dondeQueda(p)})\n` +
           p.contactos
             .map((c) => `   - ${c.nombre}${c.telefono ? ` · ${c.telefono}` : ''} · ${tipoDe(c).label}`)
             .join('\n'),
@@ -303,7 +325,7 @@ export default function Ruta() {
 
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-grafito-100 pt-4">
           <label className="flex items-center gap-3 text-sm text-grafito-600">
-            <span className="whitespace-nowrap">Hasta</span>
+            <span className="whitespace-nowrap">En el camino</span>
             <input
               type="range"
               min={5}
@@ -311,9 +333,22 @@ export default function Ruta() {
               step={5}
               value={corredor}
               onChange={(e) => setCorredor(Number(e.target.value))}
-              className="w-40 accent-grafito-900"
+              className="w-36 accent-grafito-900"
             />
-            <span className="w-28 font-mono text-grafito-900">{corredor} km del camino</span>
+            <span className="w-24 font-mono text-grafito-900">{corredor} km</span>
+          </label>
+          <label className="flex items-center gap-3 text-sm text-grafito-600">
+            <span className="whitespace-nowrap">Alrededor de {nombreDestino || 'el destino'}</span>
+            <input
+              type="range"
+              min={0}
+              max={300}
+              step={10}
+              value={radioDestino}
+              onChange={(e) => setRadioDestino(Number(e.target.value))}
+              className="w-36 accent-celeste-700"
+            />
+            <span className="w-24 font-mono text-grafito-900">{radioDestino} km</span>
           </label>
           {[
             ['clientes', 'Clientes'],
@@ -404,6 +439,7 @@ export default function Ruta() {
                 destino={camino.data.hasta}
                 paradas={paradas}
                 corredor={corredor}
+                radioDestino={radioDestino}
                 elegida={elegida}
                 onElegir={setElegida}
               />
@@ -436,14 +472,19 @@ export default function Ruta() {
               {paradas.length === 0 ? (
                 <Card>
                   <Empty>
-                    Nadie a menos de {corredor} km del camino. Probá ampliar la distancia o sumar leads y
-                    prospectos.
+                    Nadie a menos de {corredor} km del camino ni de {radioDestino} km de {nombreDestino}.
+                    Probá ampliar las distancias o sumar leads y prospectos.
                   </Empty>
                 </Card>
               ) : (
                 <ol className="space-y-3">
                   {paradas.map((parada, i) => (
                     <li key={parada.id}>
+                      {i === primeraEnDestino && (
+                        <p className="rotulo mb-2 mt-5 text-celeste-700">
+                          Alrededor de {nombreDestino} · hasta {radioDestino} km
+                        </p>
+                      )}
                       <Card
                         className={`transition-shadow ${
                           parada.id === elegida ? 'ring-2 ring-celeste-400' : ''
@@ -465,10 +506,7 @@ export default function Ruta() {
                               {parada.nombre}
                             </span>
                             <span className="block text-xs text-grafito-400">
-                              {parada.provincia} · km {formatNumber(Math.round(parada.km))}
-                              {parada.desvio >= 8
-                                ? ` · ${formatNumber(Math.round(parada.desvio))} km fuera del camino`
-                                : ' · sobre el camino'}
+                              {parada.provincia} · {dondeQueda(parada)}
                             </span>
                           </span>
                           <span className="font-mono text-xs text-grafito-500">

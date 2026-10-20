@@ -248,16 +248,40 @@ export function medir(preparada, lat, lon) {
   return mejor
 }
 
+/** Distancia en línea recta entre dos puntos, en km. */
+export function distancia(a, b) {
+  const dx = (b.lon - a.lon) * kmLon((a.lat + b.lat) / 2)
+  const dy = (b.lat - a.lat) * KM_LAT
+  return Math.hypot(dx, dy)
+}
+
 /**
- * Las paradas del viaje: los contactos a menos de `corredor` km del camino,
- * agrupados por localidad y en el orden en que se pasa por cada una.
+ * Las paradas del viaje, agrupadas por localidad y en el orden en que se pasa
+ * por cada una.
+ *
+ * Entran por dos lados, porque desviarse no cuesta lo mismo en todo el viaje:
+ *
+ * - **En el camino**, a menos de `corredor` km. Cada desvío ahí es ida y vuelta
+ *   con el camión cargado y el destino todavía por delante.
+ * - **Alrededor del destino**, a menos de `radioDestino` km en línea recta. Una
+ *   vez descargado, recorrer la zona es lo que se vino a hacer.
+ *
+ * Los que entran sólo por el radio del destino van al final, del más cerca al
+ * más lejos de él, con `enDestino` en true para que la lista lo diga.
  */
-export function paradasSobreRuta(ubicados, preparada, corredor) {
+export function paradasSobreRuta(ubicados, preparada, corredor, destino, radioDestino = 0) {
   const porLugar = new Map()
 
   for (const punto of ubicados) {
-    const { desvio, km } = medir(preparada, punto.geo.lat, punto.geo.lon)
-    if (desvio > corredor) continue
+    let { desvio, km } = medir(preparada, punto.geo.lat, punto.geo.lon)
+    const alDestino = destino ? distancia(destino, punto.geo) : Infinity
+    let enDestino = false
+
+    if (desvio > corredor) {
+      if (alDestino > radioDestino) continue
+      enDestino = true
+      km = preparada.total + alDestino
+    }
 
     const k = `${punto.geo.lat.toFixed(4)},${punto.geo.lon.toFixed(4)}`
     if (!porLugar.has(k)) {
@@ -269,6 +293,8 @@ export function paradasSobreRuta(ubicados, preparada, corredor) {
         lon: punto.geo.lon,
         km,
         desvio,
+        enDestino,
+        alDestino,
         contactos: [],
       })
     }
