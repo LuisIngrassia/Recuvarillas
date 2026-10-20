@@ -37,6 +37,8 @@ function Tarjeta({ lead, onDragStart, arrastrando }) {
   return (
     <Link
       to={`/erp/leads/${lead.id}`}
+      /* La ficha lo muestra en el acto con esto, sin esperar a la base. */
+      state={{ lead }}
       draggable
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = 'move'

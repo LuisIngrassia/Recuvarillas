@@ -219,6 +219,22 @@ function Shell({ email, children }) {
 function Gate() {
   const { session, loading } = useSession()
 
+  /*
+    La ficha del lead es la pantalla que más se abre, y siempre desde otra. Se
+    baja de fondo apenas hay sesión, con el navegador libre, para que el primer
+    clic no tenga que esperar la descarga. Es el mismo `import()` del `lazy` de
+    arriba, así que no se baja dos veces.
+  */
+  useEffect(() => {
+    if (!session) return
+    const precargar = () => import('./pages/LeadDetail')
+    const espera = window.requestIdleCallback
+      ? window.requestIdleCallback(precargar, { timeout: 3000 })
+      : window.setTimeout(precargar, 1500)
+    return () =>
+      window.cancelIdleCallback ? window.cancelIdleCallback(espera) : window.clearTimeout(espera)
+  }, [session])
+
   if (!isSupabaseConfigured) return <SetupNotice />
   if (loading) return <Loading>Entrando…</Loading>
   if (!session) return <Login />

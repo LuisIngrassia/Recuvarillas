@@ -1251,17 +1251,20 @@ export default function Leads() {
               {leads.map((lead) => {
                 const producto = productoDelLead(lead, products.data)
                 const wa = whatsappLink(lead.telefono, saludo(lead, producto))
-                /* Lo del lead manda; lo que le falte sale de la ficha del
-                   cliente, que es donde se sigue cargando una vez convertido. */
-                const localidad = lead.localidad ?? lead.customer?.localidad ?? null
-                const provincia = lead.provincia ?? lead.customer?.provincia ?? null
-                const codigoPostal = lead.codigo_postal ?? lead.customer?.codigo_postal ?? null
+                /* Convertido, manda la ficha del cliente: es donde se corrige la
+                   dirección. El lead sólo se usa cuando todavía no es cliente. */
+                const desde = lead.customer ?? lead
+                const localidad = desde.localidad ?? null
+                const provincia = desde.provincia ?? null
+                const codigoPostal = desde.codigo_postal ?? null
 
                 return (
                   <tr key={lead.id} className="hover:bg-grafito-50">
                     <Td>
                       <Link
                         to={`/erp/leads/${lead.id}`}
+                        /* La ficha lo muestra en el acto con esto, sin esperar a la base. */
+                        state={{ lead }}
                         className="text-left font-medium text-grafito-700 hover:text-celeste-700"
                       >
                         {lead.nombre}

@@ -1,6 +1,8 @@
 /** Clientes y su cuenta corriente. */
 import { db, searchTerm, unwrap } from './client'
 import { clave } from './shipping'
+import { findPostalCode, loadPostalCodes } from '../../lib/postalCodes'
+import { ROAD_FACTOR } from '../../data/pricing'
 
 /**
  * El padrón con el saldo de cada uno.
@@ -72,21 +74,22 @@ export async function updateCustomer(id, changes) {
 }
 
 /**
- * Lo que se carga en la ficha del cliente llega a sus leads, si les falta.
+ * La dirección del cliente es la de sus leads.
  *
  * Una vez convertido, la dirección se corrige en la ficha del cliente: es la
- * que se abre con «Ver cliente». Sin esto el lead seguía sin provincia, y el
- * filtro por provincia y las rutas de viaje —que miran el lead— no lo veían.
+ * que se abre con «Ver cliente», y la del lead no tiene dónde editarse. Si no
+ * se copia, el lead se queda con la vieja, y el filtro por provincia, la lista
+ * y las rutas de viaje —que miran el lead— lo siguen ubicando donde no está.
  *
- * Sólo se llenan los vacíos. Lo que el lead ya tiene es lo que cotizó en su
- * momento y no se pisa. La provincia, además, se completa sólo si la localidad
- * del lead es la misma que la del cliente (o no tiene): ponerle «La Pampa» a un
- * lead de Bombal porque el cliente se mudó sería inventar un dato.
+ * Se copia tal cual, también los vacíos: si el cliente quedó sin código postal,
+ * dejarle al lead uno que ya no corresponde sería peor que no tener ninguno.
+ * Sólo se toca lo que cambió, para no reescribir leads que ya coinciden.
+ *
+ * Los kilómetros se recalculan con el código postal nuevo, igual que en la web:
+ * con la dirección cambiada, los de antes son de otro lugar. Si el código no
+ * está en el padrón quedan en null, que es «no se sabe», y no un número viejo.
  */
 async function completarLeads(customer) {
-  const mismaLocalidad = (texto) =>
-    !texto || clave(texto) === clave(customer.localidad)
-
   const leads = unwrap(
     await db()
       .from('leads')
@@ -94,19 +97,30 @@ async function completarLeads(customer) {
       .eq('customer_id', customer.id),
   )
 
-  await Promise.all(
-    leads.map((lead) => {
-      const cambios = {}
-      if (!lead.localidad && customer.localidad) cambios.localidad = customer.localidad
-      if (!lead.provincia && customer.provincia && mismaLocalidad(lead.localidad)) {
-        cambios.provincia = customer.provincia
-      }
-      if (!lead.codigo_postal && customer.codigo_postal && mismaLocalidad(lead.localidad)) {
-        cambios.codigo_postal = customer.codigo_postal
-      }
-      if (Object.keys(cambios).length === 0) return null
-      return db().from('leads').update(cambios).eq('id', lead.id).then(unwrap)
-    }),
+  const mismo = (a, b) => clave(a) === clave(b)
+  const cambiados = leads.filter(
+    (lead) =>
+      !mismo(lead.localidad, customer.localidad) ||
+      !mismo(lead.provincia, customer.provincia) ||
+      String(lead.codigo_postal ?? '').trim() !== String(customer.codigo_postal ?? '').trim(),
+  )
+  if (cambiados.length === 0) return
+
+  const padron = await loadPostalCodes()
+  const lugar = findPostalCode(padron, String(customer.codigo_postal ?? '').match(/\d{4}/)?.[0])
+
+  const cambios = {
+    localidad: customer.localidad,
+    provincia: customer.provincia,
+    codigo_postal: customer.codigo_postal,
+    kilometros: lugar ? Math.round(lugar.km * ROAD_FACTOR) : null,
+  }
+
+  unwrap(
+    await db()
+      .from('leads')
+      .update(cambios)
+      .in('id', cambiados.map((lead) => lead.id)),
   )
 }
 

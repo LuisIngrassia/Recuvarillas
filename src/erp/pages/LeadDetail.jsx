@@ -7,7 +7,7 @@
  * acordeón al final.
  */
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import {
   LEAD_EVENT_LABELS,
   LEAD_EVENT_TYPES,
@@ -26,6 +26,7 @@ import {
   Card,
   ErrorNote,
   Field,
+  Loading,
   PageHeader,
   Select,
   Textarea,
@@ -143,18 +144,38 @@ function Anotar({ leadId, onSaved }) {
 
 export default function LeadDetail() {
   const { id } = useParams()
+  const location = useLocation()
   const lead = useAsync(() => getLead(id), [id])
   const eventos = useAsync(() => listLeadEvents(id), [id])
+
+  /*
+    Lo que ya se tenía en la lista, para no esperar a la base.
+
+    Al entrar desde la lista o el tablero, el lead viaja en el estado de la
+    navegación: se muestra en el acto y la consulta de siempre lo reemplaza al
+    llegar, con lo que haya cambiado y con el cliente vinculado. Si se entra por
+    un enlace pegado o recargando la página no hay nada que reusar, y se espera
+    como antes.
+  */
+  const previo = location.state?.lead?.id === id ? location.state.lead : null
+  const l = lead.data ?? previo
 
   const recargar = () => {
     lead.reload()
     eventos.reload()
   }
 
+  /* `Async` no sirve acá: muestra «Cargando…» cada vez que se recarga, aunque
+     ya haya datos, y la ficha entera parpadeaba al cambiar de etapa. Con el
+     lead a la vista se sigue mostrando mientras llega la versión nueva. */
+  if (!l) {
+    if (lead.error) return <ErrorNote onRetry={lead.reload}>{lead.error}</ErrorNote>
+    return <Loading />
+  }
+
   return (
     <div className="space-y-6">
-      <Async query={lead}>
-        {(l) => {
+      {(() => {
           const wa = whatsappLink(l.telefono, `Hola ${l.nombre?.split(' ')[0] ?? ''}, te escribo de Recuvarilla.`)
 
           return (
@@ -212,8 +233,10 @@ export default function LeadDetail() {
                       <Dato label="Email">{l.email}</Dato>
                       <Dato label="Canal">{LEAD_SOURCE_LABELS[l.source] ?? l.source}</Dato>
                       <Dato label="Tipo">{LEAD_TYPE_LABELS[l.lead_type]}</Dato>
-                      <Dato label="Zona">{l.localidad}</Dato>
-                      <Dato label="Provincia">{l.provincia}</Dato>
+                      {/* Convertido, la dirección se corrige en la ficha del
+                          cliente: se muestra esa y no la que quedó en el lead. */}
+                      <Dato label="Zona">{(l.customer ?? l).localidad}</Dato>
+                      <Dato label="Provincia">{(l.customer ?? l).provincia}</Dato>
                       <Dato label="Cantidad">
                         {l.cantidad ? formatNumber(l.cantidad) : null}
                       </Dato>
@@ -259,8 +282,7 @@ export default function LeadDetail() {
               </div>
             </>
           )
-        }}
-      </Async>
+      })()}
     </div>
   )
 }

@@ -306,7 +306,7 @@ export async function getLead(id) {
   return unwrap(
     await db()
       .from('leads')
-      .select('*, customer:customers(id, nombre, tipo)')
+      .select('*, customer:customers(id, nombre, tipo, localidad, provincia, codigo_postal)')
       .eq('id', id)
       .single(),
   )
