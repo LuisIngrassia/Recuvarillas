@@ -133,6 +133,11 @@ export default function Shipping() {
       <PageHeader
         title="Envíos"
         description="Quién está cerca de un viaje que ya sale, para ofrecerle un flete compartido."
+        actions={
+          <Link to="/erp/envios/ruta">
+            <Button>Armar ruta de viaje</Button>
+          </Link>
+        }
       />
 
       <Async query={query}>

@@ -34,6 +34,7 @@ const Stock = lazy(() => import('./pages/Stock'))
 const Cash = lazy(() => import('./pages/Cash'))
 const Expenses = lazy(() => import('./pages/Expenses'))
 const Shipping = lazy(() => import('./pages/Shipping'))
+const Ruta = lazy(() => import('./pages/Ruta'))
 const ExpenseTypes = lazy(() => import('./pages/ExpenseTypes'))
 const Profit = lazy(() => import('./pages/Profit'))
 const Prices = lazy(() => import('./pages/Prices'))
@@ -73,7 +74,8 @@ const SECTIONS = [
   { to: '/erp/pedidos', label: 'Pedidos' },
   { to: '/erp/stock', label: 'Stock' },
   { to: '/erp/caja', label: 'Caja' },
-  { to: '/erp/envios', label: 'Envíos' },
+  { to: '/erp/envios', label: 'Envíos', end: true },
+  { to: '/erp/envios/ruta', label: 'Ruta de viaje' },
   { to: '/erp/costos', label: 'Costos' },
   { to: '/erp/rentabilidad', label: 'Rentabilidad' },
   { to: '/erp/documentos', label: 'Documentos' },
@@ -240,6 +242,7 @@ function Gate() {
           <Route path="stock" element={<Stock />} />
           <Route path="caja" element={<Cash />} />
           <Route path="envios" element={<Shipping />} />
+          <Route path="envios/ruta" element={<Ruta />} />
           <Route path="costos" element={<Expenses />} />
           <Route path="tipos-de-gasto" element={<ExpenseTypes />} />
           <Route path="rentabilidad" element={<Profit />} />

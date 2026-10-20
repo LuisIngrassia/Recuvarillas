@@ -37,7 +37,7 @@ import { listCustomerOptions } from '../api/customers'
 import { StatusBadge } from '../components/LeadPipeline'
 import { enPlural, listProducts, productoDelLead } from '../api/products'
 import { precioDeLista, useEscalones } from '../lib/precioProducto'
-import { listLocalidades, provinciasDe } from '../api/shipping'
+import { clave, listLocalidades, provinciasDe } from '../api/shipping'
 import LocalidadField from '../components/LocalidadField'
 import { useAsync } from '../lib/useAsync'
 import { useDebounced } from '../lib/useDebounced'
@@ -476,6 +476,7 @@ const NUEVO = {
   cantidad: '',
   agujereada: '',
   localidad: '',
+  provincia: '',
   notas: '',
 }
 
@@ -500,11 +501,32 @@ function NewLeadModal({ onClose, onSaved }) {
   const seAgujerea = producto?.se_agujerea !== false
   const cosas = enPlural(producto)
 
-  /* Acá no se pide ni provincia ni código postal —a alguien que recién pregunta
-     un precio no se le piden tres datos de domicilio— así que la lista sale sin
-     filtrar. Igual sirve: dice si ya hay gente en el lugar que se está
-     escribiendo. */
+  /* Localidad y provincia, sin código postal: a alguien que recién pregunta un
+     precio no se le piden tres datos de domicilio, pero sin provincia el lead
+     no aparece al filtrar ni en las rutas de viaje, y había que volver a abrir
+     la ficha sólo para cargarla. */
   const localidades = useAsync(listLocalidades, [])
+
+  /*
+    Elegir una localidad donde ya hay gente completa la provincia sola, si esa
+    localidad está en una sola. Una San Martín que existe en varias provincias
+    no se adivina: se deja para que la elija quien carga. Y una provincia ya
+    elegida no se pisa nunca.
+  */
+  const setLocalidad = (event) => {
+    const localidad = event.target.value
+    setForm((prev) => {
+      if (prev.provincia) return { ...prev, localidad }
+      const k = clave(localidad)
+      const provincias = new Set(
+        (localidades.data ?? [])
+          .filter((fila) => fila.clave === k)
+          .map((fila) => canonicalProvince(fila.provincia)),
+      )
+      const provincia = provincias.size === 1 ? [...provincias][0] : ''
+      return { ...prev, localidad, provincia }
+    })
+  }
 
   const set = (key) => (event) =>
     setForm((prev) => ({
@@ -552,6 +574,7 @@ function NewLeadModal({ onClose, onSaved }) {
             : form.agujereada === 'true',
         product_id: producto?.id ?? null,
         localidad: form.localidad.trim() || null,
+        provincia: form.provincia || null,
         notas: form.notas.trim() || null,
       })
       onSaved()
@@ -603,9 +626,20 @@ function NewLeadModal({ onClose, onSaved }) {
           </Field>
           <LocalidadField
             value={form.localidad}
-            onChange={set('localidad')}
+            onChange={setLocalidad}
+            provincia={form.provincia}
             localidades={localidades.data ?? []}
           />
+          <Field label="Provincia">
+            <Select value={form.provincia} onChange={set('provincia')}>
+              <option value="">Sin especificar</option>
+              {PROVINCES.map((nombre) => (
+                <option key={nombre} value={nombre}>
+                  {nombre}
+                </option>
+              ))}
+            </Select>
+          </Field>
         </div>
 
         {seAgujerea && (
