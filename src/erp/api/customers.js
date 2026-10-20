@@ -1,5 +1,6 @@
 /** Clientes y su cuenta corriente. */
 import { db, searchTerm, unwrap } from './client'
+import { clave } from './shipping'
 
 /**
  * El padrón con el saldo de cada uno.
@@ -63,7 +64,50 @@ export async function createCustomer(values) {
 }
 
 export async function updateCustomer(id, changes) {
-  return unwrap(await db().from('customers').update(changes).eq('id', id).select().single())
+  const customer = unwrap(
+    await db().from('customers').update(changes).eq('id', id).select().single(),
+  )
+  await completarLeads(customer)
+  return customer
+}
+
+/**
+ * Lo que se carga en la ficha del cliente llega a sus leads, si les falta.
+ *
+ * Una vez convertido, la dirección se corrige en la ficha del cliente: es la
+ * que se abre con «Ver cliente». Sin esto el lead seguía sin provincia, y el
+ * filtro por provincia y las rutas de viaje —que miran el lead— no lo veían.
+ *
+ * Sólo se llenan los vacíos. Lo que el lead ya tiene es lo que cotizó en su
+ * momento y no se pisa. La provincia, además, se completa sólo si la localidad
+ * del lead es la misma que la del cliente (o no tiene): ponerle «La Pampa» a un
+ * lead de Bombal porque el cliente se mudó sería inventar un dato.
+ */
+async function completarLeads(customer) {
+  const mismaLocalidad = (texto) =>
+    !texto || clave(texto) === clave(customer.localidad)
+
+  const leads = unwrap(
+    await db()
+      .from('leads')
+      .select('id, localidad, provincia, codigo_postal')
+      .eq('customer_id', customer.id),
+  )
+
+  await Promise.all(
+    leads.map((lead) => {
+      const cambios = {}
+      if (!lead.localidad && customer.localidad) cambios.localidad = customer.localidad
+      if (!lead.provincia && customer.provincia && mismaLocalidad(lead.localidad)) {
+        cambios.provincia = customer.provincia
+      }
+      if (!lead.codigo_postal && customer.codigo_postal && mismaLocalidad(lead.localidad)) {
+        cambios.codigo_postal = customer.codigo_postal
+      }
+      if (Object.keys(cambios).length === 0) return null
+      return db().from('leads').update(cambios).eq('id', lead.id).then(unwrap)
+    }),
+  )
 }
 
 /**

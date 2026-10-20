@@ -1251,6 +1251,11 @@ export default function Leads() {
               {leads.map((lead) => {
                 const producto = productoDelLead(lead, products.data)
                 const wa = whatsappLink(lead.telefono, saludo(lead, producto))
+                /* Lo del lead manda; lo que le falte sale de la ficha del
+                   cliente, que es donde se sigue cargando una vez convertido. */
+                const localidad = lead.localidad ?? lead.customer?.localidad ?? null
+                const provincia = lead.provincia ?? lead.customer?.provincia ?? null
+                const codigoPostal = lead.codigo_postal ?? lead.customer?.codigo_postal ?? null
 
                 return (
                   <tr key={lead.id} className="hover:bg-grafito-50">
@@ -1305,14 +1310,14 @@ export default function Leads() {
                     </Td>
                     <Td className="text-xs text-grafito-500">
                       {lead.entrega === 'envio'
-                        ? `${lead.localidad ?? '—'} · ${formatNumber(lead.kilometros ?? 0)} km`
-                        : (lead.localidad ?? 'Retira')}
+                        ? `${localidad ?? '—'} · ${formatNumber(lead.kilometros ?? 0)} km`
+                        : (localidad ?? 'Retira')}
                       {/* La provincia, para que filtrar por ella deje una lista
                           en la que se ve por qué está cada uno. */}
-                      {lead.provincia && (
+                      {provincia && (
                         <span className="block text-xs text-grafito-400">
-                          {lead.provincia}
-                          {lead.codigo_postal ? ` · ${lead.codigo_postal}` : ''}
+                          {provincia}
+                          {codigoPostal ? ` · ${codigoPostal}` : ''}
                         </span>
                       )}
                     </Td>

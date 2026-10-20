@@ -237,7 +237,9 @@ export async function listLeads({
 } = {}) {
   let query = db()
     .from('leads')
-    .select('*, customer:customers(id, nombre, tipo)')
+    /* Con la dirección del cliente: cuando el lead ya es cliente, lo que se
+       corrige se corrige en la ficha del cliente, y la lista tiene que verlo. */
+    .select('*, customer:customers(id, nombre, tipo, localidad, provincia, codigo_postal)')
     .order('created_at', { ascending: false })
     .limit(limit)
 
