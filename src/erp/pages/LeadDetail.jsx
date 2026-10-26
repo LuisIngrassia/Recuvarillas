@@ -7,7 +7,8 @@
  * acordeón al final.
  */
 import { useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { ConvertModal, LeadModal } from './Leads'
 import {
   LEAD_EVENT_LABELS,
   LEAD_EVENT_TYPES,
@@ -145,6 +146,9 @@ function Anotar({ leadId, onSaved }) {
 export default function LeadDetail() {
   const { id } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
+  const [editando, setEditando] = useState(false)
+  const [convirtiendo, setConvirtiendo] = useState(false)
   const lead = useAsync(() => getLead(id), [id])
   const eventos = useAsync(() => listLeadEvents(id), [id])
 
@@ -195,6 +199,18 @@ export default function LeadDetail() {
                       <a href={wa} target="_blank" rel="noopener noreferrer">
                         <Button>WhatsApp</Button>
                       </a>
+                    )}
+                    <Button variant="soft" onClick={() => setEditando(true)}>
+                      Editar
+                    </Button>
+                    {l.customer ? (
+                      <Link to={`/erp/clientes/${l.customer.id}`}>
+                        <Button variant="ghost">Ver cliente</Button>
+                      </Link>
+                    ) : (
+                      <Button variant="soft" onClick={() => setConvirtiendo(true)}>
+                        Hacer cliente
+                      </Button>
                     )}
                     <Link to="/erp/leads">
                       <Button variant="ghost">Volver</Button>
@@ -283,6 +299,27 @@ export default function LeadDetail() {
             </>
           )
       })()}
+
+      {editando && (
+        <LeadModal
+          lead={l}
+          onClose={() => setEditando(false)}
+          onSaved={() => {
+            setEditando(false)
+            recargar()
+          }}
+        />
+      )}
+
+      {convirtiendo && (
+        <ConvertModal
+          lead={l}
+          onClose={() => setConvirtiendo(false)}
+          /* Igual que desde la lista: se lo hace cliente para cargarle algo, y
+             eso se hace en su ficha. */
+          onDone={(customerId) => navigate(`/erp/clientes/${customerId}`)}
+        />
+      )}
     </div>
   )
 }

@@ -164,7 +164,7 @@ function CampoProducto({ value, onChange, products, hint }) {
  * preguntando un precio, y viven en la ficha del cliente, que es donde se
  * completan cuando hace falta facturarle.
  */
-function LeadModal({ lead, onClose, onSaved }) {
+export function LeadModal({ lead, onClose, onSaved }) {
   const products = useAsync(listProducts, [])
   /* El padrón son ~55 KB que se bajan una sola vez por sesión, y sólo si
      alguien abre una ficha. Sirve para que corregir el código postal complete
@@ -174,6 +174,12 @@ function LeadModal({ lead, onClose, onSaved }) {
   /* Las localidades donde ya hay alguien, para proponerlas escritas siempre
      igual y decir de paso cuánta gente hay en cada una. */
   const localidades = useAsync(listLocalidades, [])
+
+  /* Ya es cliente: la dirección viene de su ficha, la misma que muestran la
+     lista y la ficha del lead. Si no vino el cliente con la dirección (entrando
+     desde el tablero), se usa la del lead, que al guardar el cliente es igual. */
+  const dirDelCliente = Boolean(lead.customer_id)
+  const dir = lead.customer && 'localidad' in lead.customer ? lead.customer : lead
 
   const [form, setForm] = useState({
     nombre: lead.nombre,
@@ -189,9 +195,9 @@ function LeadModal({ lead, onClose, onSaved }) {
       ? ''
       : String(lead.agujereada),
     entrega: lead.entrega,
-    codigo_postal: lead.codigo_postal ?? '',
-    localidad: lead.localidad ?? '',
-    provincia: lead.provincia ?? '',
+    codigo_postal: dir.codigo_postal ?? '',
+    localidad: dir.localidad ?? '',
+    provincia: dir.provincia ?? '',
     kilometros: lead.kilometros,
     notas: lead.notas ?? '',
   })
@@ -310,9 +316,14 @@ function LeadModal({ lead, onClose, onSaved }) {
     <Modal title={lead.nombre} onClose={onClose} wide>
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Nombre">
-            <Input value={form.nombre} onChange={set('nombre')} />
-          </Field>
+          {/* La fila entera: en media columna un nombre con apellido, o una
+              razón social, quedaba cortado y había que recorrerlo con el cursor
+              para ver qué se estaba corrigiendo. */}
+          <div className="sm:col-span-2">
+            <Field label="Nombre">
+              <Input value={form.nombre} onChange={set('nombre')} />
+            </Field>
+          </div>
           <Field
             label="De dónde salió"
             hint="Corregirlo cambia a qué canal se le atribuye este contacto."
@@ -410,6 +421,25 @@ function LeadModal({ lead, onClose, onSaved }) {
               <option value="envio">Con envío</option>
             </Select>
           </Field>
+          {/*
+            Convertido, la dirección es la de la ficha del cliente: es la que se
+            muestra y la que se copia a sus leads al guardarla. Dejarla editable
+            acá sería un formulario que guarda y no cambia nada a la vista. Se
+            bloquea y se dice dónde se corrige.
+          */}
+          <fieldset disabled={dirDelCliente} className="contents">
+          {dirDelCliente && (
+            <p className="rounded-md border border-grafito-200 bg-grafito-50 px-3 py-2 text-xs text-grafito-600 sm:col-span-2">
+              Ya es cliente: la dirección se corrige en{' '}
+              <Link
+                to={`/erp/clientes/${lead.customer_id}`}
+                className="font-semibold text-celeste-700 hover:underline"
+              >
+                su ficha de cliente
+              </Link>
+              , y de ahí pasa a este lead.
+            </p>
+          )}
           <Field
             label="Código postal"
             hint={
@@ -441,6 +471,7 @@ function LeadModal({ lead, onClose, onSaved }) {
               ))}
             </Select>
           </Field>
+          </fieldset>
         </div>
 
         <Field label="Notas" hint="Qué dijo, cuándo volver a llamar, qué lo frenó.">
@@ -735,7 +766,7 @@ function ElegirCliente({ modo, onModo, customerId, onCustomerId, customers }) {
 }
 
 /** Pasar el lead a cliente, sin cargarle nada todavía. */
-function ConvertModal({ lead, onClose, onDone }) {
+export function ConvertModal({ lead, onClose, onDone }) {
   const customers = useAsync(listCustomerOptions, [])
   const [modo, setModo] = useState('nuevo')
   const [customerId, setCustomerId] = useState('')
@@ -1377,6 +1408,16 @@ export default function Leads() {
                             Hacer cliente
                           </Button>
                         )}
+                        {/* El nombre abre la ficha; corregir los datos es esto.
+                            Desde que el nombre dejó de abrir el formulario no
+                            había otra forma de llegar a él. */}
+                        <Button
+                          variant="ghost"
+                          className="px-2.5 py-1.5 text-xs"
+                          onClick={() => setEditing(lead)}
+                        >
+                          Editar
+                        </Button>
                         <Button
                           variant="danger"
                           className="px-2.5 py-1.5 text-xs"
